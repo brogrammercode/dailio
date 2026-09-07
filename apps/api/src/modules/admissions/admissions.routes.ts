@@ -1,13 +1,15 @@
 import { Router } from 'express';
+
+import { authenticate } from '../../middleware/auth';
+import { resolveTenantContext } from '../../middleware/tenant';
+import { requirePermission } from '../../middleware/permission';
+
 import {
   joinLocation,
   getJoinRequests,
   approveRequest,
   rejectRequest,
 } from './admissions.controller';
-import { authenticate } from '../../middleware/auth';
-import { resolveTenantContext } from '../../middleware/tenant';
-import { requirePermission } from '../../middleware/permission';
 
 const router: Router = Router();
 

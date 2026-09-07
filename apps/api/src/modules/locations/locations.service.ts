@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+
 import type { DiscoverLocationsQuery } from './locations.schema';
 
 export async function discoverLocations({ query, limit, cursor }: DiscoverLocationsQuery) {

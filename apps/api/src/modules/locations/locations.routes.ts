@@ -1,6 +1,8 @@
 import { Router } from 'express';
-import { discoverLocations } from './locations.controller';
+
 import { authenticate } from '../../middleware/auth';
+
+import { discoverLocations } from './locations.controller';
 
 const router: Router = Router();
 

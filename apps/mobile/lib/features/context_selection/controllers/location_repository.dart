@@ -20,9 +20,12 @@ class LocationRepository {
   }
 
   Future<void> joinLocation(String locationId, {String? message}) async {
+    final data = <String, dynamic>{'message': message};
+    data.removeWhere((key, value) => value == null || value == '');
+
     await apiClient.dio.post(
       '/locations/$locationId/join',
-      data: {'message': message},
+      data: data,
     );
   }
 }

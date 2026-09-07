@@ -2,9 +2,10 @@ import { type Router, Router as ExpressRouter } from 'express';
 
 import { authRouter } from '../modules/auth/auth.routes';
 import { organizationsRouter } from '../modules/organizations/organizations.routes';
-
 import locationsRouter from '../modules/locations/locations.routes';
 import admissionsRouter from '../modules/admissions/admissions.routes';
+import membersRouter from '../modules/members/members.routes';
+import attendanceRouter from '../modules/attendance/attendance.routes';
 
 const router: Router = ExpressRouter();
 
@@ -22,6 +23,10 @@ router.use('/organizations', organizationsRouter);
 // Locations & Admissions
 router.use(locationsRouter);
 router.use(admissionsRouter);
+
+// Members & Attendance
+router.use(membersRouter);
+router.use(attendanceRouter);
 
 // TODO: mount remaining module routers as they are implemented:
 // router.use('/locationes', locationesRouter);

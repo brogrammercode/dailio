@@ -171,89 +171,95 @@ export async function createOrganizationWithFirstLocation(
   organizationData: CreateOrganizationInput,
   locationData: CreateLocationInput,
 ) {
-  return prisma.$transaction(async (tx) => {
-    const txClient = tx as unknown as typeof prisma;
-    // 2. Create organization
-    const organization_id = ulid();
-    const slug =
-      organizationData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') +
-      '-' +
-      organization_id.slice(-6);
-    const organization = await txClient.organization.create({
-      data: {
-        id: organization_id,
-        ...organizationData,
-        slug,
-        status: 'ACTIVE',
-      },
-    });
+  return prisma.$transaction(
+    async (tx) => {
+      const txClient = tx as unknown as typeof prisma;
+      // 2. Create organization
+      const organization_id = ulid();
+      const slug =
+        organizationData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') +
+        '-' +
+        organization_id.slice(-6);
+      const organization = await txClient.organization.create({
+        data: {
+          id: organization_id,
+          ...organizationData,
+          slug,
+          status: 'ACTIVE',
+        },
+      });
 
-    // 3. Create first location
-    const location_id = ulid();
-    const location = await txClient.location.create({
-      data: {
-        id: location_id,
-        organization_id,
-        ...locationData,
-      },
-    });
+      // 3. Create first location
+      const location_id = ulid();
+      const location = await txClient.location.create({
+        data: {
+          id: location_id,
+          organization_id,
+          ...locationData,
+        },
+      });
 
-    // 4. Seed roles
-    const { ownerRole } = await seedRoles(txClient, organization_id, location_id);
+      // 4. Seed roles
+      const { ownerRole } = await seedRoles(txClient, organization_id, location_id);
 
-    // 5. Create owner organization membership
-    const user = await txClient.user.findUnique({ where: { id: user_id } });
-    const organization_membership_id = ulid();
-    const organization_membership = await txClient.organizationMembership.create({
-      data: {
-        id: organization_membership_id,
-        organization_id,
-        user_id,
-        first_name: user?.name ?? 'Owner',
-        email: user?.email,
-        status: 'ACTIVE',
-      },
-    });
+      // 5. Create owner organization membership
+      const user = await txClient.user.findUnique({ where: { id: user_id } });
+      const organization_membership_id = ulid();
+      const organization_membership = await txClient.organizationMembership.create({
+        data: {
+          id: organization_membership_id,
+          organization_id,
+          user_id,
+          first_name: user?.name ?? 'Owner',
+          email: user?.email,
+          status: 'ACTIVE',
+        },
+      });
 
-    // 6. Create owner location membership
-    const location_membership_id = ulid();
-    const location_membership = await txClient.locationMembership.create({
-      data: {
-        id: location_membership_id,
-        organization_id,
-        location_id,
-        organization_membership_id,
-        membership_number: '001',
-        status: 'ACTIVE',
-      },
-    });
+      // 6. Create owner location membership
+      const location_membership_id = ulid();
+      const location_membership = await txClient.locationMembership.create({
+        data: {
+          id: location_membership_id,
+          organization_id,
+          location_id,
+          organization_membership_id,
+          membership_number: '001',
+          status: 'ACTIVE',
+        },
+      });
 
-    // 7. Assign owner role
-    await txClient.roleAssignment.create({
-      data: {
-        id: ulid(),
-        organization_id,
-        role_id: ownerRole.id,
-        location_membership_id,
-      },
-    });
+      // 7. Assign owner role
+      await txClient.roleAssignment.create({
+        data: {
+          id: ulid(),
+          organization_id,
+          role_id: ownerRole.id,
+          location_membership_id,
+        },
+      });
 
-    // 8. Audit
-    await txClient.auditLog.create({
-      data: {
-        id: ulid(),
-        organization_id,
-        location_id,
-        actor_id: user_id,
-        action: 'CREATE',
-        target_type: 'Organization',
-        target_id: organization_id,
-        source: 'API',
-      },
-    });
+      // 8. Audit
+      await txClient.auditLog.create({
+        data: {
+          id: ulid(),
+          organization_id,
+          location_id,
+          actor_id: user_id,
+          action: 'CREATE',
+          target_type: 'Organization',
+          target_id: organization_id,
+          source: 'API',
+        },
+      });
 
-    return { organization, location, organization_membership, location_membership };
-  });
+      return { organization, location, organization_membership, location_membership };
+    },
+    {
+      maxWait: 5000,
+      timeout: 20000,
+    },
+  );
 }
 
 export async function getOrganization(organization_id: string, user_id: string) {

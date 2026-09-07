@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+
 import { DiscoverLocationsQuerySchema } from './locations.schema';
 import * as locationsService from './locations.service';
 

@@ -15,14 +15,18 @@ class CreateOrganizationInput {
     this.currency = 'INR',
   });
 
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'email': email,
-        'phone': phone,
-        'address': address,
-        'timezone': timezone,
-        'currency': currency,
-      };
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      'name': name,
+      'email': email,
+      'phone': phone,
+      'address': address,
+      'timezone': timezone,
+      'currency': currency,
+    };
+    map.removeWhere((key, value) => value == null || value == '');
+    return map;
+  }
 }
 
 class CreateLocationInput {
@@ -48,15 +52,19 @@ class CreateLocationInput {
     this.timezone = 'Asia/Kolkata',
   });
 
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'address': address,
-        'city': city,
-        'state': state,
-        'country': country,
-        'postal_code': postalCode,
-        'phone': phone,
-        'email': email,
-        'timezone': timezone,
-      };
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      'name': name,
+      'address': address,
+      'city': city,
+      'state': state,
+      'country': country,
+      'postal_code': postalCode,
+      'phone': phone,
+      'email': email,
+      'timezone': timezone,
+    };
+    map.removeWhere((key, value) => value == null || value == '');
+    return map;
+  }
 }

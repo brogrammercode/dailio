@@ -18,17 +18,23 @@ class AdmissionRepository {
 
   Future<void> approveRequest(String locationId, String requestId,
       {String? reason}) async {
+    final data = <String, dynamic>{'reason': reason};
+    data.removeWhere((key, value) => value == null || value == '');
+
     await apiClient.dio.post(
       '/locations/$locationId/join-requests/$requestId/approve',
-      data: {'reason': reason},
+      data: data,
     );
   }
 
   Future<void> rejectRequest(String locationId, String requestId,
       {String? reason}) async {
+    final data = <String, dynamic>{'reason': reason};
+    data.removeWhere((key, value) => value == null || value == '');
+
     await apiClient.dio.post(
       '/locations/$locationId/join-requests/$requestId/reject',
-      data: {'reason': reason},
+      data: data,
     );
   }
 }

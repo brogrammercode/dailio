@@ -1,6 +1,8 @@
 import { ulid } from 'ulid';
+
 import { prisma } from '../../lib/prisma';
 import { ConflictError, NotFoundError } from '../../lib/errors';
+
 import type { CreateJoinRequestInput, JoinRequestActionInput } from './admissions.schema';
 
 export async function submitJoinRequest(
@@ -147,7 +149,7 @@ export async function approveJoinRequest(
     });
 
     return locMembership;
-  });
+  }, { maxWait: 5000, timeout: 20000 });
 }
 
 export async function rejectJoinRequest(

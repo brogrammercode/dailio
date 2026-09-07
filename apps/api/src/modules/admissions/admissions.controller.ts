@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+
 import { CreateJoinRequestSchema, JoinRequestActionSchema } from './admissions.schema';
 import * as admissionsService from './admissions.service';
 

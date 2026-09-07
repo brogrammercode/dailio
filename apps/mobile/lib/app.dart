@@ -13,7 +13,9 @@ import 'features/auth/controllers/auth_cubit.dart';
 import 'features/auth/controllers/auth_repository.dart';
 import 'features/context_selection/controllers/location_repository.dart';
 import 'features/branch/controllers/admission_repository.dart';
+import 'features/branch/controllers/members_repository.dart';
 import 'features/organization/controllers/organization_repository.dart';
+import 'features/attendance/controllers/attendance_repository.dart';
 
 class MainApp extends StatelessWidget {
   final SecureStorage secureStorage;
@@ -47,6 +49,8 @@ class MainApp extends StatelessWidget {
         RepositoryProvider.value(value: locationRepository),
         RepositoryProvider.value(value: admissionRepository),
         RepositoryProvider.value(value: organizationRepository),
+        RepositoryProvider.value(value: MembersRepository(apiClient: apiClient)),
+        RepositoryProvider.value(value: AttendanceRepository(apiClient: apiClient)),
       ],
       child: MultiBlocProvider(
         providers: [
