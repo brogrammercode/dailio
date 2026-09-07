@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  api-ci:
+    name: API — Lint, Type-check, Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: gymuser
+          POSTGRES_PASSWORD: gympassword
+          POSTGRES_DB: gymdb_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter api lint
+
+      - name: Type-check
+        run: pnpm --filter api type-check
+
+      - name: Generate Prisma client
+        run: pnpm --filter api db:generate
+        env:
+          DATABASE_URL: postgresql://gymuser:gympassword@localhost:5432/gymdb_test
+
+      - name: Run migrations
+        run: pnpm --filter api db:migrate
+        env:
+          DATABASE_URL: postgresql://gymuser:gympassword@localhost:5432/gymdb_test
+
+      - name: Run tests
+        run: pnpm --filter api test
+        env:
+          DATABASE_URL: postgresql://gymuser:gympassword@localhost:5432/gymdb_test
+          REDIS_URL: redis://localhost:6379
+          JWT_ACCESS_SECRET: ci-test-access-secret
+          JWT_REFRESH_SECRET: ci-test-refresh-secret
+          NODE_ENV: test
+
+  mobile-ci:
+    name: Flutter — Analyze, Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+        working-directory: apps/mobile
+
+      - name: Run code generation
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: apps/mobile
+
+      - name: Flutter analyze
+        run: flutter analyze
+        working-directory: apps/mobile
+
+      - name: Flutter test
+        run: flutter test
+        working-directory: apps/mobile

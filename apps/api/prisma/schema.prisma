@@ -1,0 +1,886 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum OrganizationStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum OrganizationType {
+  GYM
+  COACHING
+  CLINIC
+  OTHER
+}
+
+enum LocationStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum OrganizationMembershipStatus {
+  ACTIVE
+  INACTIVE
+  INVITED
+}
+
+enum LocationMembershipStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum AttendanceSessionState {
+  OPEN
+  CLOSED
+  CORRECTED
+  VOID
+}
+
+enum AttendanceSessionSource {
+  SELF
+  ADMIN
+  IMPORT
+  SYSTEM_AUTO_CLOSE
+}
+
+enum AttendanceDerivedStatus {
+  PRESENT
+  LATE
+  LEFT_EARLY
+  HALF_DAY
+  ABSENT
+  ON_LEAVE
+  HOLIDAY
+  WEEK_OFF
+  INCOMPLETE
+  MANUAL
+  VOID
+}
+
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  DRAFT
+  UPCOMING
+  ACTIVE
+  PAUSED
+  EXPIRED
+  CANCELLED
+}
+
+enum LedgerEntryCategory {
+  SUBSCRIPTION_CHARGE
+  JOINING_FEE
+  FINE
+  DISCOUNT_CREDIT
+  PAYMENT
+  REFUND
+  VOID_REVERSAL
+  MANUAL_DEBIT
+  MANUAL_CREDIT
+}
+
+enum PaymentAttemptStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  EXPIRED
+  CANCELLED
+}
+
+enum AnnouncementAudience {
+  ALL_ACTIVE_MEMBERS
+  SELECTED_ROLES
+  SELECTED_MEMBERS
+}
+
+enum NotificationChannel {
+  IN_APP
+  PUSH
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  READ
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  ARCHIVE
+  APPROVE
+  REJECT
+  CANCEL
+  ASSIGN
+  UNASSIGN
+  CLOCK_IN
+  CLOCK_OUT
+  CORRECT
+  VOID
+  PAYMENT_POST
+  REFUND
+  EXPORT
+  LOGIN
+  LOGOUT
+}
+
+// ============================================================
+// CORE IDENTITY
+// ============================================================
+
+model User {
+  id         String     @id @default(cuid())
+  name       String
+  email      String?    @unique
+  phone      String?    @unique
+  avatar_url String?
+  status     UserStatus @default(ACTIVE)
+  fcm_token  String?
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+
+  auth_identities          AuthIdentity[]
+  organization_memberships OrganizationMembership[]
+  audit_logs               AuditLog[]               @relation("AuditActor")
+  notifications            Notification[]
+  joinRequests             JoinRequest[]
+
+  @@map("users")
+}
+
+model AuthIdentity {
+  id           String   @id @default(cuid())
+  user_id      String
+  provider     String // e.g. "google"
+  provider_sub String // Google subject ID
+  email        String?
+  created_at   DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider, provider_sub])
+  @@index([user_id])
+  @@map("auth_identities")
+}
+
+// ============================================================
+// ORGANIZATION AND LOCATION
+// ============================================================
+
+model Organization {
+  id          String             @id @default(cuid())
+  type        OrganizationType   @default(OTHER)
+  name        String
+  slug        String             @unique
+  email       String?
+  phone       String?
+  address     String?
+  logo_url    String?
+  timezone    String             @default("Asia/Kolkata")
+  currency    String             @default("INR")
+  status      OrganizationStatus @default(DRAFT)
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @updatedAt
+  archived_at DateTime?
+  archived_by String?
+
+  locations                Location[]
+  organization_memberships OrganizationMembership[]
+  roles                    Role[]
+  plans                    Plan[]
+  feature_flags            FeatureFlag[]
+  audit_logs               AuditLog[]
+  announcements            Announcement[]
+
+  @@map("organizations")
+}
+
+model Location {
+  id              String         @id @default(cuid())
+  organization_id String
+  name            String
+  address         String?
+  city            String?
+  state           String?
+  country         String         @default("IN")
+  postal_code     String?
+  latitude        Float?
+  longitude       Float?
+  phone           String?
+  email           String?
+  timezone        String         @default("Asia/Kolkata")
+  status          LocationStatus @default(ACTIVE)
+  week_start      Int            @default(1) // 1=Monday
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
+  archived_at     DateTime?
+  archived_by     String?
+
+  organization         Organization         @relation(fields: [organization_id], references: [id])
+  location_memberships LocationMembership[]
+  join_requests        JoinRequest[]
+  attendance_policies  AttendancePolicy[]
+  attendance_sessions  AttendanceSession[]
+  shifts               Shift[]
+  leave_requests       LeaveRequest[]
+  holidays             Holiday[]
+  subscriptions        Subscription[]
+  ledger_entries       LedgerEntry[]
+  payment_attempts     PaymentAttempt[]
+  reminders            Reminder[]
+  announcements        Announcement[]
+
+  @@index([organization_id])
+  @@map("locations")
+}
+
+// ============================================================
+// MEMBERSHIPS
+// ============================================================
+
+model OrganizationMembership {
+  id              String                       @id @default(cuid())
+  organization_id String
+  user_id         String?
+  first_name      String
+  last_name       String?
+  email           String?
+  phone           String?
+  avatar_url      String?
+  date_of_birth   DateTime?
+  address         String?
+  notes           String?
+  status          OrganizationMembershipStatus @default(ACTIVE)
+  invite_token    String?                      @unique
+  invite_expiry   DateTime?
+  created_at      DateTime                     @default(now())
+  updated_at      DateTime                     @updatedAt
+
+  organization         Organization         @relation(fields: [organization_id], references: [id])
+  user                 User?                @relation(fields: [user_id], references: [id])
+  location_memberships LocationMembership[]
+
+  @@unique([user_id, organization_id])
+  @@index([organization_id])
+  @@index([user_id])
+  @@map("organization_memberships")
+}
+
+model LocationMembership {
+  id                         String                   @id @default(cuid())
+  organization_id            String
+  location_id                String
+  organization_membership_id String
+  membership_number          String
+  status                     LocationMembershipStatus @default(ACTIVE)
+  joined_at                  DateTime                 @default(now())
+  suspended_at               DateTime?
+  suspended_by               String?
+  suspend_reason             String?
+  deactivated_at             DateTime?
+  deactivated_by             String?
+  created_at                 DateTime                 @default(now())
+  updated_at                 DateTime                 @updatedAt
+
+  location                Location               @relation(fields: [location_id], references: [id])
+  organization_membership OrganizationMembership @relation(fields: [organization_membership_id], references: [id])
+  join_request            JoinRequest?
+  role_assignments        RoleAssignment[]
+  attendance_sessions     AttendanceSession[]
+  shift_assignments       ShiftAssignment[]
+  leave_requests          LeaveRequest[]
+  subscriptions           Subscription[]
+  ledger_entries          LedgerEntry[]
+
+  @@unique([organization_membership_id, location_id])
+  @@unique([membership_number, location_id])
+  @@index([organization_id])
+  @@index([location_id])
+  @@index([organization_membership_id])
+  @@map("location_memberships")
+}
+
+model JoinRequest {
+  id                     String            @id @default(cuid())
+  organization_id        String
+  location_id            String
+  user_id                String
+  location_membership_id String?           @unique
+  status                 JoinRequestStatus @default(PENDING)
+  message                String?
+  rejection_reason       String?
+  reviewed_by            String?
+  reviewed_at            DateTime?
+  idempotency_key        String?           @unique
+  created_at             DateTime          @default(now())
+  updated_at             DateTime          @updatedAt
+
+  location            Location            @relation(fields: [location_id], references: [id])
+  location_membership LocationMembership? @relation(fields: [location_membership_id], references: [id])
+  user                User                @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, location_id, status]) // only one PENDING per user+branch
+  @@index([organization_id])
+  @@index([location_id])
+  @@index([user_id])
+  @@map("join_requests")
+}
+
+// ============================================================
+// ROLES AND PERMISSIONS
+// ============================================================
+
+model Role {
+  id              String   @id @default(cuid())
+  organization_id String
+  location_id     String?
+  system_key      String? // OWNER, ADMIN, MEMBER — null for custom
+  name            String
+  description     String?
+  is_protected    Boolean  @default(false)
+  is_system       Boolean  @default(false)
+  permissions     String[] @default([])
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  organization     Organization     @relation(fields: [organization_id], references: [id])
+  role_assignments RoleAssignment[]
+
+  @@unique([organization_id, name])
+  @@index([organization_id])
+  @@map("roles")
+}
+
+model RoleAssignment {
+  id                     String    @id @default(cuid())
+  organization_id        String
+  location_id            String?
+  role_id                String
+  location_membership_id String
+  assigned_by            String?
+  assigned_at            DateTime  @default(now())
+  revoked_at             DateTime?
+  revoked_by             String?
+
+  role                Role               @relation(fields: [role_id], references: [id])
+  location_membership LocationMembership @relation(fields: [location_membership_id], references: [id])
+
+  @@index([organization_id])
+  @@index([location_membership_id])
+  @@map("role_assignments")
+}
+
+// ============================================================
+// ATTENDANCE
+// ============================================================
+
+model AttendancePolicy {
+  id                          String   @id @default(cuid())
+  organization_id             String
+  location_id                 String
+  role_id                     String? // null = location default, set = role override
+  version                     Int      @default(1)
+  effective_from              DateTime
+  punch_required              Boolean  @default(true)
+  selfie_on_clock_in          Boolean  @default(false)
+  selfie_on_clock_out         Boolean  @default(false)
+  location_on_clock_in        Boolean  @default(false)
+  location_on_clock_out       Boolean  @default(false)
+  geofence_enabled            Boolean  @default(false)
+  geofence_lat                Float?
+  geofence_lng                Float?
+  geofence_radius_meters      Int?
+  geofence_accuracy_threshold Float?
+  shift_enforcement_enabled   Boolean  @default(false)
+  early_arrival_minutes       Int      @default(30)
+  late_grace_minutes          Int      @default(15)
+  min_session_minutes         Int      @default(0)
+  max_open_session_hours      Int      @default(24)
+  allow_manual_entry          Boolean  @default(false)
+  allow_offline_capture       Boolean  @default(false)
+  created_at                  DateTime @default(now())
+  updated_at                  DateTime @updatedAt
+
+  location Location @relation(fields: [location_id], references: [id])
+
+  @@index([organization_id, location_id])
+  @@map("attendance_policies")
+}
+
+model AttendanceSession {
+  id                     String                   @id @default(cuid())
+  organization_id        String
+  location_id            String
+  location_membership_id String
+  policy_version         Int
+  state                  AttendanceSessionState   @default(OPEN)
+  source                 AttendanceSessionSource  @default(SELF)
+  derived_status         AttendanceDerivedStatus?
+  worked_minutes         Int?
+  late_minutes           Int?
+  early_leave_minutes    Int?
+  shift_id               String?
+  shift_snapshot         Json?
+  clock_in_at            DateTime // server time
+  clock_in_client_at     DateTime? // client captured time
+  clock_in_timezone      String?
+  clock_out_at           DateTime?
+  clock_out_client_at    DateTime?
+  clock_out_timezone     String?
+  corrected_at           DateTime?
+  corrected_by           String?
+  correction_reason      String?
+  idempotency_key_in     String?                  @unique
+  idempotency_key_out    String?                  @unique
+  created_at             DateTime                 @default(now())
+  updated_at             DateTime                 @updatedAt
+
+  location            Location             @relation(fields: [location_id], references: [id])
+  location_membership LocationMembership   @relation(fields: [location_membership_id], references: [id])
+  evidence            AttendanceEvidence[]
+
+  @@index([organization_id, location_id])
+  @@index([location_membership_id])
+  @@map("attendance_sessions")
+}
+
+model AttendanceEvidence {
+  id              String   @id @default(cuid())
+  session_id      String
+  organization_id String
+  type            String // SELFIE_IN, SELFIE_OUT, LOCATION_IN, LOCATION_OUT
+  asset_id        String? // ref to MediaAsset
+  latitude        Float?
+  longitude       Float?
+  accuracy        Float?
+  device_metadata Json?
+  ip_address      String?
+  created_at      DateTime @default(now())
+
+  session AttendanceSession @relation(fields: [session_id], references: [id])
+
+  @@index([session_id])
+  @@index([organization_id])
+  @@map("attendance_evidence")
+}
+
+// ============================================================
+// WORKFORCE
+// ============================================================
+
+model Shift {
+  id              String    @id @default(cuid())
+  organization_id String
+  location_id     String
+  name            String
+  start_time      String // HH:mm local
+  end_time        String // HH:mm local
+  is_overnight    Boolean   @default(false)
+  break_minutes   Int       @default(0)
+  grace_in_min    Int       @default(0)
+  grace_out_min   Int       @default(0)
+  week_days       Int[] // 1=Mon..7=Sun
+  active_from     DateTime?
+  active_to       DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  location          Location          @relation(fields: [location_id], references: [id])
+  shift_assignments ShiftAssignment[]
+
+  @@index([organization_id, location_id])
+  @@map("shifts")
+}
+
+model ShiftAssignment {
+  id                     String    @id @default(cuid())
+  organization_id        String
+  location_id            String
+  shift_id               String
+  location_membership_id String
+  effective_from         DateTime
+  effective_to           DateTime?
+  assigned_by            String?
+  created_at             DateTime  @default(now())
+
+  shift               Shift              @relation(fields: [shift_id], references: [id])
+  location_membership LocationMembership @relation(fields: [location_membership_id], references: [id])
+
+  @@index([organization_id, location_membership_id])
+  @@map("shift_assignments")
+}
+
+model LeaveRequest {
+  id                     String             @id @default(cuid())
+  organization_id        String
+  location_id            String
+  location_membership_id String
+  start_date             DateTime // local date
+  end_date               DateTime // local date
+  reason                 String?
+  status                 LeaveRequestStatus @default(PENDING)
+  reviewed_by            String?
+  reviewed_at            DateTime?
+  review_note            String?
+  created_at             DateTime           @default(now())
+  updated_at             DateTime           @updatedAt
+
+  location            Location           @relation(fields: [location_id], references: [id])
+  location_membership LocationMembership @relation(fields: [location_membership_id], references: [id])
+
+  @@index([organization_id, location_id])
+  @@index([location_membership_id])
+  @@map("leave_requests")
+}
+
+model Holiday {
+  id              String   @id @default(cuid())
+  organization_id String
+  location_id     String?
+  name            String
+  date            DateTime // local date
+  is_recurring    Boolean  @default(false)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  location Location? @relation(fields: [location_id], references: [id])
+
+  @@index([organization_id])
+  @@map("holidays")
+}
+
+// ============================================================
+// PLANS AND SUBSCRIPTIONS
+// ============================================================
+
+model Plan {
+  id                String   @id @default(cuid())
+  organization_id   String
+  name              String
+  description       String?
+  duration_days     Int
+  amount_minor_unit Int // paise
+  currency          String   @default("INR")
+  joining_fee_minor Int      @default(0)
+  tax_percent       Float    @default(0)
+  discount_percent  Float    @default(0)
+  grace_days        Int      @default(0)
+  is_active         Boolean  @default(true)
+  location_ids      String[] // empty = available to all locations
+  metadata          Json?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  organization  Organization   @relation(fields: [organization_id], references: [id])
+  subscriptions Subscription[]
+
+  @@index([organization_id])
+  @@map("plans")
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  organization_id        String
+  location_id            String
+  location_membership_id String
+  plan_id                String
+  plan_snapshot          Json // immutable copy of plan terms at assignment time
+  status                 SubscriptionStatus @default(DRAFT)
+  start_date             DateTime
+  end_date               DateTime
+  agreed_amount_minor    Int
+  discount_minor         Int                @default(0)
+  currency               String             @default("INR")
+  due_date               DateTime?
+  created_by             String?
+  paused_at              DateTime?
+  paused_by              String?
+  cancelled_at           DateTime?
+  cancelled_by           String?
+  cancel_reason          String?
+  renewed_from_id        String?
+  idempotency_key        String?            @unique
+  created_at             DateTime           @default(now())
+  updated_at             DateTime           @updatedAt
+
+  location            Location           @relation(fields: [location_id], references: [id])
+  location_membership LocationMembership @relation(fields: [location_membership_id], references: [id])
+  plan                Plan               @relation(fields: [plan_id], references: [id])
+  ledger_entries      LedgerEntry[]
+
+  @@index([organization_id, location_id])
+  @@index([location_membership_id])
+  @@map("subscriptions")
+}
+
+// ============================================================
+// FINANCIAL LEDGER
+// ============================================================
+
+model LedgerEntry {
+  id                     String              @id @default(cuid())
+  organization_id        String
+  location_id            String
+  location_membership_id String
+  subscription_id        String?
+  category               LedgerEntryCategory
+  amount_minor_unit      Int // positive = debit (money owed), negative = credit
+  currency               String              @default("INR")
+  description            String?
+  due_date               DateTime?
+  created_by             String?
+  reversed_by_id         String?             @unique // links to compensating entry
+  idempotency_key        String?             @unique
+  created_at             DateTime            @default(now())
+
+  location            Location            @relation(fields: [location_id], references: [id])
+  location_membership LocationMembership  @relation(fields: [location_membership_id], references: [id])
+  subscription        Subscription?       @relation(fields: [subscription_id], references: [id])
+  allocations         PaymentAllocation[]
+
+  @@index([organization_id, location_id])
+  @@index([location_membership_id])
+  @@map("ledger_entries")
+}
+
+model PaymentAttempt {
+  id               String               @id @default(cuid())
+  organization_id  String
+  location_id      String
+  amount           Int
+  currency         String               @default("INR")
+  method           String // CASH, CARD, UPI, GATEWAY
+  status           PaymentAttemptStatus @default(PENDING)
+  gateway_id       String?
+  gateway_response Json?
+  posted_by        String?
+  posted_at        DateTime?
+  idempotency_key  String?              @unique
+  created_at       DateTime             @default(now())
+  updated_at       DateTime             @updatedAt
+
+  location    Location            @relation(fields: [location_id], references: [id])
+  allocations PaymentAllocation[]
+  receipt     Receipt?
+
+  @@index([organization_id, location_id])
+  @@map("payment_attempts")
+}
+
+model PaymentAllocation {
+  id                 String   @id @default(cuid())
+  payment_attempt_id String
+  ledger_entry_id    String
+  allocated_amount   Int
+  created_at         DateTime @default(now())
+
+  payment_attempt PaymentAttempt @relation(fields: [payment_attempt_id], references: [id])
+  ledger_entry    LedgerEntry    @relation(fields: [ledger_entry_id], references: [id])
+
+  @@unique([payment_attempt_id, ledger_entry_id])
+  @@map("payment_allocations")
+}
+
+model Receipt {
+  id                 String   @id @default(cuid())
+  organization_id    String
+  location_id        String
+  payment_attempt_id String   @unique
+  receipt_number     String // unique within organization
+  issued_at          DateTime @default(now())
+  metadata           Json?
+
+  payment_attempt PaymentAttempt @relation(fields: [payment_attempt_id], references: [id])
+
+  @@unique([receipt_number, organization_id])
+  @@index([organization_id, location_id])
+  @@map("receipts")
+}
+
+// ============================================================
+// REMINDERS
+// ============================================================
+
+model Reminder {
+  id                     String    @id @default(cuid())
+  organization_id        String
+  location_id            String
+  location_membership_id String?
+  type                   String // FEE_DUE, FEE_OVERDUE, SUBSCRIPTION_EXPIRY, CUSTOM
+  message                String
+  scheduled_at           DateTime
+  channel                String    @default("IN_APP")
+  status                 String    @default("PENDING")
+  sent_at                DateTime?
+  linked_entity_type     String?
+  linked_entity_id       String?
+  created_by             String?
+  created_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
+
+  location Location @relation(fields: [location_id], references: [id])
+
+  @@index([organization_id, location_id])
+  @@map("reminders")
+}
+
+// ============================================================
+// ANNOUNCEMENTS
+// ============================================================
+
+model Announcement {
+  id              String               @id @default(cuid())
+  organization_id String
+  location_id     String?
+  title           String
+  body            String
+  priority        Int                  @default(0)
+  status          AnnouncementStatus   @default(DRAFT)
+  audience        AnnouncementAudience @default(ALL_ACTIVE_MEMBERS)
+  publish_at      DateTime?
+  expires_at      DateTime?
+  created_by      String?
+  updated_by      String?
+  created_at      DateTime             @default(now())
+  updated_at      DateTime             @updatedAt
+
+  organization Organization            @relation(fields: [organization_id], references: [id])
+  location     Location?               @relation(fields: [location_id], references: [id])
+  recipients   AnnouncementRecipient[]
+
+  @@index([organization_id])
+  @@map("announcements")
+}
+
+model AnnouncementRecipient {
+  id                         String    @id @default(cuid())
+  announcement_id            String
+  organization_membership_id String
+  read_at                    DateTime?
+  created_at                 DateTime  @default(now())
+
+  announcement Announcement @relation(fields: [announcement_id], references: [id])
+
+  @@unique([announcement_id, organization_membership_id])
+  @@map("announcement_recipients")
+}
+
+// ============================================================
+// MEDIA, NOTIFICATIONS, AUDIT
+// ============================================================
+
+model MediaAsset {
+  id              String   @id @default(cuid())
+  organization_id String
+  owner_type      String // ATTENDANCE_SELFIE, ORGANIZATION_LOGO, etc.
+  owner_id        String
+  storage_key     String   @unique // S3 object key
+  content_type    String
+  size_bytes      Int?
+  uploaded_by     String?
+  created_at      DateTime @default(now())
+
+  @@index([organization_id])
+  @@map("media_assets")
+}
+
+model Notification {
+  id              String              @id @default(cuid())
+  user_id         String
+  organization_id String?
+  title           String
+  body            String
+  channel         NotificationChannel @default(IN_APP)
+  status          NotificationStatus  @default(PENDING)
+  data            Json?
+  read_at         DateTime?
+  sent_at         DateTime?
+  created_at      DateTime            @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id              String      @id @default(cuid())
+  organization_id String?
+  location_id     String?
+  actor_id        String?
+  action          AuditAction
+  target_type     String
+  target_id       String
+  request_id      String?
+  ip_address      String?
+  before_state    Json?
+  after_state     Json?
+  reason          String?
+  source          String? // API, SYSTEM, IMPORT
+  created_at      DateTime    @default(now())
+
+  organization Organization? @relation(fields: [organization_id], references: [id])
+  actor        User?         @relation("AuditActor", fields: [actor_id], references: [id])
+
+  @@index([organization_id])
+  @@index([actor_id])
+  @@index([target_type, target_id])
+  @@map("audit_logs")
+}
+
+model FeatureFlag {
+  id              String   @id @default(cuid())
+  organization_id String?
+  location_id     String?
+  key             String
+  enabled         Boolean  @default(false)
+  metadata        Json?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organization_id], references: [id])
+
+  @@unique([organization_id, location_id, key])
+  @@map("feature_flags")
+}
