@@ -64,8 +64,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
       final result = await repository.createOrganization(
         CreateOrganizationInput(
             name: _orgName, email: _orgEmail.isEmpty ? null : _orgEmail),
-        CreateLocationInput(
-            name: _locName, address: _locAddress, city: ''),
+        CreateLocationInput(name: _locName, address: _locAddress, city: ''),
       );
 
       if (mounted) {
@@ -108,10 +107,17 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(color: const Color(0xFF3D1F00), borderRadius: BorderRadius.circular(8)),
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                  color: const Color(0xFF3D1F00),
+                  borderRadius: BorderRadius.circular(8)),
               alignment: Alignment.center,
-              child: const Text('D', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              child: const Text('D',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14)),
             ),
           ),
         ],
@@ -132,7 +138,11 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
             child: Row(
               children: [
                 Text('STEP $_step OF 2',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFB45309), letterSpacing: 0.5)),
+                    style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFB45309),
+                        letterSpacing: 0.5)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: ClipRRect(
@@ -147,7 +157,8 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
                 ),
                 const SizedBox(width: 8),
                 Text(_step == 1 ? 'Organization Setup' : 'Final Touch',
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+                    style: const TextStyle(
+                        fontSize: 11, color: Color(0xFF9CA3AF))),
               ],
             ),
           ),
@@ -170,7 +181,11 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
       children: [
         Icon(icon, size: 18, color: const Color(0xFFB45309)),
         const SizedBox(width: 8),
-        Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A))),
+        Text(title,
+            style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A1A))),
       ],
     );
   }
@@ -178,10 +193,15 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
   Widget _fieldLabel(String label, {bool required = false}) {
     return Row(
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF374151))),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF374151))),
         if (required) ...[
           const SizedBox(width: 4),
-          const Text('*Required', style: TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
+          const Text('*Required',
+              style: TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
         ],
       ],
     );
@@ -193,7 +213,10 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
       children: [
         // Page title
         const Text('Create your organization',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A))),
+            style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A1A))),
         const SizedBox(height: 6),
         const Text(
           'Configure high-level workspace credentials, audit identifiers, and regional accounting defaults.',
@@ -219,11 +242,15 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Owner Tenant Authorization',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E40AF))),
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1E40AF))),
                     SizedBox(height: 3),
                     Text(
                       'As the organization creator, you will automatically become the Organization Owner with protected full-tenant access.',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF3B82F6), height: 1.4),
+                      style: TextStyle(
+                          fontSize: 12, color: Color(0xFF3B82F6), height: 1.4),
                     ),
                   ],
                 ),
@@ -241,7 +268,8 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         const SizedBox(height: 6),
         TextFormField(
           initialValue: _orgName,
-          decoration: const InputDecoration(hintText: 'e.g. Apex Fitness & Health'),
+          decoration:
+              const InputDecoration(hintText: 'e.g. Apex Fitness & Health'),
           validator: (v) => v == null || v.isEmpty ? 'Required' : null,
           onChanged: (v) => setState(() => _orgName = v),
           onSaved: (v) => _orgName = v ?? '',
@@ -262,16 +290,19 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
               Expanded(
                 child: Text(
                   'dailio.app/${_orgName.toLowerCase().replaceAll(' ', '-').replaceAll(RegExp(r'[^a-z0-9-]'), '')}',
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+                  style:
+                      const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                 ),
               ),
-              const Icon(Icons.check_circle, size: 18, color: Color(0xFF22C55E)),
+              const Icon(Icons.check_circle,
+                  size: 18, color: Color(0xFF22C55E)),
             ],
           ),
         ),
         const Padding(
           padding: EdgeInsets.only(top: 5, left: 2),
-          child: Text('Auto-generated for deep-linking, API access, and employee clock-in portals.',
+          child: Text(
+              'Auto-generated for deep-linking, API access, and employee clock-in portals.',
               style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
         ),
         const SizedBox(height: 16),
@@ -281,9 +312,13 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         DropdownButtonFormField<String>(
           value: _orgIndustry, // ignore: deprecated_member_use
           decoration: const InputDecoration(),
-          items: ['Fitness / Gym & Athletics', 'Corporate', 'Education', 'Healthcare', 'Other']
-              .map((i) => DropdownMenuItem(value: i, child: Text(i)))
-              .toList(),
+          items: [
+            'Fitness / Gym & Athletics',
+            'Corporate',
+            'Education',
+            'Healthcare',
+            'Other'
+          ].map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
           onChanged: (v) => setState(() => _orgIndustry = v!),
           onSaved: (v) => _orgIndustry = v ?? 'Fitness / Gym & Athletics',
         ),
@@ -305,12 +340,17 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.cloud_upload_outlined, size: 32, color: Colors.grey.shade400),
+              Icon(Icons.cloud_upload_outlined,
+                  size: 32, color: Colors.grey.shade400),
               const SizedBox(height: 8),
               const Text('Tap to choose or drag brand logo',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF374151))),
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF374151))),
               const SizedBox(height: 4),
-              const Text('PNG, JPG or SVG • High resolution 512×512 recommended (Max 5MB)',
+              const Text(
+                  'PNG, JPG or SVG • High resolution 512×512 recommended (Max 5MB)',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
             ],
@@ -323,7 +363,8 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         TextFormField(
           initialValue: _orgBio,
           decoration: const InputDecoration(
-            hintText: 'High-performance training club delivering functional training across regional branches...',
+            hintText:
+                'High-performance training club delivering functional training across regional branches...',
             alignLabelWithHint: true,
           ),
           maxLines: 4,
@@ -371,14 +412,18 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         DropdownButtonFormField<String>(
           value: _orgCurrency, // ignore: deprecated_member_use
           decoration: const InputDecoration(),
-          items: ['INR - Indian Rupee ₹', 'USD - US Dollar \$', 'EUR - Euro €', 'GBP - British Pound £']
-              .map((i) => DropdownMenuItem(value: i, child: Text(i)))
-              .toList(),
+          items: [
+            'INR - Indian Rupee ₹',
+            'USD - US Dollar \$',
+            'EUR - Euro €',
+            'GBP - British Pound £'
+          ].map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
           onChanged: (v) => setState(() => _orgCurrency = v!),
         ),
         const Padding(
           padding: EdgeInsets.only(top: 5, left: 2, bottom: 16),
-          child: Text('Used across membership payouts, fee structures, and attendance audits.',
+          child: Text(
+              'Used across membership payouts, fee structures, and attendance audits.',
               style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
         ),
 
@@ -387,14 +432,18 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         DropdownButtonFormField<String>(
           value: _orgTimezone, // ignore: deprecated_member_use
           decoration: const InputDecoration(),
-          items: ['Asia/Kolkata (IST +05:30)', 'Asia/Dubai (GST +04:00)', 'America/New_York (EST -05:00)', 'Europe/London (GMT +00:00)']
-              .map((i) => DropdownMenuItem(value: i, child: Text(i)))
-              .toList(),
+          items: [
+            'Asia/Kolkata (IST +05:30)',
+            'Asia/Dubai (GST +04:00)',
+            'America/New_York (EST -05:00)',
+            'Europe/London (GMT +00:00)'
+          ].map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
           onChanged: (v) => setState(() => _orgTimezone = v!),
         ),
         const Padding(
           padding: EdgeInsets.only(top: 5, left: 2),
-          child: Text('All shifts, geo-punches, and auto-clockouts baseline against this zone.',
+          child: Text(
+              'All shifts, geo-punches, and auto-clockouts baseline against this zone.',
               style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
         ),
 
@@ -418,17 +467,30 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('STEP 2 OF 2: OPERATIONAL LOCATION SETUP · Final Touch', style: TextStyle(fontSize: 12, color: Color(0xFFB45309), fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+        const Text('STEP 2 OF 2: OPERATIONAL LOCATION SETUP · Final Touch',
+            style: TextStyle(
+                fontSize: 12,
+                color: Color(0xFFB45309),
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5)),
         const SizedBox(height: 12),
-        const Text('Every operational record, member admission, and attendance punch is scoped to a location.', style: TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
+        const Text(
+            'Every operational record, member admission, and attendance punch is scoped to a location.',
+            style: TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
         const SizedBox(height: 24),
-        
+
         // Branch Identification
-        const Row(children: [Icon(Icons.credit_card, size: 20), SizedBox(width: 8), Text('Branch Identification', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))]),
+        const Row(children: [
+          Icon(Icons.credit_card, size: 20),
+          SizedBox(width: 8),
+          Text('Branch Identification',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))
+        ]),
         const SizedBox(height: 16),
         TextFormField(
           initialValue: _locName,
-          decoration: const InputDecoration(labelText: 'Branch Name *', hintText: 'Main Branch - [City]'),
+          decoration: const InputDecoration(
+              labelText: 'Branch Name *', hintText: 'Main Branch - [City]'),
           validator: (v) => v == null || v.isEmpty ? 'Required' : null,
           onSaved: (v) => _locName = v ?? '',
         ),
@@ -447,7 +509,9 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
               child: DropdownButtonFormField<String>(
                 initialValue: _locTimezone,
                 decoration: const InputDecoration(labelText: 'Timezone'),
-                items: ['IST', 'EST', 'PST', 'GMT'].map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
+                items: ['IST', 'EST', 'PST', 'GMT']
+                    .map((i) => DropdownMenuItem(value: i, child: Text(i)))
+                    .toList(),
                 onChanged: (v) => setState(() => _locTimezone = v!),
               ),
             ),
@@ -456,32 +520,45 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         const SizedBox(height: 16),
         TextFormField(
           initialValue: _locAddress,
-          decoration: const InputDecoration(labelText: 'Physical Street Address & Pincode', alignLabelWithHint: true),
+          decoration: const InputDecoration(
+              labelText: 'Physical Street Address & Pincode',
+              alignLabelWithHint: true),
           maxLines: 3,
           onSaved: (v) => _locAddress = v ?? '',
         ),
-        
+
         const SizedBox(height: 32),
         // Geofencing & Positioning
         Row(
           children: [
-            const Icon(Icons.navigation_outlined, size: 20), 
-            const SizedBox(width: 8), 
-            const Expanded(child: Text('Geofencing & Positioning', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-            Text('Calibrate', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+            const Icon(Icons.navigation_outlined, size: 20),
+            const SizedBox(width: 8),
+            const Expanded(
+                child: Text('Geofencing & Positioning',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+            Text('Calibrate',
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13)),
           ],
         ),
         const SizedBox(height: 16),
         Container(
           height: 150,
-          decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E7EB))),
+          decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E7EB))),
           child: const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.location_on, size: 32, color: Color(0xFFB45309)),
                 SizedBox(height: 8),
-                Text('Tap to set location on map', style: TextStyle(color: Color(0xFF6B7280))),
+                Text('Tap to set location on map',
+                    style: TextStyle(color: Color(0xFF6B7280))),
               ],
             ),
           ),
@@ -491,7 +568,11 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           children: [
             Icon(Icons.check_circle, size: 14, color: Color(0xFF16A34A)),
             SizedBox(width: 4),
-            Text('Satellite Lock OK', style: TextStyle(fontSize: 12, color: Color(0xFF16A34A), fontWeight: FontWeight.w500)),
+            Text('Satellite Lock OK',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF16A34A),
+                    fontWeight: FontWeight.w500)),
           ],
         ),
         const SizedBox(height: 16),
@@ -500,7 +581,9 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
             Expanded(
               child: TextFormField(
                 initialValue: _locLat,
-                decoration: const InputDecoration(labelText: 'Latitude', prefixIcon: Icon(Icons.explore_outlined, size: 18)),
+                decoration: const InputDecoration(
+                    labelText: 'Latitude',
+                    prefixIcon: Icon(Icons.explore_outlined, size: 18)),
                 onSaved: (v) => _locLat = v ?? '',
               ),
             ),
@@ -508,7 +591,9 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
             Expanded(
               child: TextFormField(
                 initialValue: _locLng,
-                decoration: const InputDecoration(labelText: 'Longitude', prefixIcon: Icon(Icons.explore_outlined, size: 18)),
+                decoration: const InputDecoration(
+                    labelText: 'Longitude',
+                    prefixIcon: Icon(Icons.explore_outlined, size: 18)),
                 onSaved: (v) => _locLng = v ?? '',
               ),
             ),
@@ -518,8 +603,11 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Geofence Radius Perimeter', style: TextStyle(fontWeight: FontWeight.w500)),
-            Text('${_geofenceRadius.toInt()}m', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFB45309))),
+            const Text('Geofence Radius Perimeter',
+                style: TextStyle(fontWeight: FontWeight.w500)),
+            Text('${_geofenceRadius.toInt()}m',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Color(0xFFB45309))),
           ],
         ),
         Slider(
@@ -533,18 +621,27 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         const Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('50m (Tight)', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-            Text('250m', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-            Text('500m (Broad)', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+            Text('50m (Tight)',
+                style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+            Text('250m',
+                style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+            Text('500m (Broad)',
+                style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
           ],
         ),
-        
+
         const SizedBox(height: 32),
         // Verification Policies
-        const Row(children: [Icon(Icons.security_outlined, size: 20), SizedBox(width: 8), Text('Verification Policies', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))]),
+        const Row(children: [
+          Icon(Icons.security_outlined, size: 20),
+          SizedBox(width: 8),
+          Text('Verification Policies',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))
+        ]),
         const SizedBox(height: 8),
         CheckboxListTile(
-          title: const Text('Punch confirmation required', style: TextStyle(fontSize: 14)),
+          title: const Text('Punch confirmation required',
+              style: TextStyle(fontSize: 14)),
           value: _reqPunch,
           onChanged: (v) => setState(() => _reqPunch = v ?? false),
           controlAffinity: ListTileControlAffinity.leading,
@@ -552,7 +649,8 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           visualDensity: VisualDensity.compact,
         ),
         CheckboxListTile(
-          title: const Text('Geofence validation enabled', style: TextStyle(fontSize: 14)),
+          title: const Text('Geofence validation enabled',
+              style: TextStyle(fontSize: 14)),
           value: _reqGeofence,
           onChanged: (v) => setState(() => _reqGeofence = v ?? false),
           controlAffinity: ListTileControlAffinity.leading,
@@ -560,21 +658,29 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           visualDensity: VisualDensity.compact,
         ),
         CheckboxListTile(
-          title: const Text('Live selfie verification', style: TextStyle(fontSize: 14)),
+          title: const Text('Live selfie verification',
+              style: TextStyle(fontSize: 14)),
           value: _reqSelfie,
           onChanged: (v) => setState(() => _reqSelfie = v ?? false),
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
         ),
-        
+
         const SizedBox(height: 32),
         // Operational Defaults
-        const Row(children: [Icon(Icons.schedule_outlined, size: 20), SizedBox(width: 8), Text('Operational Defaults', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))]),
+        const Row(children: [
+          Icon(Icons.schedule_outlined, size: 20),
+          SizedBox(width: 8),
+          Text('Operational Defaults',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))
+        ]),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(border: Border.all(color: const Color(0xFFE5E7EB)), borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(12)),
           child: const Row(
             children: [
               Icon(Icons.access_time, color: Color(0xFF6B7280), size: 20),
@@ -583,9 +689,12 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Operating Hours Schedule Preset', style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+                    Text('Operating Hours Schedule Preset',
+                        style:
+                            TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
                     SizedBox(height: 2),
-                    Text('06:00 AM - 10:00 PM', style: TextStyle(fontWeight: FontWeight.w600)),
+                    Text('06:00 AM - 10:00 PM',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -595,14 +704,17 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         ),
         const SizedBox(height: 16),
         CheckboxListTile(
-          title: const Text('Assign Owner as initial Branch Admin', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          subtitle: const Text('You will have full permissions to manage this location.', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+          title: const Text('Assign Owner as initial Branch Admin',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          subtitle: const Text(
+              'You will have full permissions to manage this location.',
+              style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
           value: _assignOwner,
           onChanged: (v) => setState(() => _assignOwner = v ?? false),
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
         ),
-        
+
         const SizedBox(height: 32),
         FilledButton(
           onPressed: _submit,
@@ -614,12 +726,14 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           children: [
             TextButton(
               onPressed: _prevStep,
-              child: const Text('Previous Step', style: TextStyle(color: Color(0xFF6B7280))),
+              child: const Text('Previous Step',
+                  style: TextStyle(color: Color(0xFF6B7280))),
             ),
             const SizedBox(width: 24),
             TextButton(
               onPressed: () {}, // skip for now
-              child: const Text('Skip for now', style: TextStyle(color: Color(0xFF6B7280))),
+              child: const Text('Skip for now',
+                  style: TextStyle(color: Color(0xFF6B7280))),
             ),
           ],
         ),
@@ -628,7 +742,10 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           child: Text(
             'Note: Geofence boundaries and verification policies can be updated later in the location settings.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF), fontStyle: FontStyle.italic),
+            style: TextStyle(
+                fontSize: 12,
+                color: Color(0xFF9CA3AF),
+                fontStyle: FontStyle.italic),
           ),
         ),
       ],

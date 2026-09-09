@@ -120,17 +120,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ),
                     ),
                   ),
-                  // Bottom auth card
-                  Container(
-                    margin: const EdgeInsets.all(16),
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 20, offset: const Offset(0, -4)),
-                      ],
-                    ),
+                  // Bottom auth section
+                  Padding(
+                    padding: const EdgeInsets.all(24.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -148,7 +140,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               backgroundColor: Colors.white,
                               foregroundColor: const Color(0xFF1A1A1A),
                               elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Color(0xFFE5E7EB), width: 1.5)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Color(0xFFE5E7EB), width: 1.5)),
                             ),
                             child: isLoading
                                 ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))
@@ -162,21 +154,21 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                   ),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 24),
                         const Text.rich(
                           TextSpan(
                             text: "By signing in, you agree to Dailio's ",
-                            style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                             children: [
-                              TextSpan(text: 'Terms of Service', style: TextStyle(decoration: TextDecoration.underline, color: Color(0xFF1A1A1A))),
-                              TextSpan(text: ' and '),
-                              TextSpan(text: 'Privacy Policy', style: TextStyle(decoration: TextDecoration.underline, color: Color(0xFF1A1A1A))),
+                              TextSpan(text: 'Terms of Service', style: TextStyle(decoration: TextDecoration.underline, color: Color(0xFF4B5563))),
+                              TextSpan(text: ' and\n'),
+                              TextSpan(text: 'Privacy Policy', style: TextStyle(decoration: TextDecoration.underline, color: Color(0xFF4B5563))),
                               TextSpan(text: '.'),
                             ],
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: const [
@@ -185,7 +177,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             Text('Enterprise SSO • Audit Trail v2.4', style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
@@ -208,19 +200,36 @@ class _FeatureLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (extraIcons.isNotEmpty)
-          ...extraIcons.map((ic) => Padding(
-                padding: const EdgeInsets.only(right: 3),
-                child: Icon(ic, size: 13, color: color),
-              ))
-        else if (icon != null)
-          Icon(icon, size: 14, color: color),
-        const SizedBox(width: 4),
-        Text(text, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(10),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (extraIcons.isNotEmpty)
+            ...extraIcons.map((ic) => Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Icon(ic, size: 14, color: color),
+                ))
+          else if (icon != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Icon(icon, size: 14, color: color),
+            ),
+          Text(text, style: const TextStyle(fontSize: 12, color: Color(0xFF1A1A1A), fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
   }
 }
