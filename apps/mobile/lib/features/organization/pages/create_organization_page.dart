@@ -23,9 +23,10 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
   String _orgName = '';
   String _orgEmail = '';
   String _orgPhone = '';
-  String _orgWebsite = '';
-  String _orgIndustry = 'Fitness';
-
+  String _orgIndustry = 'Fitness / Gym & Athletics';
+  String _orgBio = '';
+  String _orgCurrency = 'INR - Indian Rupee ₹';
+  String _orgTimezone = 'Asia/Kolkata (IST +05:30)';
   // Location Fields
   String _locName = '';
   String _locAddress = '';
@@ -95,8 +96,25 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
-        title: Text(_step == 1 ? 'Create Your Organization' : 'Add First Location / Branch'),
+        backgroundColor: const Color(0xFFF0F2F5),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('Create Organization',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+        actions: [
+          IconButton(icon: const Icon(Icons.help_outline), onPressed: () {}),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Container(
+              width: 32, height: 32,
+              decoration: BoxDecoration(color: const Color(0xFF3D1F00), borderRadius: BorderRadius.circular(8)),
+              alignment: Alignment.center,
+              child: const Text('D', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            ),
+          ),
+        ],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -106,6 +124,33 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
               context.pop();
             }
           },
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(36),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
+              children: [
+                Text('STEP $_step OF 2',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFB45309), letterSpacing: 0.5)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: _step / 2,
+                      backgroundColor: const Color(0xFFE5E7EB),
+                      color: const Color(0xFFB45309),
+                      minHeight: 3,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(_step == 1 ? 'Organization Setup' : 'Final Touch',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+              ],
+            ),
+          ),
         ),
       ),
       body: _isLoading
@@ -120,53 +165,251 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
     );
   }
 
+  Widget _sectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFFB45309)),
+        const SizedBox(width: 8),
+        Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A))),
+      ],
+    );
+  }
+
+  Widget _fieldLabel(String label, {bool required = false}) {
+    return Row(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF374151))),
+        if (required) ...[
+          const SizedBox(width: 4),
+          const Text('*Required', style: TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
+        ],
+      ],
+    );
+  }
+
   Widget _buildStep1() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('STEP 1 OF 2: ORGANIZATION IDENTITY', style: TextStyle(fontSize: 12, color: Color(0xFFB45309), fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+        // Page title
+        const Text('Create your organization',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A))),
+        const SizedBox(height: 6),
+        const Text(
+          'Configure high-level workspace credentials, audit identifiers, and regional accounting defaults.',
+          style: TextStyle(fontSize: 13, color: Color(0xFF6B7280), height: 1.4),
+        ),
+        const SizedBox(height: 20),
+
+        // Owner auth notice
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFBFDBFE)),
+          ),
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.shield_outlined, size: 18, color: Color(0xFF3B82F6)),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Owner Tenant Authorization',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E40AF))),
+                    SizedBox(height: 3),
+                    Text(
+                      'As the organization creator, you will automatically become the Organization Owner with protected full-tenant access.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF3B82F6), height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 24),
+
+        // ── CORE IDENTITY ──────────────────────────────────────────
+        _sectionHeader(Icons.credit_card_outlined, 'Core Identity'),
+        const SizedBox(height: 14),
+
+        _fieldLabel('Organization Legal / Brand Name', required: true),
+        const SizedBox(height: 6),
         TextFormField(
           initialValue: _orgName,
-          decoration: const InputDecoration(labelText: 'Organization Name *', prefixIcon: Icon(Icons.business)),
+          decoration: const InputDecoration(hintText: 'e.g. Apex Fitness & Health'),
           validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+          onChanged: (v) => setState(() => _orgName = v),
           onSaved: (v) => _orgName = v ?? '',
         ),
         const SizedBox(height: 16),
+
+        _fieldLabel('Workspace Slug / Code'),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'dailio.app/${_orgName.toLowerCase().replaceAll(' ', '-').replaceAll(RegExp(r'[^a-z0-9-]'), '')}',
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+                ),
+              ),
+              const Icon(Icons.check_circle, size: 18, color: Color(0xFF22C55E)),
+            ],
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.only(top: 5, left: 2),
+          child: Text('Auto-generated for deep-linking, API access, and employee clock-in portals.',
+              style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+        ),
+        const SizedBox(height: 16),
+
+        _fieldLabel('Primary Category / Industry'),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          value: _orgIndustry, // ignore: deprecated_member_use
+          decoration: const InputDecoration(),
+          items: ['Fitness / Gym & Athletics', 'Corporate', 'Education', 'Healthcare', 'Other']
+              .map((i) => DropdownMenuItem(value: i, child: Text(i)))
+              .toList(),
+          onChanged: (v) => setState(() => _orgIndustry = v!),
+          onSaved: (v) => _orgIndustry = v ?? 'Fitness / Gym & Athletics',
+        ),
+        const SizedBox(height: 28),
+
+        // ── BRAND IMAGERY ──────────────────────────────────────────
+        _sectionHeader(Icons.image_outlined, 'Brand Imagery'),
+        const SizedBox(height: 14),
+
+        _fieldLabel('Brand Logo Upload'),
+        const SizedBox(height: 8),
+        Container(
+          height: 120,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFD1D5DB)),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_upload_outlined, size: 32, color: Colors.grey.shade400),
+              const SizedBox(height: 8),
+              const Text('Tap to choose or drag brand logo',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF374151))),
+              const SizedBox(height: 4),
+              const Text('PNG, JPG or SVG • High resolution 512×512 recommended (Max 5MB)',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        _fieldLabel('Short Organization Bio'),
+        const SizedBox(height: 6),
+        TextFormField(
+          initialValue: _orgBio,
+          decoration: const InputDecoration(
+            hintText: 'High-performance training club delivering functional training across regional branches...',
+            alignLabelWithHint: true,
+          ),
+          maxLines: 4,
+          maxLength: 240,
+          onSaved: (v) => _orgBio = v ?? '',
+        ),
+        const SizedBox(height: 28),
+
+        // ── OFFICIAL POINTS OF CONTACT ─────────────────────────────
+        _sectionHeader(Icons.alternate_email, 'Official Points of Contact'),
+        const SizedBox(height: 14),
+
+        _fieldLabel('Contact Email'),
+        const SizedBox(height: 6),
         TextFormField(
           initialValue: _orgEmail,
-          decoration: const InputDecoration(labelText: 'Support Email', prefixIcon: Icon(Icons.email_outlined)),
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.email_outlined, size: 18),
+            hintText: 'operations@apxfitness.com',
+          ),
           keyboardType: TextInputType.emailAddress,
           onSaved: (v) => _orgEmail = v ?? '',
         ),
         const SizedBox(height: 16),
+
+        _fieldLabel('Official Phone Number'),
+        const SizedBox(height: 6),
         TextFormField(
           initialValue: _orgPhone,
-          decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone_outlined)),
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.phone_outlined, size: 18),
+            hintText: '+91 98765 43210',
+          ),
           keyboardType: TextInputType.phone,
           onSaved: (v) => _orgPhone = v ?? '',
         ),
-        const SizedBox(height: 16),
-        TextFormField(
-          initialValue: _orgWebsite,
-          decoration: const InputDecoration(labelText: 'Website', prefixIcon: Icon(Icons.language_outlined)),
-          keyboardType: TextInputType.url,
-          onSaved: (v) => _orgWebsite = v ?? '',
-        ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 28),
+
+        // ── REGIONAL & FISCAL DEFAULTS ─────────────────────────────
+        _sectionHeader(Icons.language, 'Regional & Fiscal Defaults'),
+        const SizedBox(height: 14),
+
+        _fieldLabel('Default Currency'),
+        const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          initialValue: _orgIndustry,
-          decoration: const InputDecoration(labelText: 'Industry/Type', prefixIcon: Icon(Icons.category_outlined)),
-          items: ['Fitness', 'Corporate', 'Education', 'Healthcare', 'Other']
+          value: _orgCurrency, // ignore: deprecated_member_use
+          decoration: const InputDecoration(),
+          items: ['INR - Indian Rupee ₹', 'USD - US Dollar \$', 'EUR - Euro €', 'GBP - British Pound £']
               .map((i) => DropdownMenuItem(value: i, child: Text(i)))
               .toList(),
-          onChanged: (v) => setState(() => _orgIndustry = v!),
+          onChanged: (v) => setState(() => _orgCurrency = v!),
         ),
+        const Padding(
+          padding: EdgeInsets.only(top: 5, left: 2, bottom: 16),
+          child: Text('Used across membership payouts, fee structures, and attendance audits.',
+              style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+        ),
+
+        _fieldLabel('Default Timezone'),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          value: _orgTimezone, // ignore: deprecated_member_use
+          decoration: const InputDecoration(),
+          items: ['Asia/Kolkata (IST +05:30)', 'Asia/Dubai (GST +04:00)', 'America/New_York (EST -05:00)', 'Europe/London (GMT +00:00)']
+              .map((i) => DropdownMenuItem(value: i, child: Text(i)))
+              .toList(),
+          onChanged: (v) => setState(() => _orgTimezone = v!),
+        ),
+        const Padding(
+          padding: EdgeInsets.only(top: 5, left: 2),
+          child: Text('All shifts, geo-punches, and auto-clockouts baseline against this zone.',
+              style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+        ),
+
         const SizedBox(height: 32),
         FilledButton(
           onPressed: _nextStep,
-          child: const Text('Continue to Location Setup →'),
+          child: const Text('Save & Proceed to Branch Setup →'),
         ),
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: () => context.pop(),
+          child: const Text('Cancel and return to dashboard',
+              style: TextStyle(color: Color(0xFF6B7280))),
+        ),
+        const SizedBox(height: 24),
       ],
     );
   }
