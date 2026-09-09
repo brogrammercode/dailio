@@ -5,6 +5,8 @@ import '../../features/auth/pages/splash_page.dart';
 import '../../features/auth/pages/onboarding_page.dart';
 import '../../features/context_selection/pages/join_or_create_page.dart';
 import '../../features/context_selection/pages/organization_discovery_page.dart';
+import '../../features/context_selection/pages/org_detail_page.dart';
+import '../../features/context_selection/models/location_discovery_model.dart';
 import '../../features/context_selection/pages/pending_join_page.dart';
 import '../../features/context_selection/pages/context_switcher_page.dart';
 import '../../features/organization/pages/create_organization_page.dart';
@@ -38,6 +40,13 @@ GoRouter buildRouter() {
       GoRoute(
         path: AppRoutes.organizationDiscovery,
         builder: (_, __) => const OrganizationDiscoveryPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.orgDetail,
+        builder: (_, state) {
+          final locations = state.extra as List<LocationDiscoveryModel>?;
+          return OrgDetailPage(locations: locations ?? []);
+        },
       ),
       GoRoute(
         path: AppRoutes.pendingJoin,

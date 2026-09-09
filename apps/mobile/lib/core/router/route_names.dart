@@ -10,6 +10,7 @@ class AppRoutes {
   static const String branchSelection = '/branches';
   static const String pendingJoin = '/pending';
   static const String contextSwitcher = '/switch';
+  static const String orgDetail = '/org-detail/:orgId';
 
   // Owner/Admin shell
   static const String home = '/home';
