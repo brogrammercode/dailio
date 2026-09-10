@@ -2,9 +2,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../core/storage/preferences_storage.dart';
-import '../../../core/widgets/shimmer_loader.dart';
+
 import '../controllers/organization_repository.dart';
 import '../models/role_model.dart';
 
@@ -235,7 +236,7 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
         child: _isLoading
-            ? ShimmerLoader.list()
+            ? _buildSkeleton()
             : _errorMessage != null
                 ? Center(
                     child: Column(
@@ -719,6 +720,96 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
             )
         ],
       ),
+    );
+  }
+
+  Widget _buildSkeleton() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 150),
+      children: [
+        // Header mimic
+        Row(
+          children: [
+            Shimmer.fromColors(
+                baseColor: Colors.grey.shade300,
+                highlightColor: Colors.grey.shade100,
+                child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8)))),
+            const SizedBox(width: 12),
+            Expanded(
+                child: Shimmer.fromColors(
+                    baseColor: Colors.grey.shade300,
+                    highlightColor: Colors.grey.shade100,
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                              width: 150, height: 20, color: Colors.white),
+                          const SizedBox(height: 4),
+                          Container(width: 200, height: 12, color: Colors.white)
+                        ]))),
+            Shimmer.fromColors(
+                baseColor: Colors.grey.shade300,
+                highlightColor: Colors.grey.shade100,
+                child: Container(
+                    width: 60,
+                    height: 24,
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12))))
+          ],
+        ),
+        const SizedBox(height: 24),
+        // Tabs mimic
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: List.generate(
+                3,
+                (index) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Shimmer.fromColors(
+                          baseColor: Colors.grey.shade300,
+                          highlightColor: Colors.grey.shade100,
+                          child: Container(
+                              width: 100,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20)))),
+                    )),
+          ),
+        ),
+        const SizedBox(height: 24),
+        // Card mimic
+        Shimmer.fromColors(
+            baseColor: Colors.grey.shade300,
+            highlightColor: Colors.grey.shade100,
+            child: Container(
+                width: double.infinity,
+                height: 120,
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16)))),
+        const SizedBox(height: 16),
+        // Permission Groups mimic
+        ...List.generate(
+            2,
+            (index) => Shimmer.fromColors(
+                baseColor: Colors.grey.shade300,
+                highlightColor: Colors.grey.shade100,
+                child: Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    width: double.infinity,
+                    height: 250,
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16))))),
+      ],
     );
   }
 }
