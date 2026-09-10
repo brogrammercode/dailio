@@ -3,37 +3,30 @@ import { prisma } from '../../lib/prisma';
 export async function resolveEffectivePermissions(
   user_id: string,
   organization_id: string,
-  location_id: string,
+  branch_id: string,
 ): Promise<Set<string>> {
   const permissions = new Set<string>();
 
-  // Get active location membership
-  const location_membership = await prisma.locationMembership.findFirst({
+  // Get active member
+  const member = await prisma.member.findFirst({
     where: {
       organization_id,
-      location_id,
-      organization_membership: { user_id },
+      branch_id,
+      user_id,
       status: 'ACTIVE',
     },
     include: {
-      role_assignments: {
-        where: { revoked_at: null },
-        include: {
-          role: true,
-        },
-      },
+      role: true,
     },
   });
 
-  if (!location_membership) return permissions;
+  if (!member || !member.role) return permissions;
 
-  for (const assignment of location_membership.role_assignments) {
-    // Owner role grants ALL
-    if (assignment.role.system_key === 'OWNER') {
-      permissions.add('ALL');
-      break;
-    }
-    for (const perm of assignment.role.permissions) {
+  // Owner role grants ALL
+  if (member.role.system_key === 'OWNER') {
+    permissions.add('ALL');
+  } else {
+    for (const perm of member.role.permissions) {
       permissions.add(perm);
     }
   }
@@ -41,16 +34,16 @@ export async function resolveEffectivePermissions(
   return permissions;
 }
 
-export async function getLocationMembershipForUser(
+export async function getMemberForUser(
   user_id: string,
   organization_id: string,
-  location_id: string,
+  branch_id: string,
 ) {
-  return prisma.locationMembership.findFirst({
+  return prisma.member.findFirst({
     where: {
       organization_id,
-      location_id,
-      organization_membership: { user_id },
+      branch_id,
+      user_id,
       status: 'ACTIVE',
     },
   });

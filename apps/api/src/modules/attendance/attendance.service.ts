@@ -6,9 +6,9 @@ import { ConflictError, NotFoundError } from '../../lib/errors';
 
 import type { ClockInInput, ClockOutInput, ListSessionsQuery } from './attendance.schema';
 
-export async function getEffectivePolicy(organization_id: string, location_id: string) {
+export async function getEffectivePolicy(organization_id: string, branch_id: string) {
   const policy = await prisma.attendancePolicy.findFirst({
-    where: { organization_id, location_id },
+    where: { organization_id, branch_id },
     orderBy: { version: 'desc' },
   });
 
@@ -26,12 +26,12 @@ export async function getEffectivePolicy(organization_id: string, location_id: s
   };
 }
 
-export async function clockIn(actor_id: string, organization_id: string, location_id: string, data: ClockInInput) {
-  const membership = await prisma.locationMembership.findFirst({
+export async function clockIn(actor_id: string, organization_id: string, branch_id: string, data: ClockInInput) {
+  const membership = await prisma.member.findFirst({
     where: {
       organization_id,
-      location_id,
-      organization_membership: { user_id: actor_id },
+      branch_id,
+      user_id: actor_id,
       status: 'ACTIVE',
     },
   });
@@ -42,7 +42,7 @@ export async function clockIn(actor_id: string, organization_id: string, locatio
 
   const existingSession = await prisma.attendanceSession.findFirst({
     where: {
-      location_membership_id: membership.id,
+      member_id: membership.id,
       state: 'OPEN',
     },
   });
@@ -51,14 +51,14 @@ export async function clockIn(actor_id: string, organization_id: string, locatio
     throw new ConflictError('An attendance session is already open');
   }
 
-  const policy = await getEffectivePolicy(organization_id, location_id);
+  const policy = await getEffectivePolicy(organization_id, branch_id);
 
   const session = await prisma.attendanceSession.create({
     data: {
       id: ulid(),
       organization_id,
-      location_id,
-      location_membership_id: membership.id,
+      branch_id,
+      member_id: membership.id,
       policy_version: policy.version,
       state: 'OPEN',
       source: 'SELF',
@@ -71,18 +71,18 @@ export async function clockIn(actor_id: string, organization_id: string, locatio
   return session;
 }
 
-export async function clockOut(actor_id: string, organization_id: string, location_id: string, data: ClockOutInput, permissions: Set<string>) {
+export async function clockOut(actor_id: string, organization_id: string, branch_id: string, data: ClockOutInput, permissions: Set<string>) {
   const session = await prisma.attendanceSession.findUnique({
     where: { id: data.session_id },
-    include: { location_membership: { include: { organization_membership: true } } },
+    include: { member: { include: { user: true } } },
   });
 
-  if (!session || session.organization_id !== organization_id || session.location_id !== location_id) {
+  if (!session || session.organization_id !== organization_id || session.branch_id !== branch_id) {
     throw new NotFoundError('Session');
   }
 
   // Caller membership check (unless they have ATTENDANCE_CREATE_ALL)
-  if (session.location_membership.organization_membership.user_id !== actor_id) {
+  if (session.member!.user_id !== actor_id) {
     if (!permissions.has('ATTENDANCE_CREATE_ALL') && !permissions.has('ALL')) {
       throw new ConflictError('Session does not belong to the calling user');
     }
@@ -112,12 +112,12 @@ export async function clockOut(actor_id: string, organization_id: string, locati
   return updated;
 }
 
-export async function getActiveSession(actor_id: string, organization_id: string, location_id: string) {
-  const membership = await prisma.locationMembership.findFirst({
+export async function getActiveSession(actor_id: string, organization_id: string, branch_id: string) {
+  const membership = await prisma.member.findFirst({
     where: {
       organization_id,
-      location_id,
-      organization_membership: { user_id: actor_id },
+      branch_id,
+      user_id: actor_id,
     },
   });
 
@@ -125,13 +125,13 @@ export async function getActiveSession(actor_id: string, organization_id: string
 
   return prisma.attendanceSession.findFirst({
     where: {
-      location_membership_id: membership.id,
+      member_id: membership.id,
       state: 'OPEN',
     },
   });
 }
 
-export async function listSessions(actor_id: string, organization_id: string, location_id: string, query: ListSessionsQuery, permissions: Set<string>) {
+export async function listSessions(actor_id: string, organization_id: string, branch_id: string, query: ListSessionsQuery, permissions: Set<string>) {
   const { period, member_id, status } = query;
   
   const startDate = new Date();
@@ -147,7 +147,7 @@ export async function listSessions(actor_id: string, organization_id: string, lo
 
   const where: Prisma.AttendanceSessionWhereInput = {
     organization_id,
-    location_id,
+    branch_id,
     clock_in_at: { gte: startDate },
   };
 
@@ -157,26 +157,26 @@ export async function listSessions(actor_id: string, organization_id: string, lo
 
   if (permissions.has('ATTENDANCE_READ_ALL') || permissions.has('ALL')) {
     if (member_id) {
-      where.location_membership_id = member_id;
+      where.member_id = member_id;
     }
   } else {
     // Only self
-    const membership = await prisma.locationMembership.findFirst({
+    const membership = await prisma.member.findFirst({
       where: {
         organization_id,
-        location_id,
-        organization_membership: { user_id: actor_id },
+        branch_id,
+        user_id: actor_id,
       },
     });
     if (!membership) return [];
-    where.location_membership_id = membership.id;
+    where.member_id = membership.id;
   }
 
   return prisma.attendanceSession.findMany({
     where,
     include: {
-      location_membership: {
-        include: { organization_membership: true },
+      member: {
+        include: { user: true },
       },
     },
     orderBy: { clock_in_at: 'desc' },

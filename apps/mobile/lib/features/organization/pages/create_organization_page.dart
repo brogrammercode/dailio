@@ -1,3 +1,4 @@
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 
 import 'dart:convert';
@@ -75,7 +76,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.5)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Iconsax.arrow_left),
           onPressed: () => context.pop(),
         ),
         bottom: PreferredSize(
@@ -267,7 +268,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
                       const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                 ),
               ),
-              const Icon(Icons.check_circle,
+              const Icon(Iconsax.tick_circle,
                   size: 18, color: Color(0xFF22C55E)),
             ],
           ),
@@ -323,7 +324,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         TextFormField(
           initialValue: _orgEmail,
           decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.email_outlined, size: 18),
+            prefixIcon: Icon(Iconsax.sms, size: 18),
             hintText: 'operations@apxfitness.com',
           ),
           keyboardType: TextInputType.emailAddress,
@@ -336,7 +337,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         TextFormField(
           initialValue: _orgPhone,
           decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.phone_outlined, size: 18),
+            prefixIcon: Icon(Iconsax.call, size: 18),
             hintText: '+91 98765 43210',
           ),
           keyboardType: TextInputType.phone,

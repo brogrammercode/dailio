@@ -1,3 +1,4 @@
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/storage/preferences_storage.dart';
@@ -171,7 +172,7 @@ class _AttendancePageState extends State<AttendancePage> with SingleTickerProvid
           ? const FloatingActionButton(onPressed: null, child: CircularProgressIndicator(color: Colors.white))
           : FloatingActionButton.extended(
               onPressed: _activeSession == null ? _clockIn : () => _clockOut(_activeSession!.id),
-              icon: Icon(_activeSession == null ? Icons.login : Icons.logout),
+              icon: Icon(_activeSession == null ? Icons.login : Iconsax.logout),
               label: Text(_activeSession == null ? 'Clock In' : 'Clock Out'),
             ),
     );

@@ -7,24 +7,24 @@ import type { CreateJoinRequestInput, JoinRequestActionInput } from './admission
 
 export async function submitJoinRequest(
   user_id: string,
-  location_id: string,
+  branch_id: string,
   data: CreateJoinRequestInput,
 ) {
-  const location = await prisma.location.findUnique({
-    where: { id: location_id },
+  const branch = await prisma.branch.findUnique({
+    where: { id: branch_id },
     include: { organization: true },
   });
 
-  if (!location) throw new NotFoundError('Location');
+  if (!branch) throw new NotFoundError('Branch');
 
   // Check if they are already a member or have a pending request
-  const existingMember = await prisma.locationMembership.findFirst({
-    where: { location_id, organization_membership: { user_id } },
+  const existingMember = await prisma.member.findFirst({
+    where: { branch_id, user_id },
   });
-  if (existingMember) throw new ConflictError('Already a member of this location');
+  if (existingMember) throw new ConflictError('Already a member of this branch');
 
   const existingRequest = await prisma.joinRequest.findFirst({
-    where: { user_id, location_id, status: 'PENDING' },
+    where: { user_id, branch_id, status: 'PENDING' },
   });
   if (existingRequest) throw new ConflictError('A pending join request already exists');
 
@@ -32,18 +32,19 @@ export async function submitJoinRequest(
     data: {
       id: ulid(),
       user_id,
-      location_id,
-      organization_id: location.organization_id,
+      branch_id,
+      organization_id: branch.organization_id,
       status: 'PENDING',
+      message: data.message,
     },
   });
 }
 
-export async function listPendingRequests(organization_id: string, location_id: string) {
+export async function listPendingRequests(organization_id: string, branch_id: string) {
   return prisma.joinRequest.findMany({
     where: {
       organization_id,
-      location_id,
+      branch_id,
       status: 'PENDING',
     },
     include: {
@@ -58,7 +59,7 @@ export async function listPendingRequests(organization_id: string, location_id: 
 export async function approveJoinRequest(
   actor_id: string,
   organization_id: string,
-  location_id: string,
+  branch_id: string,
   request_id: string,
   data: JoinRequestActionInput,
 ) {
@@ -72,7 +73,7 @@ export async function approveJoinRequest(
     if (
       !request ||
       request.organization_id !== organization_id ||
-      request.location_id !== location_id
+      request.branch_id !== branch_id
     ) {
       throw new NotFoundError('Join Request');
     }
@@ -83,63 +84,45 @@ export async function approveJoinRequest(
     // 1. Mark request as APPROVED
     await txClient.joinRequest.update({
       where: { id: request_id },
-      data: { status: 'APPROVED', updated_at: new Date() },
-    });
-
-    // 2. Ensure OrganizationMembership exists
-    let orgMembership = await txClient.organizationMembership.findFirst({
-      where: { user_id: request.user_id, organization_id },
-    });
-
-    if (!orgMembership) {
-      orgMembership = await txClient.organizationMembership.create({
-        data: {
-          id: ulid(),
-          user_id: request.user_id,
-          organization_id,
-          first_name: request.user.name,
-          email: request.user.email,
-        },
-      });
-    }
-
-    // 3. Create LocationMembership
-    const locMembershipId = ulid();
-    const locMembership = await txClient.locationMembership.create({
-      data: {
-        id: locMembershipId,
-        organization_id,
-        location_id,
-        organization_membership_id: orgMembership.id,
-        membership_number: 'MEM-' + Date.now().toString().slice(-6),
-        status: 'ACTIVE',
+      data: { 
+        status: 'APPROVED', 
+        reviewed_at: new Date(),
+        reviewed_by: actor_id,
       },
     });
 
-    // 4. Assign default MEMBER role
+    // 2. Fetch default MEMBER role
     const memberRole = await txClient.role.findFirst({
       where: { organization_id, system_key: 'MEMBER' },
     });
 
-    if (memberRole) {
-      await txClient.roleAssignment.create({
-        data: {
-          id: ulid(),
-          organization_id,
-          location_id,
-          role_id: memberRole.id,
-          location_membership_id: locMembershipId,
-          assigned_by: actor_id,
-        },
-      });
-    }
+    // 3. Create Member
+    const memberId = ulid();
+    const member = await txClient.member.create({
+      data: {
+        id: memberId,
+        user_id: request.user_id,
+        organization_id,
+        branch_id,
+        role_id: memberRole?.id,
+        member_number: 'MEM-' + Date.now().toString().slice(-6),
+        status: 'ACTIVE',
+        is_employee: false,
+      },
+    });
 
-    // 5. Audit log
+    // Link member to request
+    await txClient.joinRequest.update({
+      where: { id: request_id },
+      data: { member_id: memberId }
+    });
+
+    // 4. Audit log
     await txClient.auditLog.create({
       data: {
         id: ulid(),
         organization_id,
-        location_id,
+        branch_id,
         actor_id,
         action: 'UPDATE',
         target_type: 'JoinRequest',
@@ -148,14 +131,14 @@ export async function approveJoinRequest(
       },
     });
 
-    return locMembership;
+    return member;
   }, { maxWait: 5000, timeout: 20000 });
 }
 
 export async function rejectJoinRequest(
   actor_id: string,
   organization_id: string,
-  location_id: string,
+  branch_id: string,
   request_id: string,
   data: JoinRequestActionInput,
 ) {
@@ -168,7 +151,7 @@ export async function rejectJoinRequest(
     if (
       !request ||
       request.organization_id !== organization_id ||
-      request.location_id !== location_id
+      request.branch_id !== branch_id
     ) {
       throw new NotFoundError('Join Request');
     }
@@ -178,14 +161,19 @@ export async function rejectJoinRequest(
 
     const updated = await txClient.joinRequest.update({
       where: { id: request_id },
-      data: { status: 'REJECTED', updated_at: new Date() },
+      data: { 
+        status: 'REJECTED', 
+        rejection_reason: data.reason,
+        reviewed_at: new Date(),
+        reviewed_by: actor_id,
+      },
     });
 
     await txClient.auditLog.create({
       data: {
         id: ulid(),
         organization_id,
-        location_id,
+        branch_id,
         actor_id,
         action: 'UPDATE',
         target_type: 'JoinRequest',

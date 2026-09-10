@@ -1,3 +1,4 @@
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -174,7 +175,7 @@ class _ContextSwitcherPageState extends State<ContextSwitcherPage> {
                           color: const Color(0xFFFFF7ED),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.storefront_outlined,
+                        child: const Icon(Iconsax.shop,
                             color: Color(0xFFB45309), size: 20),
                       ),
                       title: Text(branch['name'],
@@ -183,7 +184,7 @@ class _ContextSwitcherPageState extends State<ContextSwitcherPage> {
                       subtitle: Text(branch['address'] ?? 'No address set',
                           style: const TextStyle(
                               fontSize: 12, color: Color(0xFF6B7280))),
-                      trailing: const Icon(Icons.chevron_right,
+                      trailing: const Icon(Iconsax.arrow_right_3,
                           color: Color(0xFFD1D5DB)),
                       onTap: () => _selectContext(organization, branch),
                     );

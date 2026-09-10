@@ -1,3 +1,4 @@
+import 'package:iconsax/iconsax.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -285,7 +286,7 @@ class _HeroVisualizerState extends State<_HeroVisualizer>
               ],
             ),
             child: const Center(
-              child: Icon(Icons.business_center,
+              child: Icon(Iconsax.building,
                   color: Color(0xFFB45309), size: 24),
             ),
           ),
@@ -321,7 +322,7 @@ class _HeroVisualizerState extends State<_HeroVisualizer>
             delayOffset: 4.5,
             bottom: 20,
             right: 0,
-            icon: Icons.account_balance_wallet,
+            icon: Iconsax.wallet_3,
             label: 'Live Payroll',
           ),
         ],

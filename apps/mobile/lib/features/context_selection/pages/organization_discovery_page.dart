@@ -1,3 +1,4 @@
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -264,7 +265,7 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                                           border: Border.all(
                                               color: const Color(0xFFE5E7EB)),
                                         ),
-                                        child: const Icon(Icons.business,
+                                        child: const Icon(Iconsax.building,
                                             color: Color(0xFF9CA3AF), size: 24),
                                       ),
                                       const SizedBox(width: 12),
@@ -452,7 +453,7 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                         color: const Color(0xFFB45309),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.business_center,
+                      child: const Icon(Iconsax.building,
                           color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 12),

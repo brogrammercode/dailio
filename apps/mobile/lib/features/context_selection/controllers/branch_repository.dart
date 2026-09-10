@@ -11,7 +11,7 @@ class BranchRepository {
   Future<List<BranchDiscoveryModel>> discoverBranches(
       {String? query}) async {
     final response = await apiClient.dio.get(
-      '/locations/discover',
+      '/branches/discover',
       queryParameters:
           query != null && query.isNotEmpty ? {'query': query} : null,
     );

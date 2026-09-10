@@ -1,4 +1,4 @@
-import type { Location, LocationMembership, Organization, User } from '@prisma/client';
+import type { Branch, Member, Organization, User } from '@prisma/client';
 
 declare global {
   namespace Express {
@@ -9,11 +9,11 @@ declare global {
       request_id?: string;
       /** Active organization context (set by tenant middleware) */
       organization?: Organization;
-      /** Active location context (set by tenant middleware) */
-      location?: Location;
-      /** Caller's location membership in the active location */
-      location_membership?: LocationMembership;
-      /** Effective permissions for the caller in this location */
+      /** Active branch context (set by tenant middleware) */
+      branch?: Branch;
+      /** Caller's membership in the active branch */
+      member?: Member;
+      /** Effective permissions for the caller in this branch */
       permissions?: Set<string>;
     }
   }

@@ -9,7 +9,7 @@ export async function clockInHandler(req: Request, res: Response, next: NextFunc
     const session = await attendanceService.clockIn(
       req.user!.id,
       req.organization!.id,
-      req.location!.id,
+      req.branch!.id,
       body
     );
     res.status(201).json({ data: session });
@@ -38,7 +38,7 @@ export async function clockOutHandler(req: Request, res: Response, next: NextFun
     const session = await attendanceService.clockOut(
       req.user!.id,
       req.organization!.id,
-      req.location!.id,
+      req.branch!.id,
       body,
       permissions
     );
@@ -53,7 +53,7 @@ export async function activeSessionHandler(req: Request, res: Response, next: Ne
     const session = await attendanceService.getActiveSession(
       req.user!.id,
       req.organization!.id,
-      req.location!.id
+      req.branch!.id
     );
     res.json({ session });
   } catch (error) {
@@ -68,7 +68,7 @@ export async function listSessionsHandler(req: Request, res: Response, next: Nex
     const data = await attendanceService.listSessions(
       req.user!.id,
       req.organization!.id,
-      req.location!.id,
+      req.branch!.id,
       query,
       permissions
     );

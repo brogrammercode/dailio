@@ -1,13 +1,12 @@
 import { prisma } from '../../lib/prisma';
 
-import type { DiscoverLocationsQuery } from './locations.schema';
+import type { DiscoverBranchesQuery } from './branches.schema';
 
-export async function discoverLocations({ query, limit, cursor }: DiscoverLocationsQuery) {
-  const locations = await prisma.location.findMany({
+export async function discoverBranches({ query, limit, cursor }: DiscoverBranchesQuery) {
+  const branches = await prisma.branch.findMany({
     take: limit + 1,
     cursor: cursor ? { id: cursor } : undefined,
     where: {
-      status: 'ACTIVE',
       organization: {
         status: 'ACTIVE',
       },
@@ -33,10 +32,10 @@ export async function discoverLocations({ query, limit, cursor }: DiscoverLocati
   });
 
   let nextCursor: string | undefined = undefined;
-  if (locations.length > limit) {
-    const nextItem = locations.pop();
+  if (branches.length > limit) {
+    const nextItem = branches.pop();
     nextCursor = nextItem?.id;
   }
 
-  return { data: locations, nextCursor };
+  return { data: branches, nextCursor };
 }

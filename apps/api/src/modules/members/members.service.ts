@@ -6,12 +6,16 @@ import { NotFoundError } from '../../lib/errors';
 
 import type { ListMembersQuery, AssistedAdmissionInput, MemberActionInput } from './members.schema';
 
-export async function listMembers(organization_id: string, location_id: string, query: ListMembersQuery) {
+export async function listMembers(
+  organization_id: string,
+  branch_id: string,
+  query: ListMembersQuery,
+) {
   const { search, status, page, limit } = query;
-  
-  const where: Prisma.LocationMembershipWhereInput = {
+
+  const where: Prisma.MemberWhereInput = {
     organization_id,
-    location_id,
+    branch_id,
   };
 
   if (status) {
@@ -19,9 +23,9 @@ export async function listMembers(organization_id: string, location_id: string, 
   }
 
   if (search) {
-    where.organization_membership = {
+    where.user = {
       OR: [
-        { first_name: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
       ],
     };
@@ -30,58 +34,62 @@ export async function listMembers(organization_id: string, location_id: string, 
   const skip = (page - 1) * limit;
 
   const [data, total] = await Promise.all([
-    prisma.locationMembership.findMany({
+    prisma.member.findMany({
       where,
       include: {
-        organization_membership: true,
-        role_assignments: {
-          include: { role: true }
-        }
+        user: true,
+        role: true,
       },
       skip,
       take: limit,
       orderBy: { created_at: 'desc' },
     }),
-    prisma.locationMembership.count({ where }),
+    prisma.member.count({ where }),
   ]);
 
   return { data, total, page, limit };
 }
 
-export async function getMemberDetail(organization_id: string, location_id: string, location_membership_id: string) {
-  const member = await prisma.locationMembership.findUnique({
-    where: { id: location_membership_id },
+export async function getMemberDetail(
+  organization_id: string,
+  branch_id: string,
+  member_id: string,
+) {
+  const member = await prisma.member.findUnique({
+    where: { id: member_id },
     include: {
-      organization_membership: true,
-      role_assignments: {
-        include: { role: true }
-      }
-    }
+      user: true,
+      role: true,
+    },
   });
 
-  if (!member || member.organization_id !== organization_id || member.location_id !== location_id) {
+  if (!member || member.organization_id !== organization_id || member.branch_id !== branch_id) {
     throw new NotFoundError('Member');
   }
 
   return member;
 }
 
-export async function suspendMember(actor_id: string, organization_id: string, location_id: string, location_membership_id: string, data: MemberActionInput) {
+export async function suspendMember(
+  actor_id: string,
+  organization_id: string,
+  branch_id: string,
+  member_id: string,
+  data: MemberActionInput,
+) {
   return prisma.$transaction(async (tx) => {
-    const member = await tx.locationMembership.findUnique({
-      where: { id: location_membership_id },
+    const member = await tx.member.findUnique({
+      where: { id: member_id },
     });
 
-    if (!member || member.organization_id !== organization_id || member.location_id !== location_id) {
+    if (!member || member.organization_id !== organization_id || member.branch_id !== branch_id) {
       throw new NotFoundError('Member');
     }
 
-    const updated = await tx.locationMembership.update({
-      where: { id: location_membership_id },
+    const updated = await tx.member.update({
+      where: { id: member_id },
       data: {
         status: 'SUSPENDED',
-        suspended_by: actor_id,
-        suspended_at: new Date(),
         updated_at: new Date(),
       },
     });
@@ -90,11 +98,11 @@ export async function suspendMember(actor_id: string, organization_id: string, l
       data: {
         id: ulid(),
         organization_id,
-        location_id,
+        branch_id: branch_id,
         actor_id,
         action: 'UPDATE',
-        target_type: 'LocationMembership',
-        target_id: location_membership_id,
+        target_type: 'Member',
+        target_id: member_id,
         after_state: { status: 'SUSPENDED', reason: data.reason },
       },
     });
@@ -103,22 +111,26 @@ export async function suspendMember(actor_id: string, organization_id: string, l
   });
 }
 
-export async function deactivateMember(actor_id: string, organization_id: string, location_id: string, location_membership_id: string, data: MemberActionInput) {
+export async function deactivateMember(
+  actor_id: string,
+  organization_id: string,
+  branch_id: string,
+  member_id: string,
+  data: MemberActionInput,
+) {
   return prisma.$transaction(async (tx) => {
-    const member = await tx.locationMembership.findUnique({
-      where: { id: location_membership_id },
+    const member = await tx.member.findUnique({
+      where: { id: member_id },
     });
 
-    if (!member || member.organization_id !== organization_id || member.location_id !== location_id) {
+    if (!member || member.organization_id !== organization_id || member.branch_id !== branch_id) {
       throw new NotFoundError('Member');
     }
 
-    const updated = await tx.locationMembership.update({
-      where: { id: location_membership_id },
+    const updated = await tx.member.update({
+      where: { id: member_id },
       data: {
         status: 'INACTIVE',
-        deactivated_by: actor_id,
-        deactivated_at: new Date(),
         updated_at: new Date(),
       },
     });
@@ -127,11 +139,11 @@ export async function deactivateMember(actor_id: string, organization_id: string
       data: {
         id: ulid(),
         organization_id,
-        location_id,
+        branch_id: branch_id,
         actor_id,
         action: 'UPDATE',
-        target_type: 'LocationMembership',
-        target_id: location_membership_id,
+        target_type: 'Member',
+        target_id: member_id,
         after_state: { status: 'INACTIVE', reason: data.reason },
       },
     });
@@ -140,62 +152,69 @@ export async function deactivateMember(actor_id: string, organization_id: string
   });
 }
 
-export async function createAssistedAdmission(actor_id: string, organization_id: string, location_id: string, data: AssistedAdmissionInput) {
+export async function createAssistedAdmission(
+  actor_id: string,
+  organization_id: string,
+  branch_id: string,
+  data: AssistedAdmissionInput,
+) {
   return prisma.$transaction(async (tx) => {
-    const orgMembershipId = ulid();
-    const orgMembership = await tx.organizationMembership.create({
-      data: {
-        id: orgMembershipId,
-        organization_id,
-        first_name: data.first_name,
-        last_name: data.last_name,
-        email: data.email,
-        phone: data.phone,
-      },
-    });
-
-    const locMembershipId = ulid();
-    const locMembership = await tx.locationMembership.create({
-      data: {
-        id: locMembershipId,
-        organization_id,
-        location_id,
-        organization_membership_id: orgMembership.id,
-        membership_number: 'MEM-' + Date.now().toString().slice(-6),
-        status: 'ACTIVE',
-      },
-    });
+    // 1. Check or Create User
+    let targetUserId = ulid();
+    if (data.email) {
+      const existingUser = await tx.user.findUnique({ where: { email: data.email } });
+      if (existingUser) {
+        targetUserId = existingUser.id;
+      } else {
+        await tx.user.create({
+          data: {
+            id: targetUserId,
+            name: (data.first_name + ' ' + (data.last_name || '')).trim(),
+            email: data.email,
+            phone: data.phone,
+          },
+        });
+      }
+    } else {
+      await tx.user.create({
+        data: {
+          id: targetUserId,
+          name: (data.first_name + ' ' + (data.last_name || '')).trim(),
+          phone: data.phone,
+        },
+      });
+    }
 
     const memberRole = await tx.role.findFirst({
       where: { organization_id, system_key: 'MEMBER' },
     });
 
-    if (memberRole) {
-      await tx.roleAssignment.create({
-        data: {
-          id: ulid(),
-          organization_id,
-          location_id,
-          role_id: memberRole.id,
-          location_membership_id: locMembershipId,
-          assigned_by: actor_id,
-        },
-      });
-    }
+    const memberId = ulid();
+    const member = await tx.member.create({
+      data: {
+        id: memberId,
+        organization_id,
+        branch_id,
+        user_id: targetUserId,
+        role_id: memberRole?.id,
+        member_number: 'MEM-' + Date.now().toString().slice(-6),
+        status: 'ACTIVE',
+      },
+    });
 
     await tx.auditLog.create({
       data: {
         id: ulid(),
         organization_id,
-        location_id,
+        branch_id: branch_id,
         actor_id,
         action: 'CREATE',
-        target_type: 'LocationMembership',
-        target_id: locMembershipId,
+        target_type: 'Member',
+        target_id: memberId,
         after_state: { status: 'ACTIVE', admission_type: 'ASSISTED' },
       },
     });
 
-    return locMembership;
+    return member;
   });
 }

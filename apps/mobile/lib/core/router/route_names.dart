@@ -1,4 +1,4 @@
-class AppRoutes {
+﻿class AppRoutes {
   AppRoutes._();
 
   
@@ -26,10 +26,15 @@ class AppRoutes {
   static const String roles = '/home/branch/roles';
   static const String plans = '/home/branch/plans';
   static const String newAdmission = '/home/branch/new-admission';
+  static const String configureMember = '/home/branch/configure-member';
+  static const String subscriptionPlans = '/home/branch/subscription-plans';
+  static const String shiftManagement = '/home/branch/shift-management';
+  static const String payrollManagement = '/home/branch/payroll-management';
 
   // Shared
   static const String profile = '/profile';
   static const String notifications = '/notifications';
   static const String announcements = '/announcements';
 }
+
 

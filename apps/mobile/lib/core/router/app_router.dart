@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 
@@ -8,6 +8,10 @@ import '../../features/context_selection/pages/organization_discovery_page.dart'
 import '../../features/context_selection/pages/org_detail_page.dart';
 import '../../features/context_selection/models/branch_discovery_model.dart';
 import '../../features/context_selection/pages/pending_join_page.dart';
+import '../../features/branch/pages/configure_member_page.dart';
+import '../../features/branch/pages/subscription_plans_page.dart';
+import '../../features/branch/pages/shift_management_page.dart';
+import '../../features/branch/pages/payroll_management_page.dart';
 import '../../features/context_selection/pages/context_switcher_page.dart';
 import '../../features/organization/pages/create_organization_page.dart';
 import '../../features/organization/pages/create_branch_page.dart';
@@ -66,7 +70,7 @@ GoRouter buildRouter(String initialLocation) {
           return CreateBranchPage(organizationInput: input);
         },
       ),
-      // ── Main app shell with bottom nav ──────────────────────────────
+      // â”€â”€ Main app shell with bottom nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       GoRoute(
         path: AppRoutes.home,
         builder: (_, __) => const AppShell(),
@@ -86,7 +90,7 @@ GoRouter buildRouter(String initialLocation) {
         path: AppRoutes.joinRequests,
         builder: (_, __) => const JoinRequestsPage(),
       ),
-      // ── Shared routes ───────────────────────────────────────────────
+      // â”€â”€ Shared routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       GoRoute(
         path: AppRoutes.profile,
         builder: (_, __) => const ProfilePage(),
@@ -94,4 +98,5 @@ GoRouter buildRouter(String initialLocation) {
     ],
   );
 }
+
 

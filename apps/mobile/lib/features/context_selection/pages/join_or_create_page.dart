@@ -1,3 +1,4 @@
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -96,7 +97,7 @@ class JoinOrCreatePage extends StatelessWidget {
                 value: 'signout',
                 child: Row(
                   children: [
-                    Icon(Icons.logout, size: 20, color: Color(0xFFDC2626)),
+                    Icon(Iconsax.logout, size: 20, color: Color(0xFFDC2626)),
                     SizedBox(width: 12),
                     Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w600)),
                   ],
@@ -239,7 +240,7 @@ class JoinOrCreatePage extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: Padding(
                 padding: EdgeInsets.only(top: 8),
-                child: Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
+                child: Icon(Iconsax.arrow_right_3, color: Color(0xFFD1D5DB)),
               ),
             )
           ],

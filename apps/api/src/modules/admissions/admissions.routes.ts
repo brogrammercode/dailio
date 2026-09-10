@@ -5,7 +5,7 @@ import { resolveTenantContext } from '../../middleware/tenant';
 import { requirePermission } from '../../middleware/permission';
 
 import {
-  joinLocation,
+  joinBranch,
   getJoinRequests,
   approveRequest,
   rejectRequest,
@@ -14,11 +14,11 @@ import {
 const router: Router = Router();
 
 // Member requests to join
-router.post('/locations/:location_id/join', authenticate, joinLocation);
+router.post('/branches/:branch_id/join', authenticate, joinBranch);
 
 // Admin fetches requests
 router.get(
-  '/locations/:location_id/join-requests',
+  '/branches/:branch_id/join-requests',
   authenticate,
   resolveTenantContext,
   requirePermission('JOIN_REQUEST_READ'),
@@ -27,14 +27,14 @@ router.get(
 
 // Admin approves/rejects
 router.post(
-  '/locations/:location_id/join-requests/:request_id/approve',
+  '/branches/:branch_id/join-requests/:request_id/approve',
   authenticate,
   resolveTenantContext,
   requirePermission('JOIN_REQUEST_APPROVE'),
   approveRequest,
 );
 router.post(
-  '/locations/:location_id/join-requests/:request_id/reject',
+  '/branches/:branch_id/join-requests/:request_id/reject',
   authenticate,
   resolveTenantContext,
   requirePermission('JOIN_REQUEST_REJECT'),

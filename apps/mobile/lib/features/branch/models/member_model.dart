@@ -1,4 +1,4 @@
-class RoleModel {
+﻿class RoleModel {
   final String id;
   final String name;
   final String? systemKey;
@@ -8,34 +8,42 @@ class RoleModel {
 }
 
 class MemberModel {
-  final String id;            // location_membership id
+  final String id;
   final String membershipNumber;
-  final String firstName;
-  final String? lastName;
+  final String name;
   final String? email;
+  final String? phone;
   final String status;        // ACTIVE | SUSPENDED | INACTIVE
-  final List<RoleModel> roles;
+  final RoleModel? role;
   final String? joinedAt;
 
-  MemberModel({required this.id, required this.membershipNumber, required this.firstName, this.lastName, this.email, required this.status, required this.roles, this.joinedAt});
+  MemberModel({
+    required this.id, 
+    required this.membershipNumber, 
+    required this.name, 
+    this.email, 
+    this.phone,
+    required this.status, 
+    this.role, 
+    this.joinedAt
+  });
 
   factory MemberModel.fromJson(Map<String, dynamic> j) {
-    final orgMembership = j['organization_membership'] as Map<String, dynamic>? ?? {};
-    final assignments = j['role_assignments'] as List? ?? [];
+    final user = j['user'] as Map<String, dynamic>? ?? {};
+    final roleJson = j['role'] as Map<String, dynamic>?;
+    
     return MemberModel(
       id: j['id'],
-      membershipNumber: j['membership_number'] ?? '',
-      firstName: orgMembership['first_name'] ?? '',
-      lastName: orgMembership['last_name'],
-      email: orgMembership['email'],
+      membershipNumber: j['member_number'] ?? '',
+      name: user['name'] ?? 'Unknown Member',
+      email: user['email'],
+      phone: user['phone'],
       status: j['status'] ?? 'ACTIVE',
-      roles: assignments.map((a) {
-        final role = a['role'] as Map<String, dynamic>? ?? {};
-        return RoleModel.fromJson(role);
-      }).toList(),
-      joinedAt: j['joined_at'],
+      role: roleJson != null ? RoleModel.fromJson(roleJson) : null,
+      joinedAt: j['created_at'],
     );
   }
 
-  String get fullName => [firstName, lastName].where((s) => s != null && s.isNotEmpty).join(' ');
+  String get fullName => name;
 }
+

@@ -1,3 +1,4 @@
+import 'package:iconsax/iconsax.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,7 +7,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:dio/dio.dart';
-import 'dart:ui' as ui;
 
 import '../controllers/organization_repository.dart';
 import '../models/create_organization_models.dart';
@@ -164,9 +164,10 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
   Future<void> _detectLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please enable location services.')));
+      }
       await Geolocator.openLocationSettings();
       return;
     }
@@ -175,18 +176,20 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Location permissions are denied.')));
+        }
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text(
                 'Location permissions are permanently denied. Please enable in app settings.')));
+      }
       await Geolocator.openAppSettings();
       return;
     }
@@ -203,9 +206,10 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
       _mapController.move(newLoc, 15.0);
       await _reverseGeocode(newLoc);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error detecting location: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isDetectingLocation = false);
     }
@@ -464,7 +468,7 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.5)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Iconsax.arrow_left),
           onPressed: () => context.pop(),
         ),
         bottom: PreferredSize(
@@ -524,7 +528,7 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
 
                     // Branch Identification
                     _sectionHeader(
-                        Icons.storefront_outlined, 'Branch Identification'),
+                        Iconsax.shop, 'Branch Identification'),
                     const SizedBox(height: 14),
 
                     _fieldLabel('Branch Name', required: true),
@@ -555,7 +559,7 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
                                         color: Color(0xFFB45309))),
                               )
                             : _codeController.text.isNotEmpty && _isCodeUnique
-                                ? const Icon(Icons.check_circle,
+                                ? const Icon(Iconsax.tick_circle,
                                     color: Color(0xFF22C55E), size: 18)
                                 : null,
                       ),

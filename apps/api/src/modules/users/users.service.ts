@@ -10,15 +10,12 @@ export async function updateProfile(user_id: string, data: UpdateProfileInput) {
 }
 
 export async function getUserContexts(user_id: string) {
-  const organization_memberships = await prisma.organizationMembership.findMany({
+  const members = await prisma.member.findMany({
     where: { user_id, status: 'ACTIVE' },
     include: {
       organization: true,
-      location_memberships: {
-        where: { status: 'ACTIVE' },
-        include: { location: true },
-      },
+      branch: true,
     },
   });
-  return organization_memberships;
+  return members;
 }

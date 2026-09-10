@@ -1,3 +1,4 @@
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../controllers/admission_repository.dart';
@@ -92,7 +93,7 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
                             onPressed: () => _handleAction(req.id, false),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.check, color: Colors.green),
+                            icon: const Icon(Iconsax.tick_circle, color: Colors.green),
                             onPressed: () => _handleAction(req.id, true),
                           ),
                         ],

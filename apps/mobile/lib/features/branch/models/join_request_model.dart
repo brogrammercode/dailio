@@ -1,8 +1,8 @@
-class JoinRequestModel {
+﻿class JoinRequestModel {
   final String id;
   final String userId;
   final String organizationId;
-  final String locationId;
+  final String branchId;
   final String status;
   final String? message;
   final RequestUserModel? user;
@@ -11,7 +11,7 @@ class JoinRequestModel {
     required this.id,
     required this.userId,
     required this.organizationId,
-    required this.locationId,
+    required this.branchId,
     required this.status,
     this.message,
     this.user,
@@ -22,11 +22,10 @@ class JoinRequestModel {
       id: json['id'],
       userId: json['user_id'],
       organizationId: json['organization_id'],
-      locationId: json['location_id'],
+      branchId: json['branch_id'],
       status: json['status'],
       message: json['message'],
-      user:
-          json['user'] != null ? RequestUserModel.fromJson(json['user']) : null,
+      user: json['user'] != null ? RequestUserModel.fromJson(json['user']) : null,
     );
   }
 }
@@ -34,19 +33,23 @@ class JoinRequestModel {
 class RequestUserModel {
   final String id;
   final String name;
-  final String email;
+  final String? email;
+  final String? phone;
 
   RequestUserModel({
     required this.id,
     required this.name,
-    required this.email,
+    this.email,
+    this.phone,
   });
 
   factory RequestUserModel.fromJson(Map<String, dynamic> json) {
     return RequestUserModel(
       id: json['id'],
-      name: json['name'],
+      name: json['name'] ?? 'Unknown User',
       email: json['email'],
+      phone: json['phone'],
     );
   }
 }
+

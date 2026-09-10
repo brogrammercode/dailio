@@ -1,3 +1,4 @@
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -47,7 +48,7 @@ class _OrgDetailPageState extends State<OrgDetailPage> {
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1A1A1A))),
         leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF1A1A1A)),
+            icon: const Icon(Iconsax.arrow_left, color: Color(0xFF1A1A1A)),
             onPressed: () => context.pop()),
         actions: [
           IconButton(
@@ -126,7 +127,7 @@ class _OrgDetailPageState extends State<OrgDetailPage> {
                             color: const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: const Color(0xFFE5E7EB))),
-                        child: const Icon(Icons.business,
+                        child: const Icon(Iconsax.building,
                             color: Color(0xFF9CA3AF), size: 30),
                       ),
                       const SizedBox(width: 16),
@@ -144,7 +145,7 @@ class _OrgDetailPageState extends State<OrgDetailPage> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis)),
                                 const SizedBox(width: 4),
-                                const Icon(Icons.check_circle,
+                                const Icon(Iconsax.tick_circle,
                                     size: 14, color: Color(0xFF22C55E)),
                                 const SizedBox(width: 2),
                                 const Text('Verified',
@@ -251,7 +252,7 @@ class _OrgDetailPageState extends State<OrgDetailPage> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.people_outline,
+                      const Icon(Iconsax.people,
                           color: Color(0xFF92400E), size: 20),
                       const SizedBox(width: 8),
                       const Text('Team & Member Roster',

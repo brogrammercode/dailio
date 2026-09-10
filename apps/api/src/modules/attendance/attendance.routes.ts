@@ -8,9 +8,9 @@ import { clockInHandler, clockOutHandler, activeSessionHandler, listSessionsHand
 
 const router: Router = Router();
 
-router.post('/locations/:location_id/attendance/clock-in', authenticate, resolveTenantContext, requirePermission('ATTENDANCE_CREATE_SELF'), clockInHandler);
-router.post('/locations/:location_id/attendance/clock-out', authenticate, resolveTenantContext, requirePermission('ATTENDANCE_CREATE_SELF'), clockOutHandler);
-router.get('/locations/:location_id/attendance/active-session', authenticate, resolveTenantContext, activeSessionHandler);
-router.get('/locations/:location_id/attendance', authenticate, resolveTenantContext, requirePermission('ATTENDANCE_READ_SELF'), listSessionsHandler);
+router.post('/branches/:branch_id/attendance/clock-in', authenticate, resolveTenantContext, requirePermission('ATTENDANCE_CREATE_SELF'), clockInHandler);
+router.post('/branches/:branch_id/attendance/clock-out', authenticate, resolveTenantContext, requirePermission('ATTENDANCE_CREATE_SELF'), clockOutHandler);
+router.get('/branches/:branch_id/attendance/active-session', authenticate, resolveTenantContext, activeSessionHandler);
+router.get('/branches/:branch_id/attendance', authenticate, resolveTenantContext, requirePermission('ATTENDANCE_READ_SELF'), listSessionsHandler);
 
 export default router;

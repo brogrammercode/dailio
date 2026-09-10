@@ -5,11 +5,11 @@ import * as membersService from './members.service';
 
 export async function listMembers(req: Request, res: Response, next: NextFunction) {
   try {
-    const query = ListMembersQuerySchema.parse({ query: req.query }).query;
+    const parsed = ListMembersQuerySchema.parse({ query: req.query });
     const result = await membersService.listMembers(
       req.organization!.id,
-      req.location!.id,
-      query
+      req.branch!.id,
+      parsed.query
     );
     res.json(result);
   } catch (error) {
@@ -21,8 +21,8 @@ export async function getMember(req: Request, res: Response, next: NextFunction)
   try {
     const member = await membersService.getMemberDetail(
       req.organization!.id,
-      req.location!.id,
-      req.params.membership_id
+      req.branch!.id,
+      req.params.member_id
     );
     res.json({ data: member });
   } catch (error) {
@@ -32,12 +32,12 @@ export async function getMember(req: Request, res: Response, next: NextFunction)
 
 export async function newAdmission(req: Request, res: Response, next: NextFunction) {
   try {
-    const body = AssistedAdmissionSchema.parse({ body: req.body }).body;
+    const parsed = AssistedAdmissionSchema.parse({ body: req.body });
     const member = await membersService.createAssistedAdmission(
       req.user!.id,
       req.organization!.id,
-      req.location!.id,
-      body
+      req.branch!.id,
+      parsed.body
     );
     res.status(201).json({ data: member });
   } catch (error) {
@@ -47,13 +47,13 @@ export async function newAdmission(req: Request, res: Response, next: NextFuncti
 
 export async function suspend(req: Request, res: Response, next: NextFunction) {
   try {
-    const body = MemberActionSchema.parse({ body: req.body }).body;
+    const parsed = MemberActionSchema.parse({ body: req.body });
     const member = await membersService.suspendMember(
       req.user!.id,
       req.organization!.id,
-      req.location!.id,
-      req.params.membership_id,
-      body
+      req.branch!.id,
+      req.params.member_id,
+      parsed.body
     );
     res.json({ data: member });
   } catch (error) {
@@ -63,13 +63,13 @@ export async function suspend(req: Request, res: Response, next: NextFunction) {
 
 export async function deactivate(req: Request, res: Response, next: NextFunction) {
   try {
-    const body = MemberActionSchema.parse({ body: req.body }).body;
+    const parsed = MemberActionSchema.parse({ body: req.body });
     const member = await membersService.deactivateMember(
       req.user!.id,
       req.organization!.id,
-      req.location!.id,
-      req.params.membership_id,
-      body
+      req.branch!.id,
+      req.params.member_id,
+      parsed.body
     );
     res.json({ data: member });
   } catch (error) {

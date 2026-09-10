@@ -1,3 +1,4 @@
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/storage/preferences_storage.dart';
@@ -108,7 +109,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      child: Text(_member!.firstName.isNotEmpty ? _member!.firstName[0].toUpperCase() : '?', style: const TextStyle(fontSize: 32)),
+                      child: Text(_member!.name.isNotEmpty ? _member!.name[0].toUpperCase() : '?', style: const TextStyle(fontSize: 32)),
                     ),
                     const SizedBox(height: 16),
                     Text('${_member!.fullName} (${_member!.membershipNumber})', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
@@ -124,7 +125,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                       child: Text('Roles', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(height: 8),
-                    ..._member!.roles.map((r) => ListTile(title: Text(r.name), leading: const Icon(Icons.badge))),
+                    if (_member!.role != null) ListTile(title: Text(_member!.role!.name), leading: const Icon(Iconsax.award)),
                     const SizedBox(height: 32),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
