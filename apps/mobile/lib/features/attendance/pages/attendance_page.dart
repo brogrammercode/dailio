@@ -2,6 +2,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/attendance_repository.dart';
 import '../models/attendance_models.dart';
 
@@ -140,7 +141,7 @@ class _AttendancePageState extends State<AttendancePage> with SingleTickerProvid
         ),
       ),
       body: _isLoading && _sessions.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? ShimmerLoader.list()
           : _error != null && _sessions.isEmpty
               ? Center(child: Text('Error: $_error'))
               : _sessions.isEmpty

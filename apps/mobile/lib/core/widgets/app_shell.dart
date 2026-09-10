@@ -47,7 +47,8 @@ class _AppShellState extends State<AppShell> {
         index: _currentIndex,
         children: _pages,
       ),
-      bottomNavigationBar: SafeArea(
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: SafeArea(
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),

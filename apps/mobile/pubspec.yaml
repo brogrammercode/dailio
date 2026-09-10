@@ -58,6 +58,7 @@ dependencies:
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
   iconsax: ^0.0.8
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:

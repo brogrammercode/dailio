@@ -69,7 +69,7 @@ class _MainAppState extends State<MainApp> {
       child: MultiBlocProvider(
         providers: [
           BlocProvider<AuthCubit>(
-            create: (_) => AuthCubit(widget.authRepository),
+            create: (_) => AuthCubit(widget.authRepository)..checkSession(),
           ),
         ],
         child: MaterialApp.router(

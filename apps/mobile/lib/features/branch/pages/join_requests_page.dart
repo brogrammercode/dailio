@@ -1,6 +1,7 @@
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/admission_repository.dart';
 import '../models/join_request_model.dart';
 
@@ -74,7 +75,7 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Join Requests')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? ShimmerLoader.list()
           : _requests.isEmpty
               ? const Center(child: Text('No pending requests.'))
               : ListView.builder(

@@ -2,6 +2,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/members_repository.dart';
 import '../models/member_model.dart';
 
@@ -97,7 +98,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Member Detail')),
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
+        ? ShimmerLoader.profile()
         : _error != null
           ? Center(child: Text('Error: $_error'))
           : _member == null

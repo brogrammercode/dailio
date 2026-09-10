@@ -2,6 +2,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/branch_repository.dart';
 import '../models/branch_discovery_model.dart';
 
@@ -230,7 +231,7 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
           // Org cards
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? ShimmerLoader.list()
                 : orgList.isEmpty
                     ? const Center(child: Text('No organizations found'))
                     : ListView.separated(

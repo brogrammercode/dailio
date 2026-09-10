@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 import '../../organization/controllers/organization_repository.dart';
 
 class ContextSwitcherPage extends StatefulWidget {
@@ -82,7 +83,7 @@ class _ContextSwitcherPageState extends State<ContextSwitcherPage> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? ShimmerLoader.list()
           : _memberships.isEmpty
               ? _buildEmptyState()
               : _buildList(),

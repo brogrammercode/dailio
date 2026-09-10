@@ -8,6 +8,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/organization_repository.dart';
 
 class EditOrganizationPage extends StatefulWidget {
@@ -25,7 +26,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _phoneCtrl;
-  
+
   String _currency = 'INR';
   String _timezone = 'Asia/Kolkata';
 
@@ -54,7 +55,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
     _nameCtrl = TextEditingController();
     _emailCtrl = TextEditingController();
     _phoneCtrl = TextEditingController();
-    
+
     _nameCtrl.addListener(_onFieldChanged);
     _emailCtrl.addListener(_onFieldChanged);
     _phoneCtrl.addListener(_onFieldChanged);
@@ -158,8 +159,10 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
 
       final data = <String, dynamic>{};
       if (name != _originalName) data['name'] = name;
-      if (_emailCtrl.text.trim() != _originalEmail) data['email'] = _emailCtrl.text.trim();
-      if (_phoneCtrl.text.trim() != _originalPhone) data['phone'] = _phoneCtrl.text.trim();
+      if (_emailCtrl.text.trim() != _originalEmail)
+        data['email'] = _emailCtrl.text.trim();
+      if (_phoneCtrl.text.trim() != _originalPhone)
+        data['phone'] = _phoneCtrl.text.trim();
       if (_currency != _originalCurrency) data['currency'] = _currency;
       if (_timezone != _originalTimezone) data['timezone'] = _timezone;
 
@@ -214,14 +217,16 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? ShimmerLoader.profile()
             : _errorMessage != null
                 ? _buildErrorState()
                 : Stack(
                     children: [
                       ListView(
                         padding: EdgeInsets.fromLTRB(
-                          24, 16, 24,
+                          24,
+                          16,
+                          24,
                           _isDirty ? 140 : 40,
                         ),
                         children: [
@@ -235,10 +240,12 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                                   width: 40,
                                   height: 40,
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey.shade300),
+                                    border:
+                                        Border.all(color: Colors.grey.shade300),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(Iconsax.arrow_left, size: 18),
+                                  child:
+                                      const Icon(Iconsax.arrow_left, size: 18),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -296,7 +303,8 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade100,
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey.shade200),
+                                    border:
+                                        Border.all(color: Colors.grey.shade200),
                                     image: _pickedLogo != null
                                         ? DecorationImage(
                                             image: FileImage(_pickedLogo!),
@@ -312,13 +320,15 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                                   ),
                                   child: (_pickedLogo == null &&
                                           _organization?['logo_url'] == null)
-                                      ? const Icon(Iconsax.image, color: Colors.grey)
+                                      ? const Icon(Iconsax.image,
+                                          color: Colors.grey)
                                       : null,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Text('Organization Logo',
                                           style: TextStyle(
@@ -326,7 +336,8 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                                               fontWeight: FontWeight.bold)),
                                       const Text('JPG/PNG up to 2MB',
                                           style: TextStyle(
-                                              fontSize: 11, color: Colors.grey)),
+                                              fontSize: 11,
+                                              color: Colors.grey)),
                                       const SizedBox(height: 4),
                                       Row(
                                         children: [
@@ -345,7 +356,8 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                                 ),
                                 OutlinedButton.icon(
                                   onPressed: _pickLogo,
-                                  icon: const Icon(Iconsax.cloud_plus, size: 14),
+                                  icon:
+                                      const Icon(Iconsax.cloud_plus, size: 14),
                                   label: Text(
                                       _organization?['logo_url'] != null ||
                                               _pickedLogo != null
@@ -392,14 +404,15 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade50,
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                        color: Colors.grey.shade300),
+                                    border:
+                                        Border.all(color: Colors.grey.shade300),
                                   ),
                                   child: Row(
                                     children: [
                                       const Text('dailio.app/',
                                           style: TextStyle(
-                                              color: Colors.grey, fontSize: 13)),
+                                              color: Colors.grey,
+                                              fontSize: 13)),
                                       Expanded(
                                         child: Text(
                                           _organization?['slug'] ?? '',
@@ -538,7 +551,8 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 14),
                                     minimumSize: const Size(double.infinity, 0),
-                                    side: BorderSide(color: Colors.grey.shade300),
+                                    side:
+                                        BorderSide(color: Colors.grey.shade300),
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
                                             BorderRadius.circular(12)),
@@ -619,7 +633,8 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
               const Spacer(),
               if (badge != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                       color: badgeColor,
                       borderRadius: BorderRadius.circular(4)),
@@ -662,7 +677,8 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
         prefixIcon: Icon(icon, size: 16, color: Colors.grey),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey.shade200),

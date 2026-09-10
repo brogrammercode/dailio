@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'shimmer_loader.dart';
 
 class LoadingWidget extends StatelessWidget {
   final String? message;
@@ -6,14 +7,18 @@ class LoadingWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(),
-          if (message != null) ...[const SizedBox(height: 16), Text(message!)],
-        ],
-      ),
-    );
+    if (message != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(message!),
+          ],
+        ),
+      );
+    }
+    return ShimmerLoader.list();
   }
 }

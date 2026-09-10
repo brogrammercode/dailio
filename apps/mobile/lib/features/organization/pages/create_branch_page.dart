@@ -1,8 +1,9 @@
-import 'package:iconsax/iconsax.dart';
+﻿import 'package:iconsax/iconsax.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -504,7 +505,7 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? ShimmerLoader.form()
           : SingleChildScrollView(
               padding:
                   const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
