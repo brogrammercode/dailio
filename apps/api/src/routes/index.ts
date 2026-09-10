@@ -6,6 +6,7 @@ import branchesRouter from '../modules/branches/branches.routes';
 import admissionsRouter from '../modules/admissions/admissions.routes';
 import membersRouter from '../modules/members/members.routes';
 import attendanceRouter from '../modules/attendance/attendance.routes';
+import { rolesRouter } from '../modules/roles/roles.routes';
 
 const router: Router = ExpressRouter();
 
@@ -19,6 +20,9 @@ router.use('/auth', authRouter);
 
 // Organizations
 router.use('/organizations', organizationsRouter);
+
+// Roles
+router.use('/roles', rolesRouter);
 
 // Branches & Admissions
 router.use(branchesRouter);

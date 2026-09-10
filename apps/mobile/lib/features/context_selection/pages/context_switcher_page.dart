@@ -78,7 +78,10 @@ class _ContextSwitcherPageState extends State<ContextSwitcherPage> {
             ),
             const SizedBox(width: 8),
             const Text('Switch Workspace',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5)),
           ],
         ),
       ),

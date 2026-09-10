@@ -528,8 +528,7 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
                     const SizedBox(height: 32),
 
                     // Branch Identification
-                    _sectionHeader(
-                        Iconsax.shop, 'Branch Identification'),
+                    _sectionHeader(Iconsax.shop, 'Branch Identification'),
                     const SizedBox(height: 14),
 
                     _fieldLabel('Branch Name', required: true),

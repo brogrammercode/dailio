@@ -94,7 +94,8 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
                             onPressed: () => _handleAction(req.id, false),
                           ),
                           IconButton(
-                            icon: const Icon(Iconsax.tick_circle, color: Colors.green),
+                            icon: const Icon(Iconsax.tick_circle,
+                                color: Colors.green),
                             onPressed: () => _handleAction(req.id, true),
                           ),
                         ],

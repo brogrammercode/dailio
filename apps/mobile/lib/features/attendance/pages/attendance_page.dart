@@ -13,13 +13,19 @@ class AttendancePage extends StatefulWidget {
   State<AttendancePage> createState() => _AttendancePageState();
 }
 
-class _AttendancePageState extends State<AttendancePage> with SingleTickerProviderStateMixin {
+class _AttendancePageState extends State<AttendancePage>
+    with SingleTickerProviderStateMixin {
   late final AttendanceRepository _repository;
   late final String _locationId;
-  
+
   late TabController _tabController;
-  final List<String> _periods = ['today', 'yesterday', 'this_week', 'this_month'];
-  
+  final List<String> _periods = [
+    'today',
+    'yesterday',
+    'this_week',
+    'this_month'
+  ];
+
   AttendanceSessionModel? _activeSession;
   List<AttendanceSessionModel> _sessions = [];
   bool _isLoading = false;
@@ -31,10 +37,10 @@ class _AttendancePageState extends State<AttendancePage> with SingleTickerProvid
     super.initState();
     _repository = context.read<AttendanceRepository>();
     _locationId = context.read<PreferencesStorage>().activeBranchId!;
-    
+
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleTabChange);
-    
+
     _loadAll();
   }
 
@@ -58,7 +64,8 @@ class _AttendancePageState extends State<AttendancePage> with SingleTickerProvid
     });
     try {
       final active = await _repository.getActiveSession(_locationId);
-      final list = await _repository.getSessions(_locationId, _periods[_tabController.index]);
+      final list = await _repository.getSessions(
+          _locationId, _periods[_tabController.index]);
       setState(() {
         _activeSession = active;
         _sessions = list;
@@ -66,7 +73,8 @@ class _AttendancePageState extends State<AttendancePage> with SingleTickerProvid
     } catch (e) {
       setState(() => _error = e.toString());
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -82,7 +90,8 @@ class _AttendancePageState extends State<AttendancePage> with SingleTickerProvid
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -94,13 +103,15 @@ class _AttendancePageState extends State<AttendancePage> with SingleTickerProvid
     try {
       await _repository.clockIn(_locationId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Clocked in successfully')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Clocked in successfully')));
       }
       await _loadAll();
     } catch (e) {
       if (mounted) {
         setState(() => _isClockLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -110,13 +121,15 @@ class _AttendancePageState extends State<AttendancePage> with SingleTickerProvid
     try {
       await _repository.clockOut(_locationId, sessionId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Clocked out successfully')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Clocked out successfully')));
       }
       await _loadAll();
     } catch (e) {
       if (mounted) {
         setState(() => _isClockLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -127,7 +140,9 @@ class _AttendancePageState extends State<AttendancePage> with SingleTickerProvid
       appBar: AppBar(
         title: const Text('Attendance'),
         actions: [
-          IconButton(icon: const Icon(Icons.campaign), onPressed: () {}), // Announcements stub
+          IconButton(
+              icon: const Icon(Icons.campaign),
+              onPressed: () {}), // Announcements stub
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -153,26 +168,37 @@ class _AttendancePageState extends State<AttendancePage> with SingleTickerProvid
                           itemCount: _sessions.length,
                           itemBuilder: (context, index) {
                             final session = _sessions[index];
-                            final clockInStr = '${session.clockInServerTime.hour.toString().padLeft(2, '0')}:${session.clockInServerTime.minute.toString().padLeft(2, '0')}';
-                            final clockOutStr = session.clockOutServerTime != null 
-                              ? '${session.clockOutServerTime!.hour.toString().padLeft(2, '0')}:${session.clockOutServerTime!.minute.toString().padLeft(2, '0')}'
-                              : 'Open';
-                              
+                            final clockInStr =
+                                '${session.clockInServerTime.hour.toString().padLeft(2, '0')}:${session.clockInServerTime.minute.toString().padLeft(2, '0')}';
+                            final clockOutStr = session.clockOutServerTime !=
+                                    null
+                                ? '${session.clockOutServerTime!.hour.toString().padLeft(2, '0')}:${session.clockOutServerTime!.minute.toString().padLeft(2, '0')}'
+                                : 'Open';
+
                             return ListTile(
-                              leading: const CircleAvatar(child: Icon(Icons.access_time)),
-                              title: Text(session.memberName ?? '${session.clockInServerTime.year}-${session.clockInServerTime.month}-${session.clockInServerTime.day}'),
-                              subtitle: Text('In: $clockInStr - Out: $clockOutStr\nDuration: ${session.durationLabel}'),
+                              leading: const CircleAvatar(
+                                  child: Icon(Icons.access_time)),
+                              title: Text(session.memberName ??
+                                  '${session.clockInServerTime.year}-${session.clockInServerTime.month}-${session.clockInServerTime.day}'),
+                              subtitle: Text(
+                                  'In: $clockInStr - Out: $clockOutStr\nDuration: ${session.durationLabel}'),
                               isThreeLine: true,
-                              trailing: Chip(label: Text(session.derivedStatus ?? session.state)),
+                              trailing: Chip(
+                                  label: Text(
+                                      session.derivedStatus ?? session.state)),
                             );
                           },
                         );
                       }).toList(),
                     ),
       floatingActionButton: _isClockLoading
-          ? const FloatingActionButton(onPressed: null, child: CircularProgressIndicator(color: Colors.white))
+          ? const FloatingActionButton(
+              onPressed: null,
+              child: CircularProgressIndicator(color: Colors.white))
           : FloatingActionButton.extended(
-              onPressed: _activeSession == null ? _clockIn : () => _clockOut(_activeSession!.id),
+              onPressed: _activeSession == null
+                  ? _clockIn
+                  : () => _clockOut(_activeSession!.id),
               icon: Icon(_activeSession == null ? Icons.login : Iconsax.logout),
               label: Text(_activeSession == null ? 'Clock In' : 'Clock Out'),
             ),

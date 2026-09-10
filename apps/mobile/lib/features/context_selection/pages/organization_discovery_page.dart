@@ -26,7 +26,6 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
     'Fitness & Gyms',
     'Corporate'
   ];
-  
 
   @override
   void initState() {
@@ -90,7 +89,8 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                     letterSpacing: 1.0)),
             Text('Explore Tenants',
                 style: TextStyle(
-                    fontSize: 22, letterSpacing: -0.5,
+                    fontSize: 22,
+                    letterSpacing: -0.5,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1A1A1A))),
           ],
@@ -220,7 +220,9 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                 const Expanded(
                     child: Text('Premier Organizations',
                         style: TextStyle(
-                            fontSize: 22, letterSpacing: -0.5, fontWeight: FontWeight.bold))),
+                            fontSize: 22,
+                            letterSpacing: -0.5,
+                            fontWeight: FontWeight.bold))),
                 Text('${orgList.length} Active   Radius < 8km',
                     style: const TextStyle(
                         fontSize: 12, color: Color(0xFF6B7280))),

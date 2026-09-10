@@ -36,4 +36,29 @@ class OrganizationRepository {
         await apiClient.dio.patch('/organizations/$orgId', data: data);
     return response.data['organization'] as Map<String, dynamic>;
   }
+
+  Future<List<Map<String, dynamic>>> getRoles(String orgId) async {
+    final response = await apiClient.dio
+        .get('/roles', queryParameters: {'organization_id': orgId});
+    return List<Map<String, dynamic>>.from(response.data['roles']);
+  }
+
+  Future<Map<String, dynamic>> createRole(
+      String orgId, String name, List<String> permissions) async {
+    final response = await apiClient.dio.post('/roles', data: {
+      'organization_id': orgId,
+      'name': name,
+      'permissions': permissions,
+    });
+    return response.data['role'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateRole(
+      String roleId, String name, List<String> permissions) async {
+    final response = await apiClient.dio.patch('/roles/$roleId', data: {
+      'name': name,
+      'permissions': permissions,
+    });
+    return response.data['role'] as Map<String, dynamic>;
+  }
 }

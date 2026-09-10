@@ -1,232 +1,414 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
 
-class RolesPermissionsPage extends StatelessWidget {
+import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/shimmer_loader.dart';
+import '../controllers/organization_repository.dart';
+import '../models/role_model.dart';
+
+const List<Map<String, dynamic>> availablePermissions = [
+  {
+    'group': 'Attendance & Workforce Verification',
+    'subtitle': 'Verification, shift limits, & logs',
+    'icon': Iconsax.user_tick,
+    'color': Colors.red,
+    'perms': [
+      {
+        'key': 'ATTENDANCE_READ_ALL',
+        'title': 'View biometric check-in history across all club facilities',
+        'info': true
+      },
+      {
+        'key': 'ATTENDANCE_UPDATE',
+        'title': 'Manually override and resolve punch timestamp anomalies',
+        'info': true
+      },
+      {
+        'key': 'SHIFT_MANAGE',
+        'title': 'Configure trainer rosters, duty hours, and coverage zones'
+      },
+      {
+        'key': 'ATTENDANCE_EXPORT',
+        'title': 'Download external forensic auditing exports',
+        'tag': 'CSV/PDF'
+      },
+    ],
+  },
+  {
+    'group': 'Members & Admissions',
+    'subtitle': 'Onboarding, profiles & state limits',
+    'icon': Iconsax.personalcard,
+    'color': Colors.orange,
+    'perms': [
+      {
+        'key': 'MEMBER_READ_ALL',
+        'title': 'Query client roster, membership tiers, and contact dossier'
+      },
+      {
+        'key': 'JOIN_REQUEST_APPROVE',
+        'title':
+            'Review pending digital applications and assign initial key fobs'
+      },
+      {
+        'key': 'MEMBER_SUSPEND',
+        'title': 'Temporarily freeze turnstile access due to policy infractions'
+      },
+      {
+        'key': 'MEMBER_DEACTIVATE',
+        'title': 'Permanently purge membership contract and audit profile',
+        'tag': 'High Impact',
+        'tagColor': Colors.red
+      },
+    ]
+  },
+  {
+    'group': 'Fees & Subscriptions',
+    'subtitle': 'POS charges, invoicing & refunds',
+    'icon': Iconsax.wallet_2,
+    'color': Colors.green,
+    'perms': [
+      {
+        'key': 'SUBSCRIPTION_CREATE',
+        'title': 'Setup recurring plans and assign personal training add-ons'
+      },
+      {
+        'key': 'PAYMENT_CREATE',
+        'title': 'Process walk-in session passes and locker key deposits'
+      },
+      {
+        'key': 'PAYMENT_REFUND',
+        'title': 'Authorize ledger rollbacks and merchant account returns',
+        'restricted': true
+      },
+    ]
+  }
+];
+
+class RolesPermissionsPage extends StatefulWidget {
   const RolesPermissionsPage({super.key});
+
+  @override
+  State<RolesPermissionsPage> createState() => _RolesPermissionsPageState();
+}
+
+class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<RoleModel> _roles = [];
+  RoleModel? _selectedRole;
+
+  late final OrganizationRepository _repo;
+  late final String _orgId;
+
+  Set<String> _editedPermissions = {};
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _repo = context.read<OrganizationRepository>();
+    _orgId = context.read<PreferencesStorage>().activeOrganizationId!;
+    _loadRoles();
+  }
+
+  Future<void> _loadRoles() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final rolesData = await _repo.getRoles(_orgId);
+      final parsedRoles = rolesData.map((e) => RoleModel.fromJson(e)).toList();
+      setState(() {
+        _roles = parsedRoles;
+        if (_roles.isNotEmpty) {
+          _selectRole(_roles.first);
+        }
+      });
+    } catch (e) {
+      setState(() => _errorMessage = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _selectRole(RoleModel role) {
+    setState(() {
+      _selectedRole = role;
+      _editedPermissions = Set.from(role.permissions);
+    });
+  }
+
+  Future<void> _createRole() async {
+    final nameCtrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('New Custom Role',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: nameCtrl,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'e.g. Receptionist',
+            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => context.pop(),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () => context.pop(nameCtrl.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade700,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+
+    if (name != null && name.isNotEmpty) {
+      setState(() => _isLoading = true);
+      try {
+        final newRoleData = await _repo.createRole(_orgId, name, []);
+        final newRole = RoleModel.fromJson(newRoleData);
+        setState(() {
+          _roles.add(newRole);
+          _selectRole(newRole);
+        });
+      } catch (e) {
+        if (mounted)
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Error: $e')));
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _saveRole() async {
+    if (_selectedRole == null) return;
+    setState(() => _isSubmitting = true);
+    try {
+      final updatedData = await _repo.updateRole(
+          _selectedRole!.id, _selectedRole!.name, _editedPermissions.toList());
+      final updatedRole = RoleModel.fromJson(updatedData);
+
+      setState(() {
+        final idx = _roles.indexWhere((r) => r.id == updatedRole.id);
+        if (idx != -1) _roles[idx] = updatedRole;
+        _selectRole(updatedRole);
+      });
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Role permissions saved successfully.')));
+    } catch (e) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  bool get _isOwner => _selectedRole?.systemKey == 'OWNER';
+  bool get _isDirty =>
+      _selectedRole != null &&
+      !_isOwner &&
+      (_editedPermissions.length != _selectedRole!.permissions.length ||
+          !_editedPermissions.containsAll(_selectedRole!.permissions));
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-      
-      body: Stack(
-        children: [
-          ListView(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 150),
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
-                    child: IconButton(
-                      icon: const Icon(Iconsax.arrow_left, size: 20),
-                      onPressed: () => context.pop(),
-                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                      padding: EdgeInsets.zero,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
+      body: SafeArea(
+        child: _isLoading
+            ? ShimmerLoader.list()
+            : _errorMessage != null
+                ? Center(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Roles & Permissions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 4),
-                        Text('Granular RBAC matrix per atomic catalog', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.green.shade200)),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(radius: 3, backgroundColor: Colors.green),
-                        const SizedBox(width: 4),
-                        Text('Live Sync', style: TextStyle(fontSize: 10, color: Colors.green.shade700, fontWeight: FontWeight.bold)),
+                        Text('Error: $_errorMessage'),
+                        TextButton(
+                            onPressed: _loadRoles, child: const Text('Retry'))
                       ],
                     ),
                   )
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Role Tabs
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildRoleTab('Owner', 'Full ALL', Iconsax.shield_tick, false),
-                    const SizedBox(width: 8),
-                    _buildRoleTab('Admin', '8 Perms', Iconsax.shield_security, true),
-                    const SizedBox(width: 8),
-                    _buildRoleTab('Trainer', '3 Perms', Iconsax.activity, false),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Admin Scope Card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [Colors.orange.shade50, Colors.white], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.orange.shade100),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Iconsax.shield_search, color: Colors.orange, size: 20),
-                        const SizedBox(width: 8),
-                        const Text('Admin Operational Scope', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.orange.shade300)),
-                          child: const Row(
-                            children: [
-                              Icon(Iconsax.lock, size: 10, color: Colors.orange),
-                              SizedBox(width: 4),
-                              Text('RBAC-02', style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
+                : Stack(
+                    children: [
+                      ListView(
+                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 150),
+                        children: [
+                          _buildHeader(),
+                          const SizedBox(height: 24),
+                          _buildRolesList(),
+                          const SizedBox(height: 24),
+                          if (_selectedRole != null) ...[
+                            _buildRoleScopeCard(),
+                            const SizedBox(height: 16),
+                            ...availablePermissions.map(
+                                (group) => _buildPermissionGroupWidget(group)),
+                          ] else
+                            const Center(
+                                child: Text('No roles found.',
+                                    style: TextStyle(color: Colors.grey))),
+                        ],
+                      ),
+                      if (_selectedRole != null && !_isOwner)
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: _buildBottomBar(),
                         )
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    const Text('Grants operational access across attendance verification, member admission, and shift management. Ownership transfer and irreversible deletion remain strictly restricted.', style: TextStyle(fontSize: 11, color: Colors.grey, height: 1.5)),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Icon(Iconsax.people, size: 14, color: Colors.orange),
-                        const SizedBox(width: 4),
-                        Text('8 active staff members', style: TextStyle(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
-                        const Spacer(),
-                        SizedBox(
-                          width: 80, height: 24,
-                          child: Stack(
-                            children: [
-                              const Positioned(right: 48, child: CircleAvatar(radius: 12, backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=1'))),
-                              const Positioned(right: 32, child: CircleAvatar(radius: 12, backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=2'))),
-                              const Positioned(right: 16, child: CircleAvatar(radius: 12, backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=3'))),
-                              Positioned(right: 0, child: CircleAvatar(radius: 12, backgroundColor: Colors.grey.shade200, child: const Text('+5', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))),
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
+                    ],
+                  ),
+      ),
+    );
+  }
 
-              // Permissions Group: Attendance
-              _buildPermissionGroup(
-                title: 'Attendance & Workforce\nVerification',
-                subtitle: 'Verification, shift limits, & logs',
-                icon: Iconsax.user_tick,
-                badge: '3/4\nEnabled',
-                iconColor: Colors.red.shade800,
-                iconBg: Colors.orange.shade50,
-                children: [
-                  _buildToggleRow('ATTENDANCE_READ_ALL', 'View biometric check-in history across all club facilities', true, hasInfo: true),
-                  _buildToggleRow('ATTENDANCE_UPDATE', 'Manually override and resolve punch timestamp anomalies', true, hasInfo: true),
-                  _buildToggleRow('SHIFT_MANAGE', 'Configure trainer rosters, duty hours, and coverage zones', true),
-                  _buildToggleRow('ATTENDANCE_EXPORT', 'Download external forensic auditing exports', false, tag: 'CSV/PDF'),
-                ],
-              ),
-
-              // Permissions Group: Members
-              _buildPermissionGroup(
-                title: 'Members & Admissions',
-                subtitle: 'Onboarding, profiles & state limits',
-                icon: Iconsax.personalcard,
-                badge: '3/4 Enabled',
-                iconColor: Colors.orange.shade800,
-                iconBg: Colors.orange.shade50,
-                children: [
-                  _buildToggleRow('MEMBER_READ_ALL', 'Query client roster, membership tiers, and contact dossier', true),
-                  _buildToggleRow('JOIN_REQUEST_APPROVE', 'Review pending digital applications and assign initial key fobs', true),
-                  _buildToggleRow('MEMBER_SUSPEND', 'Temporarily freeze turnstile access due to policy infractions', true),
-                  _buildToggleRow('MEMBER_DEACTIVATE', 'Permanently purge membership contract and audit profile', false, tag: 'High Impact', tagColor: Colors.red),
-                ],
-              ),
-
-              // Permissions Group: Fees
-              _buildPermissionGroup(
-                title: 'Fees & Subscriptions',
-                subtitle: 'POS charges, invoicing & refunds',
-                icon: Iconsax.wallet_2,
-                badge: '2/3 Enabled',
-                iconColor: Colors.orange.shade800,
-                iconBg: Colors.orange.shade50,
-                children: [
-                  _buildToggleRow('SUBSCRIPTION_CREATE', 'Setup recurring plans and assign personal training add-ons', true),
-                  _buildToggleRow('PAYMENT_CREATE', 'Process walk-in session passes and locker key deposits', true),
-                  _buildRestrictedToggleRow('PAYMENT_REFUND', 'Authorize ledger rollbacks and merchant account returns', 'Restricted to Owner'),
-                ],
-              ),
+  Widget _buildHeader() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8)),
+          child: IconButton(
+            icon: const Icon(Iconsax.arrow_left, size: 20),
+            onPressed: () => context.pop(),
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            padding: EdgeInsets.zero,
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Roles & Permissions',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              SizedBox(height: 4),
+              Text('Granular RBAC matrix per atomic catalog',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.shade200)),
+          child: Row(
+            children: [
+              const CircleAvatar(radius: 3, backgroundColor: Colors.green),
+              const SizedBox(width: 4),
+              Text('Live Sync',
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.green.shade700,
+                      fontWeight: FontWeight.bold)),
+            ],
+          ),
+        )
+      ],
+    );
+  }
 
-          // Bottom Bar
-          Positioned(
-            bottom: 0, left: 0, right: 0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
-              ),
-              child: Column(
-                children: [
-                  Row(
+  Widget _buildRolesList() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          ..._roles.map((role) {
+            final isActive = _selectedRole?.id == role.id;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: InkWell(
+                onTap: () => _selectRole(role),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isActive ? Colors.orange.shade700 : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: isActive
+                            ? Colors.orange.shade700
+                            : Colors.grey.shade200),
+                  ),
+                  child: Row(
                     children: [
-                      const Icon(Iconsax.verify, size: 14, color: Colors.green),
-                      const SizedBox(width: 4),
-                      const Text('Policy Baseline: ', style: TextStyle(fontSize: 11)),
-                      const Text('Strict', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                      const Spacer(),
-                      Text('Ready to deploy changes', style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+                      Icon(
+                          role.systemKey == 'OWNER'
+                              ? Iconsax.shield_tick
+                              : Iconsax.user,
+                          size: 16,
+                          color: isActive ? Colors.white : Colors.grey),
+                      const SizedBox(width: 8),
+                      Text(role.name,
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isActive ? Colors.white : Colors.black)),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: isActive
+                                ? Colors.orange.shade900
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12)),
+                        child: Text('${role.permissions.length} Perms',
+                            style: TextStyle(
+                                fontSize: 9,
+                                color: isActive ? Colors.white : Colors.grey,
+                                fontWeight: FontWeight.bold)),
+                      )
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Iconsax.save_2, size: 16),
-                          label: const Text('Save Role Permissions', style: TextStyle(fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange.shade700,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 1,
-                        child: OutlinedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Iconsax.refresh, size: 16),
-                          label: const Text('Reset', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
+                ),
+              ),
+            );
+          }),
+          // Add Custom Role Button
+          InkWell(
+            onTap: _createRole,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: Colors.orange.shade200, style: BorderStyle.solid),
+              ),
+              child: Row(
+                children: [
+                  Icon(Iconsax.add, size: 16, color: Colors.orange.shade700),
+                  const SizedBox(width: 8),
+                  Text('Add Role',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange.shade700)),
                 ],
               ),
             ),
@@ -236,43 +418,76 @@ class RolesPermissionsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildRoleTab(String name, String count, IconData icon, bool isActive) {
+  Widget _buildRoleScopeCard() {
+    final role = _selectedRole!;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isActive ? Colors.orange.shade700 : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isActive ? Colors.orange.shade700 : Colors.grey.shade200),
+        gradient: LinearGradient(
+            colors: [Colors.orange.shade50, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.shade100),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: isActive ? Colors.white : Colors.grey),
-          const SizedBox(width: 8),
-          Text(name, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isActive ? Colors.white : Colors.black)),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(color: isActive ? Colors.orange.shade900 : Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
-            child: Text(count, style: TextStyle(fontSize: 9, color: isActive ? Colors.white : Colors.grey, fontWeight: FontWeight.bold)),
-          )
+          Row(
+            children: [
+              const Icon(Iconsax.shield_search, color: Colors.orange, size: 20),
+              const SizedBox(width: 8),
+              Text('${role.name} Scope',
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              if (role.isProtected)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.orange.shade300)),
+                  child: const Row(
+                    children: [
+                      Icon(Iconsax.lock, size: 10, color: Colors.orange),
+                      SizedBox(width: 4),
+                      Text('PROTECTED',
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                )
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+              role.systemKey == 'OWNER'
+                  ? 'Full organizational ownership. Unrestricted access to all modules, billing, and settings. Cannot be deleted.'
+                  : 'Customizable role. Enable or disable specific access permissions below to restrict operational scope.',
+              style: const TextStyle(
+                  fontSize: 11, color: Colors.grey, height: 1.5)),
         ],
       ),
     );
   }
 
-  Widget _buildPermissionGroup({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required String badge,
-    required Color iconColor,
-    required Color iconBg,
-    required List<Widget> children,
-  }) {
+  Widget _buildPermissionGroupWidget(Map<String, dynamic> group) {
+    final perms = group['perms'] as List<Map<String, dynamic>>;
+    final enabledCount = perms
+        .where((p) => _editedPermissions.contains(p['key']) || _isOwner)
+        .length;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -281,35 +496,54 @@ class RolesPermissionsPage extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(12)),
-                child: Icon(icon, color: iconColor, size: 20),
+                decoration: BoxDecoration(
+                    color: (group['color'] as Color).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12)),
+                child: Icon(group['icon'] as IconData,
+                    color: group['color'] as Color, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    Text(group['group'],
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 2),
-                    Text(subtitle, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text(group['subtitle'],
+                        style:
+                            const TextStyle(fontSize: 10, color: Colors.grey)),
                   ],
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.orange.shade100)),
-                child: Text(badge.replaceAll('\n', ' '), style: TextStyle(fontSize: 10, color: Colors.orange.shade800, fontWeight: FontWeight.bold)),
+                decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.orange.shade100)),
+                child: Text('$enabledCount/${perms.length} Enabled',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.orange.shade800,
+                        fontWeight: FontWeight.bold)),
               )
             ],
           ),
-          const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1)),
-          ...children,
+          const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Divider(height: 1)),
+          ...perms.map((p) => _buildToggleRow(p)),
         ],
       ),
     );
   }
 
-  Widget _buildToggleRow(String title, String subtitle, bool value, {bool hasInfo = false, String? tag, Color? tagColor}) {
+  Widget _buildToggleRow(Map<String, dynamic> perm) {
+    final isRestricted = perm['restricted'] == true;
+    final value = _isOwner ? true : _editedPermissions.contains(perm['key']);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -321,30 +555,84 @@ class RolesPermissionsPage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                    if (hasInfo) ...[
+                    Text(perm['key'],
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                            color: isRestricted
+                                ? Colors.grey.shade400
+                                : Colors.black)),
+                    if (perm['info'] == true) ...[
                       const SizedBox(width: 4),
-                      const Icon(Iconsax.info_circle, size: 12, color: Colors.grey),
+                      const Icon(Iconsax.info_circle,
+                          size: 12, color: Colors.grey),
                     ],
-                    if (tag != null) ...[
+                    if (isRestricted) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        decoration: BoxDecoration(color: (tagColor ?? Colors.grey).withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: (tagColor ?? Colors.grey).withOpacity(0.3))),
-                        child: Text(tag, style: TextStyle(fontSize: 8, color: tagColor ?? Colors.grey.shade700, fontWeight: FontWeight.bold)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.grey.shade200)),
+                        child: const Row(
+                          children: [
+                            Icon(Iconsax.lock, size: 10, color: Colors.orange),
+                            SizedBox(width: 4),
+                            Text('Restricted to Owner',
+                                style: TextStyle(
+                                    fontSize: 8,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      )
+                    ] else if (perm['tag'] != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: (perm['tagColor'] ?? Colors.grey)
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                                color: (perm['tagColor'] ?? Colors.grey)
+                                    .withValues(alpha: 0.3))),
+                        child: Text(perm['tag'],
+                            style: TextStyle(
+                                fontSize: 8,
+                                color: perm['tagColor'] ?? Colors.grey.shade700,
+                                fontWeight: FontWeight.bold)),
                       )
                     ]
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                Text(perm['title'],
+                    style: TextStyle(
+                        fontSize: 11,
+                        color:
+                            isRestricted ? Colors.grey.shade400 : Colors.grey)),
               ],
             ),
           ),
           Switch(
             value: value,
-            onChanged: (v) {},
-            activeColor: Colors.orange.shade700,
+            onChanged: (_isOwner || isRestricted)
+                ? null
+                : (v) {
+                    setState(() {
+                      if (v) {
+                        _editedPermissions.add(perm['key']);
+                      } else {
+                        _editedPermissions.remove(perm['key']);
+                      }
+                    });
+                  },
+            activeThumbColor: Colors.orange.shade700,
             inactiveTrackColor: Colors.grey.shade300,
             inactiveThumbColor: Colors.white,
           ),
@@ -353,47 +641,84 @@ class RolesPermissionsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildRestrictedToggleRow(String title, String subtitle, String restrictionTag) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+  Widget _buildBottomBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -4))
+        ],
+      ),
+      child: Column(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            children: [
+              Icon(_isDirty ? Iconsax.warning_2 : Iconsax.verify,
+                  size: 14, color: _isDirty ? Colors.orange : Colors.green),
+              const SizedBox(width: 4),
+              const Text('Policy Baseline: ', style: TextStyle(fontSize: 11)),
+              Text(_isDirty ? 'Unsaved Changes' : 'Synced',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: _isDirty ? Colors.orange : Colors.black)),
+              const Spacer(),
+              Text(_isDirty ? 'Review before saving' : 'Up to date',
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_isDirty)
+            Row(
               children: [
-                Row(
-                  children: [
-                    Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5, color: Colors.grey.shade400)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.grey.shade200)),
-                      child: Row(
-                        children: [
-                          const Icon(Iconsax.lock, size: 10, color: Colors.orange),
-                          const SizedBox(width: 4),
-                          Text(restrictionTag, style: const TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    )
-                  ],
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSubmitting ? null : _saveRole,
+                    icon: _isSubmitting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : const Icon(Iconsax.save_2, size: 16),
+                    label: const Text('Save Role Permissions',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 1,
+                  child: OutlinedButton.icon(
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => _selectRole(_selectedRole!), // Reset
+                    icon: const Icon(Iconsax.refresh, size: 16),
+                    label: const Text('Discard',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.black)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
               ],
-            ),
-          ),
-          Switch(
-            value: false,
-            onChanged: null, // Disabled
-            trackColor: WidgetStateProperty.all(Colors.grey.shade200),
-            thumbColor: WidgetStateProperty.all(Colors.grey.shade300),
-          ),
+            )
         ],
       ),
     );
   }
 }
-

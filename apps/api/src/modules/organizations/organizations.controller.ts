@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
 
+import { cloudinary } from '../../lib/cloudinary';
+
 import { CreateLocationSchema, CreateOrganizationSchema, UpdateOrganizationSchema } from './organizations.schema';
 import { createOrganizationWithFirstLocation, getOrganization, getUserOrganizations, updateOrganization as updateOrgService } from './organizations.service';
 
-import { cloudinary } from '../../lib/cloudinary';
 
 export async function createOrganization(req: Request, res: Response, next: NextFunction) {
   try {
