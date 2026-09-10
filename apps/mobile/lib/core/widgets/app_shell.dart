@@ -102,7 +102,9 @@ class _BottomNavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? const Color(0xFF4F46E5) : const Color(0xFF6B7280); // Indigo vs Gray
+    final color = isActive
+        ? const Color(0xFF4F46E5)
+        : const Color(0xFF6B7280); // Indigo vs Gray
     return Expanded(
       child: Tooltip(
         message: label,

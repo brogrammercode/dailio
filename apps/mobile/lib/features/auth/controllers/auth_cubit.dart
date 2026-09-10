@@ -59,6 +59,24 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  /// Update profile fields. Re-emits AuthAuthenticated with the updated user on success.
+  Future<void> updateProfile({
+    String? name,
+    String? phone,
+    String? avatarBase64,
+  }) async {
+    try {
+      final updated = await _repository.updateProfile(
+        name: name,
+        phone: phone,
+        avatarBase64: avatarBase64,
+      );
+      emit(AuthAuthenticated(updated));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
   Future<void> signOut() async {
     emit(const AuthLoading());
     try {

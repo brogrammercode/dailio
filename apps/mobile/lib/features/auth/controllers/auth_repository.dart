@@ -51,6 +51,21 @@ class AuthRepository {
     }
   }
 
+  /// Update the current user's profile (name, phone, and/or avatar_base64).
+  Future<UserModel> updateProfile({
+    String? name,
+    String? phone,
+    String? avatarBase64,
+  }) async {
+    final data = <String, dynamic>{};
+    if (name != null) data['name'] = name;
+    if (phone != null) data['phone'] = phone;
+    if (avatarBase64 != null) data['avatar_base64'] = avatarBase64;
+
+    final response = await _apiClient.dio.patch('/users/me', data: data);
+    return UserModel.fromJson(response.data['user'] as Map<String, dynamic>);
+  }
+
   Future<void> signOut() async {
     try {
       await _apiClient.dio.post('/auth/logout');
