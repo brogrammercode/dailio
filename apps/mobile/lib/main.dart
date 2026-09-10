@@ -75,12 +75,12 @@ void main() async {
   } catch (e) {
     final token = await secureStorage.getAccessToken();
     if (token != null) {
-       if (preferencesStorage.activeOrganizationId == null ||
-           preferencesStorage.activeBranchId == null) {
-         initialRoute = AppRoutes.contextSwitcher;
-       } else {
-         initialRoute = AppRoutes.home;
-       }
+      if (preferencesStorage.activeOrganizationId == null ||
+          preferencesStorage.activeBranchId == null) {
+        initialRoute = AppRoutes.contextSwitcher;
+      } else {
+        initialRoute = AppRoutes.home;
+      }
     }
   }
 

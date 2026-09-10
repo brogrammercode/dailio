@@ -13,6 +13,7 @@ export function errorHandler(
   const request_id = req.request_id;
 
   if (err instanceof ZodError) {
+    logger.warn('Validation error', { details: err.flatten().fieldErrors, body: req.body, request_id });
     res.status(400).json({
       code: 'VALIDATION_ERROR',
       message: 'Request validation failed',

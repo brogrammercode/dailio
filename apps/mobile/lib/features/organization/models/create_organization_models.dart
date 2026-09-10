@@ -3,6 +3,7 @@ class CreateOrganizationInput {
   final String? email;
   final String? phone;
   final String? address;
+  final String? type;
   final String timezone;
   final String currency;
   final String? logoBase64;
@@ -12,6 +13,7 @@ class CreateOrganizationInput {
     this.email,
     this.phone,
     this.address,
+    this.type,
     this.timezone = 'Asia/Kolkata',
     this.currency = 'INR',
     this.logoBase64,
@@ -23,8 +25,9 @@ class CreateOrganizationInput {
       'email': email,
       'phone': phone,
       'address': address,
-      'timezone': timezone,
-      'currency': currency,
+      'type': type,
+      'timezone': timezone.split(' ').first,
+      'currency': currency.substring(0, 3),
       'logo_base64': logoBase64,
     };
     map.removeWhere((key, value) => value == null || value == '');
@@ -69,7 +72,7 @@ class CreateBranchInput {
       'postal_code': postalCode,
       'phone': phone,
       'email': email,
-      'timezone': timezone,
+      'timezone': timezone.split(' ').first,
       'latitude': latitude,
       'longitude': longitude,
     };
@@ -77,5 +80,3 @@ class CreateBranchInput {
     return map;
   }
 }
-
-

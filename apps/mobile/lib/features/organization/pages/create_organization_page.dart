@@ -22,14 +22,19 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
   String _orgName = '';
   String _orgEmail = '';
   String _orgPhone = '+91 ';
-  String _orgIndustry = 'Fitness / Gym & Athletics';
+  String _orgType = 'GYM';
+  String _orgAddress = '';
   String _orgBio = '';
   String _orgCurrency = 'INR - Indian Rupee ₹';
   String _orgTimezone = 'Asia/Kolkata (IST +05:30)';
 
   Future<void> _pickLogo() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 80);
+    final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 80);
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       final base64String = base64Encode(bytes);
@@ -44,6 +49,8 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
       _formKey.currentState!.save();
       final input = CreateOrganizationInput(
         name: _orgName,
+        type: _orgType,
+        address: _orgAddress.isEmpty ? null : _orgAddress,
         email: _orgEmail.isEmpty ? null : _orgEmail,
         phone: _orgPhone.isEmpty ? null : _orgPhone,
         timezone: _orgTimezone,
@@ -63,8 +70,10 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: const Text('Create Organization',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
-
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -210,7 +219,8 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
                 border: Border.all(color: const Color(0xFFE5E7EB), width: 2),
                 image: _logoBase64 != null
                     ? DecorationImage(
-                        image: MemoryImage(base64Decode(_logoBase64!.split(',')[1])),
+                        image: MemoryImage(
+                            base64Decode(_logoBase64!.split(',')[1])),
                         fit: BoxFit.cover,
                       )
                     : null,
@@ -222,7 +232,9 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           ),
         ),
         const SizedBox(height: 8),
-        const Center(child: Text('Upload Logo (Optional)', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)))),
+        const Center(
+            child: Text('Upload Logo (Optional)',
+                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)))),
         const SizedBox(height: 20),
 
         _fieldLabel('Organization Legal / Brand Name', required: true),
@@ -271,17 +283,19 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         _fieldLabel('Primary Category / Industry'),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: _orgIndustry, // ignore: deprecated_member_use
+          value: _orgType, // ignore: deprecated_member_use
           decoration: const InputDecoration(),
-          items: [
-            'Fitness / Gym & Athletics',
-            'Corporate',
-            'Education',
-            'Healthcare',
-            'Other'
-          ].map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
-          onChanged: (v) => setState(() => _orgIndustry = v!),
-          onSaved: (v) => _orgIndustry = v ?? 'Fitness / Gym & Athletics',
+          items: const [
+            DropdownMenuItem(
+                value: 'GYM', child: Text('Fitness / Gym & Athletics')),
+            DropdownMenuItem(
+                value: 'COACHING', child: Text('Coaching & Training')),
+            DropdownMenuItem(value: 'CLINIC', child: Text('Health & Clinic')),
+            DropdownMenuItem(
+                value: 'OTHER', child: Text('Other Business Type')),
+          ],
+          onChanged: (v) => setState(() => _orgType = v!),
+          onSaved: (v) => _orgType = v ?? 'GYM',
         ),
         const SizedBox(height: 40),
 
@@ -390,7 +404,3 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
     );
   }
 }
-
-
-
-

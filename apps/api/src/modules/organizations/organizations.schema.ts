@@ -5,6 +5,7 @@ export const CreateOrganizationSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
+  type: z.enum(['GYM', 'COACHING', 'CLINIC', 'OTHER']).optional(),
   timezone: z.string().default('Asia/Kolkata'),
   currency: z.string().length(3).default('INR'),
   logo_base64: z.string().optional(),
@@ -30,4 +31,3 @@ export const CreateLocationSchema = z.object({
 export type CreateOrganizationInput = z.infer<typeof CreateOrganizationSchema>;
 export type UpdateOrganizationInput = z.infer<typeof UpdateOrganizationSchema>;
 export type CreateLocationInput = z.infer<typeof CreateLocationSchema>;
-

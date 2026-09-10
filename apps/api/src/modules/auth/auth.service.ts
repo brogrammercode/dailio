@@ -22,58 +22,34 @@ export async function signInWithGoogle(idToken: string) {
     throw new UnauthorizedError('Invalid Google token');
   }
 
-  const { sub: provider_sub, email, name, picture } = payload;
+  const { sub: google_id, email, name, picture } = payload;
 
-  // Upsert user — idempotent
-  let authIdentity = await prisma.authIdentity.findUnique({
-    where: { provider_provider_sub: { provider: 'google', provider_sub } },
-    include: { user: true },
+  if (!email) throw new ConflictError('Google account has no email');
+
+  // Upsert user - idempotent
+  let user = await prisma.user.findUnique({
+    where: { google_id },
   });
 
-  let user = authIdentity?.user;
-
-  if (!authIdentity) {
-    // Check email collision with a different provider
-    if (email) {
-      const existingUser = await prisma.user.findUnique({ where: { email } });
-      if (existingUser) {
-        // Link Google identity to existing account
-        authIdentity = await prisma.authIdentity.create({
-          data: {
-            id: ulid(),
-            provider: 'google',
-            provider_sub,
-            email,
-            user_id: existingUser.id,
-          },
-          include: { user: true },
-        });
-        user = authIdentity.user;
-      } else {
-        // Create new user + identity atomically
-        const newUserId = ulid();
-        await prisma.$transaction(async (tx) => {
-          user = await tx.user.create({
-            data: {
-              id: newUserId,
-              name: name ?? email ?? 'User',
-              email,
-              avatar_url: picture,
-            },
-          });
-          await tx.authIdentity.create({
-            data: {
-              id: ulid(),
-              provider: 'google',
-              provider_sub,
-              email,
-              user_id: newUserId,
-            },
-          });
-        });
-      }
+  if (!user) {
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      // Link Google identity to existing account
+      user = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { google_id },
+      });
     } else {
-      throw new ConflictError('Google account has no email');
+      // Create new user
+      user = await prisma.user.create({
+        data: {
+          id: ulid(),
+          name: name ?? email ?? 'User',
+          email,
+          google_id,
+          avatar_url: picture,
+        },
+      });
     }
   }
 
