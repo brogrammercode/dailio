@@ -24,4 +24,14 @@ class OrganizationRepository {
     final response = await apiClient.dio.get('/organizations');
     return List<Map<String, dynamic>>.from(response.data['organizations']);
   }
+
+  Future<Map<String, dynamic>> getOrganizationById(String orgId) async {
+    final response = await apiClient.dio.get('/organizations/$orgId');
+    return response.data['organization'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateOrganization(String orgId, Map<String, dynamic> data) async {
+    final response = await apiClient.dio.patch('/organizations/$orgId', data: data);
+    return response.data['organization'] as Map<String, dynamic>;
+  }
 }

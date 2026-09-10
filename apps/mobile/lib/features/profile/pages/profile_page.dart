@@ -113,10 +113,10 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final cubit = context.read<AuthCubit>();
       await cubit.updateProfile(
-            name: name != _originalName ? name : null,
-            phone: phone != _originalPhone ? phone : null,
-            avatarBase64: avatarBase64,
-          );
+        name: name != _originalName ? name : null,
+        phone: phone != _originalPhone ? phone : null,
+        avatarBase64: avatarBase64,
+      );
       if (mounted) {
         // Re-sync originals so dirty detection resets
         _originalName = name;
@@ -166,7 +166,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   ListView(
                     padding: EdgeInsets.fromLTRB(
-                      24, 16, 24,
+                      24,
+                      16,
+                      24,
                       _isDirty ? 140 : 40,
                     ),
                     children: [
@@ -210,8 +212,8 @@ class _ProfilePageState extends State<ProfilePage> {
                               decoration: BoxDecoration(
                                 color: Colors.orange.shade50,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                    color: Colors.orange.shade200),
+                                border:
+                                    Border.all(color: Colors.orange.shade200),
                               ),
                               child: Text(
                                 'Unsaved',
@@ -246,8 +248,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ),
                                     child: CircleAvatar(
                                       radius: 44,
-                                      backgroundColor:
-                                          Colors.orange.shade50,
+                                      backgroundColor: Colors.orange.shade50,
                                       backgroundImage: _pickedImage != null
                                           ? FileImage(_pickedImage!)
                                           : (user?.avatarUrl != null
@@ -259,14 +260,12 @@ class _ProfilePageState extends State<ProfilePage> {
                                           ? Text(
                                               user != null &&
                                                       user.name.isNotEmpty
-                                                  ? user.name[0]
-                                                      .toUpperCase()
+                                                  ? user.name[0].toUpperCase()
                                                   : '?',
                                               style: TextStyle(
                                                 fontSize: 28,
                                                 fontWeight: FontWeight.bold,
-                                                color:
-                                                    Colors.orange.shade700,
+                                                color: Colors.orange.shade700,
                                               ),
                                             )
                                           : null,
@@ -282,8 +281,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           shape: BoxShape.circle),
                                       child: CircleAvatar(
                                         radius: 14,
-                                        backgroundColor:
-                                            Colors.orange.shade700,
+                                        backgroundColor: Colors.orange.shade700,
                                         child: const Icon(Iconsax.camera,
                                             size: 14, color: Colors.white),
                                       ),
@@ -319,8 +317,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border:
-                              Border.all(color: Colors.orange.shade100),
+                          border: Border.all(color: Colors.orange.shade100),
                         ),
                         child: Row(
                           children: [
@@ -336,28 +333,23 @@ class _ProfilePageState extends State<ProfilePage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Row(
                                     children: [
                                       Text('Google Verified Account',
                                           style: TextStyle(
                                               fontSize: 12,
-                                              fontWeight:
-                                                  FontWeight.bold)),
+                                              fontWeight: FontWeight.bold)),
                                       SizedBox(width: 4),
                                       Icon(Iconsax.verify,
-                                          size: 12,
-                                          color: Colors.green),
+                                          size: 12, color: Colors.green),
                                     ],
                                   ),
                                   Text(
-                                    user?.email ??
-                                        'No email linked',
+                                    user?.email ?? 'No email linked',
                                     style: const TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey),
+                                        fontSize: 11, color: Colors.grey),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -403,8 +395,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       const SizedBox(height: 28),
 
                       // ── Notification Preferences ────────────────────────
-                      _buildSectionHeader(
-                          'Notifications & Privacy', null),
+                      _buildSectionHeader('Notifications & Privacy', null),
                       const SizedBox(height: 6),
                       const Text(
                         'Choose which operational updates are sent to your registered devices.',
@@ -461,8 +452,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       width: 16,
                                       height: 16,
                                       child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white),
+                                          strokeWidth: 2, color: Colors.white),
                                     )
                                   : const Icon(Iconsax.save_2, size: 16),
                               label: Text(
@@ -470,19 +460,16 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ? 'Saving...'
                                     : 'Save Profile Changes',
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13),
+                                    fontWeight: FontWeight.bold, fontSize: 13),
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.orange.shade700,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 14),
-                                minimumSize:
-                                    const Size(double.infinity, 0),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                minimumSize: const Size(double.infinity, 0),
                                 shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(12)),
+                                    borderRadius: BorderRadius.circular(12)),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -493,15 +480,12 @@ class _ProfilePageState extends State<ProfilePage> {
                                       ? _discardChanges(user)
                                       : null,
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 14),
-                                minimumSize:
-                                    const Size(double.infinity, 0),
-                                side: BorderSide(
-                                    color: Colors.grey.shade300),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                minimumSize: const Size(double.infinity, 0),
+                                side: BorderSide(color: Colors.grey.shade300),
                                 shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(12)),
+                                    borderRadius: BorderRadius.circular(12)),
                               ),
                               child: const Text(
                                 'Discard Changes',
@@ -538,8 +522,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (badge != null) ...[
           const SizedBox(width: 8),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: Colors.orange.shade50,
               borderRadius: BorderRadius.circular(4),
@@ -559,8 +542,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(label,
-          style:
-              const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
     );
   }
 
@@ -577,8 +559,7 @@ class _ProfilePageState extends State<ProfilePage> {
       style: const TextStyle(fontSize: 13),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle:
-            const TextStyle(fontSize: 13, color: Colors.grey),
+        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
         prefixIcon: Icon(icon, size: 16, color: Colors.grey),
         suffixIcon: suffixWidget,
         filled: true,
@@ -595,8 +576,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide:
-              BorderSide(color: Colors.orange.shade400, width: 1.5),
+          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5),
         ),
       ),
     );
@@ -606,8 +586,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Padding(
       padding: const EdgeInsets.only(right: 10),
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(12),
@@ -619,17 +598,14 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(width: 4),
             Text(label,
                 style: TextStyle(
-                    fontSize: 10,
-                    color: fg,
-                    fontWeight: FontWeight.bold)),
+                    fontSize: 10, color: fg, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNotificationTile(
-      IconData icon, String title, String subtitle) {
+  Widget _buildNotificationTile(IconData icon, String title, String subtitle) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -657,15 +633,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         fontSize: 12, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
                 Text(subtitle,
-                    style: const TextStyle(
-                        fontSize: 10, color: Colors.grey),
+                    style: const TextStyle(fontSize: 10, color: Colors.grey),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          Icon(Iconsax.arrow_right_3,
-              size: 14, color: Colors.grey.shade400),
+          Icon(Iconsax.arrow_right_3, size: 14, color: Colors.grey.shade400),
         ],
       ),
     );

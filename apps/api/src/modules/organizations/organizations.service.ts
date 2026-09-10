@@ -3,7 +3,7 @@ import { ulid } from 'ulid';
 import { prisma } from '../../lib/prisma';
 import { NotFoundError } from '../../lib/errors';
 
-import type { CreateOrganizationInput, CreateLocationInput } from './organizations.schema';
+import type { CreateOrganizationInput, CreateLocationInput, UpdateOrganizationInput } from './organizations.schema';
 
 const SYSTEM_PERMISSIONS = [
   'GYM_READ', 'GYM_UPDATE', 'GYM_ARCHIVE',
@@ -161,4 +161,10 @@ export async function getUserOrganizations(user_id: string) {
   }
   
   return Array.from(orgMap.values());
+}
+
+export async function updateOrganization(organization_id: string, user_id: string, data: UpdateOrganizationInput) {
+  const membership = await prisma.member.findFirst({ where: { organization_id, user_id, status: 'ACTIVE' } });
+  if (!membership) throw new NotFoundError('Organization');
+  return prisma.organization.update({ where: { id: organization_id }, data });
 }
