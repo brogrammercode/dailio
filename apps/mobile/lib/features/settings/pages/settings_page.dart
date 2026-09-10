@@ -1,416 +1,429 @@
 import 'package:flutter/material.dart';
-import 'package:iconsax/iconsax.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/router/route_names.dart';
+import 'package:iconsax/iconsax.dart';
 
-class SettingsPage extends StatelessWidget {
+import '../../../core/router/route_names.dart';
+import '../../../core/storage/preferences_storage.dart';
+import '../../auth/controllers/auth_cubit.dart';
+import '../../auth/controllers/auth_state.dart';
+import '../../auth/models/user_model.dart';
+import '../../organization/controllers/organization_repository.dart';
+
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
   @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  Map<String, dynamic>? _orgData;
+  bool _isLoadingOrg = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrgData();
+  }
+
+  Future<void> _loadOrgData() async {
+    final prefs = context.read<PreferencesStorage>();
+    final orgId = prefs.activeOrganizationId;
+    if (orgId == null) {
+      if (mounted) setState(() => _isLoadingOrg = false);
+      return;
+    }
+    try {
+      final orgs = await context.read<OrganizationRepository>().getMyOrganizations();
+      final match = orgs.where((m) => m['organization']?['id'] == orgId).firstOrNull;
+      if (mounted) {
+        setState(() {
+          _orgData = match;
+          _isLoadingOrg = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingOrg = false);
+    }
+  }
+
+  Future<void> _confirmSignOut() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Sign Out?', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('This will end all your active kiosk sessions on this device.'),
+        actions: [
+          TextButton(onPressed: () => ctx.pop(false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => ctx.pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600, foregroundColor: Colors.white),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await context.read<AuthCubit>().signOut();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        children: [
-          // Branch Sync Pill
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              children: [
-                const Icon(Iconsax.building_3, size: 16, color: Colors.orange),
-                const SizedBox(width: 8),
-                const Expanded(child: Text('Resolution Fitness • Indiranagar...', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(radius: 3, backgroundColor: Colors.green),
-                      const SizedBox(width: 4),
-                      Text('HQ Sync', style: TextStyle(fontSize: 10, color: Colors.green.shade700, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
+    return BlocBuilder<AuthCubit, AuthState>(
+      builder: (context, authState) {
+        final user = authState is AuthAuthenticated ? authState.user : null;
+        final prefs = context.read<PreferencesStorage>();
+        final orgName = prefs.activeOrganizationName;
+        final branchName = prefs.activeBranchName;
+        final orgMap = _orgData?['organization'] as Map<String, dynamic>?;
 
-          // Profile Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const CircleAvatar(
-                      radius: 28,
-                      backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=11'),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Text('Marcus Vance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                              const SizedBox(width: 16),
-                              OutlinedButton.icon(
-                                onPressed: () => context.push('/home/profile'),
-                                icon: const Icon(Iconsax.edit, size: 14),
-                                label: const Text('Edit', style: TextStyle(fontSize: 12)),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                                  minimumSize: const Size(0, 32),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(4)),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Iconsax.shield_tick, size: 12, color: Colors.orange),
-                                SizedBox(width: 4),
-                                Text('Owner', style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text('marcus@resolutionfit.com', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                          const Text('+91 98765 43210', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
-                  child: Row(
-                    children: [
-                      const Icon(Iconsax.shield_security, color: Colors.red, size: 20),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('ACCESS', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-                            Text('Super Admin', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                      Container(width: 1, height: 24, color: Colors.grey.shade300),
-                      const SizedBox(width: 12),
-                      const Icon(Iconsax.security_safe, color: Colors.green, size: 20),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('2FA AUTH', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-                            Text('Hardware Key', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Organization Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.orange.shade800, borderRadius: BorderRadius.circular(12)),
-                      child: const Icon(Iconsax.weight, color: Colors.white),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Text('Resolution Fitne...', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                              const SizedBox(width: 4),
-                              const Icon(Iconsax.verify, color: Colors.orange, size: 14),
-                              const SizedBox(width: 16),
-                              OutlinedButton.icon(
-                                onPressed: () {},
-                                icon: const Icon(Iconsax.setting_4, size: 14),
-                                label: const Text('Edit Org', style: TextStyle(fontSize: 12)),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  minimumSize: const Size(0, 32),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Text('?? dailio.app/resoluti...', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(radius: 4, backgroundColor: Colors.orange),
-                      const SizedBox(width: 8),
-                      const Text('Enterprise Tier', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      const Text(' - Annually', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      const SizedBox(width: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(4)),
-                        child: const Text('? 99.98% SLA', style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              const Text('MANAGEMENT & OPERATIONS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-              const SizedBox(width: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12)),
-                child: const Text('6 Modules', style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Modules
-          _buildModuleCard(
-            icon: Iconsax.lock,
-            title: 'Roles & Permissions',
-            subtitle: '4 configured RBAC roles ac...',
-            actionLabel: 'Configure',
-            bottomWidget: Row(
-              children: [
-                _buildChip('Owner (1)', true),
-                const SizedBox(width: 8),
-                _buildChip('Branch Mgr (3)', false),
-                const SizedBox(width: 8),
-                _buildChip('Head Trainer (8)', false),
-              ],
-            ),
-            onTap: () {},
-          ),
-          
-          _buildModuleCard(
-            icon: Iconsax.personalcard,
-            iconColor: Colors.orange,
-            iconBg: Colors.orange.shade50,
-            title: 'Members & Admissions',
-            subtitle: '350+ enrolled active athletes',
-            actionLabel: 'Manage',
-            isPrimaryAction: true,
-            bottomWidget: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
-              child: Row(
+        return Scaffold(
+          backgroundColor: const Color(0xFFF9FAFB),
+          body: SafeArea(
+            child: RefreshIndicator(
+              color: Colors.orange.shade800,
+              onRefresh: _loadOrgData,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
                 children: [
-                  const Icon(Iconsax.note_add, size: 14, color: Colors.orange),
-                  const SizedBox(width: 4),
-                  const Text('New Membership Inflow', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(12)),
-                    child: const Text('4 Pending Requests', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+                  // ── Context Pill ───────────────────────────────────────
+                  _buildContextPill(orgName, branchName),
+                  const SizedBox(height: 16),
+
+                  // ── Profile Card ───────────────────────────────────────
+                  _buildProfileCard(context, user),
+                  const SizedBox(height: 16),
+
+                  // ── Organization Card ──────────────────────────────────
+                  _buildOrgCard(context, orgMap, orgName),
+                  const SizedBox(height: 24),
+
+                  // ── Management Modules ─────────────────────────────────
+                  _sectionHeader('MANAGEMENT & OPERATIONS', '6 Modules'),
+                  const SizedBox(height: 12),
+
+                  _buildModuleCard(
+                    icon: Iconsax.lock,
+                    title: 'Roles & Permissions',
+                    subtitle: 'Configure RBAC roles & access levels',
+                    actionLabel: 'Configure',
+                    onTap: () => context.push(AppRoutes.roles),
+                    chips: const ['Owner', 'Branch Mgr', 'Trainer'],
+                    primaryChipIndex: 0,
+                  ),
+
+                  _buildModuleCard(
+                    icon: Iconsax.personalcard,
+                    iconColor: Colors.orange,
+                    iconBg: Colors.orange.shade50,
+                    title: 'Members & Admissions',
+                    subtitle: 'Manage enrolled members & join requests',
+                    actionLabel: 'Manage',
+                    isPrimaryAction: true,
+                    onTap: () => context.push(AppRoutes.members),
+                    chips: const ['Active', 'Pending Requests', 'Suspended'],
+                    primaryChipIndex: 0,
+                  ),
+
+                  _buildModuleCard(
+                    icon: Iconsax.hierarchy,
+                    title: 'Branch Locations',
+                    subtitle: 'Manage your gym branches & facilities',
+                    actionLabel: 'Manage',
+                    onTap: () => context.push(AppRoutes.createBranch),
+                    chips: const ['Primary Branch', 'Add Branch'],
+                    primaryChipIndex: 0,
+                  ),
+
+                  _buildModuleCard(
+                    icon: Iconsax.card,
+                    title: 'Subscription Plans',
+                    subtitle: 'Membership tiers, pricing & billing',
+                    actionLabel: 'Configure',
+                    onTap: () => context.push(AppRoutes.subscriptionPlans),
+                    chips: const ['Annual Elite', 'Quarterly Pro', 'Monthly Flex'],
+                    primaryChipIndex: 0,
+                  ),
+
+                  _buildModuleCard(
+                    icon: Iconsax.clock,
+                    title: 'Shift Configuration',
+                    subtitle: 'Rosters, grace periods & duty cycles',
+                    actionLabel: 'Configure',
+                    onTap: () => context.push(AppRoutes.shiftManagement),
+                    chips: const ['Morning', 'Evening', 'General Duty'],
+                    primaryChipIndex: 0,
+                  ),
+
+                  _buildModuleCard(
+                    icon: Iconsax.wallet_2,
+                    iconColor: Colors.orange,
+                    iconBg: Colors.orange.shade50,
+                    title: 'Payroll & Compensation',
+                    subtitle: 'Staff salary structures & disbursals',
+                    actionLabel: 'Manage',
+                    isPrimaryAction: true,
+                    onTap: () => context.push(AppRoutes.payrollManagement),
+                    chips: const ['Monthly Payouts', 'Base + Incentive', 'Tax & Deductions'],
+                    primaryChipIndex: 0,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // ── Workspace Settings ──────────────────────────────────
+                  _sectionHeader('WORKSPACE SETTINGS', null),
+                  const SizedBox(height: 12),
+                  _buildWorkspaceCard(),
+
+                  const SizedBox(height: 24),
+
+                  // ── Sign Out ────────────────────────────────────────────
+                  OutlinedButton.icon(
+                    onPressed: _confirmSignOut,
+                    icon: const Icon(Iconsax.logout, color: Colors.red, size: 18),
+                    label: Text(
+                      orgName != null ? 'Sign Out of $orgName' : 'Sign Out',
+                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.red.shade50,
+                      side: BorderSide(color: Colors.red.shade200),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      minimumSize: const Size(double.infinity, 0),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Tap to confirm — this will end all active kiosk sessions.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
                   ),
                 ],
               ),
             ),
-            onTap: () => context.push(AppRoutes.members),
           ),
+        );
+      },
+    );
+  }
 
-          // Branch Locations
-          _buildModuleCard(
-            icon: Iconsax.hierarchy,
-            title: 'Branch Locations',
-            subtitle: '3 Facilities Active',
-            actionLabel: 'Locations',
-            bottomWidget: Row(
-              children: [
-                _buildBranchStat('Indiranagar', '142 Live', true),
-                const SizedBox(width: 8),
-                _buildBranchStat('Whitefield', '98 Live', false),
-                const SizedBox(width: 8),
-                _buildBranchStat('Hebbal', '64 Live', false),
-              ],
+  // ─── Context Pill ───────────────────────────────────────────────────────────
+  Widget _buildContextPill(String? orgName, String? branchName) {
+    if (orgName == null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade100),
+        ),
+        child: Row(
+          children: [
+            Icon(Iconsax.info_circle, size: 16, color: Colors.orange.shade700),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'No active branch selected. Tap to choose a workspace.',
+                style: TextStyle(fontSize: 12, color: Colors.orange),
+              ),
             ),
-            onTap: () {},
-          ),
+            Icon(Iconsax.arrow_right_3, size: 14, color: Colors.orange.shade700),
+          ],
+        ),
+      );
+    }
 
-          // Subscriptions
-          _buildModuleCard(
-            icon: Iconsax.card,
-            title: 'Subscriptions',
-            subtitle: 'Manage membership tiers, ...',
-            badge: '4 Active Plans',
-            actionLabel: 'Configure',
-            bottomWidget: Row(
-              children: [
-                _buildChip('Annual Elite', true),
-                const SizedBox(width: 8),
-                _buildChip('Quarterly Pro', false),
-                const SizedBox(width: 8),
-                _buildChip('Monthly Flex', false),
-              ],
-            ),
-            onTap: () {},
-          ),
-
-          // Shift Config
-          _buildModuleCard(
-            icon: Iconsax.clock,
-            title: 'Shift Configuration',
-            subtitle: 'Rosters, grace periods, dut...',
-            badge: '3 Shifts',
-            actionLabel: 'Configure',
-            bottomWidget: Row(
-              children: [
-                _buildChip('¤ Morning (06:00-14:00)', true),
-                const SizedBox(width: 8),
-                _buildChip('Evening (14:00-22:00)', false),
-              ],
-            ),
-            onTap: () {},
-          ),
-
-          // Payroll
-          _buildModuleCard(
-            icon: Iconsax.wallet_2,
-            iconColor: Colors.orange,
-            iconBg: Colors.orange.shade50,
-            title: 'Payroll & Comp...',
-            subtitle: 'Staff salary structures, wage...',
-            badge: '?4.8L Disbursed',
-            badgeColor: Colors.green.shade50,
-            badgeTextColor: Colors.green,
-            actionLabel: 'Manage',
-            isPrimaryAction: true,
-            bottomWidget: Row(
-              children: [
-                _buildChip('Monthly Payouts', true),
-                const SizedBox(width: 8),
-                _buildChip('Base + Incentive', false),
-                const SizedBox(width: 8),
-                _buildChip('Tax & Deductions', false),
-              ],
-            ),
-            onTap: () {},
-          ),
-
-          const SizedBox(height: 24),
-          const Text('WORKSPACE SETTINGS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-          const SizedBox(height: 12),
-          
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
-            child: Column(
-              children: [
-                _buildToggleRow(Iconsax.notification_bing, 'Push & Shift Alerts', 'Real-time gym floor pings enabled', true),
-                const Divider(),
-                _buildToggleRow(Iconsax.scan, 'Biometrics & Turnstiles', 'Optical sync • Enforced on punch', true),
-                const Divider(),
-                Row(
-                  children: [
-                    const Icon(Iconsax.document_code, size: 20, color: Colors.grey),
-                    const SizedBox(width: 12),
-                    const Text('Client Build', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                    const SizedBox(width: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4)),
-                      child: const Text('v2.4.1-prod (r4182)', style: TextStyle(fontSize: 10, color: Colors.grey)),
+    return GestureDetector(
+      onTap: () => context.push(AppRoutes.contextSwitcher),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            const Icon(Iconsax.building_3, size: 16, color: Colors.orange),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    orgName,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (branchName != null)
+                    Text(
+                      branchName,
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircleAvatar(radius: 3, backgroundColor: Colors.green),
+                  const SizedBox(width: 4),
+                  Text('Live', style: TextStyle(fontSize: 10, color: Colors.green.shade700, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Iconsax.arrow_swap_horizontal, size: 14, color: Colors.grey.shade500),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Profile Card ───────────────────────────────────────────────────────────
+  Widget _buildProfileCard(BuildContext context, UserModel? user) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: Colors.orange.shade100,
+                backgroundImage: user?.avatarUrl != null ? NetworkImage(user!.avatarUrl!) : null,
+                child: user?.avatarUrl == null
+                    ? Text(
+                        (user?.name.isNotEmpty == true) ? user!.name[0].toUpperCase() : '?',
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.orange),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              // Name + details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            user?.name ?? 'Loading...',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => context.push(AppRoutes.profile),
+                          icon: const Icon(Iconsax.edit, size: 12),
+                          label: const Text('Edit', style: TextStyle(fontSize: 11)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                            minimumSize: const Size(0, 28),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Iconsax.shield_tick, size: 10, color: Colors.orange),
+                          SizedBox(width: 4),
+                          Text('Owner', style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (user?.email != null)
+                      Text(
+                        user!.email!,
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    if (user == null)
+                      Text('Not signed in', style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
                   ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Access row
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Iconsax.shield_security, color: Colors.red, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text('ACCESS', style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
+                      Text('Organization Owner', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 24, color: Colors.grey.shade300),
+                const SizedBox(width: 12),
+                const Icon(Iconsax.security_safe, color: Colors.green, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text('GOOGLE', style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
+                      Text('Verified Sign-in', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          
-          const SizedBox(height: 24),
-          OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Iconsax.logout, color: Colors.red),
-            label: const Text('Sign Out of Resolution HQ', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: Colors.red.shade50,
-              side: BorderSide(color: Colors.red.shade100),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text('Tap once more to confirm termination of active kiosk sessions.', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: Colors.grey)),
-          const SizedBox(height: 100),
         ],
       ),
     );
   }
 
-  Widget _buildModuleCard({
-    required IconData icon,
-    Color iconColor = Colors.black,
-    Color iconBg = const Color(0xFFF3F4F6),
-    required String title,
-    required String subtitle,
-    String? badge,
-    Color? badgeColor,
-    Color? badgeTextColor,
-    required String actionLabel,
-    bool isPrimaryAction = false,
-    required Widget bottomWidget,
-    required VoidCallback onTap,
-  }) {
+  // ─── Organization Card ──────────────────────────────────────────────────────
+  Widget _buildOrgCard(BuildContext context, Map<String, dynamic>? orgMap, String? orgName) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -424,8 +437,11 @@ class SettingsPage extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(12)),
-                child: Icon(icon, color: iconColor, size: 20),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade800,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Iconsax.weight, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -434,93 +450,272 @@ class SettingsPage extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        if (badge != null) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(color: badgeColor ?? Colors.orange.shade50, borderRadius: BorderRadius.circular(4)),
-                            child: Text(badge, style: TextStyle(fontSize: 10, color: badgeTextColor ?? Colors.orange, fontWeight: FontWeight.bold)),
+                        const Icon(Iconsax.verify, color: Colors.orange, size: 14),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            _isLoadingOrg
+                                ? 'Loading...'
+                                : (orgMap?['name'] ?? orgName ?? 'Your Organization'),
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ]
+                        ),
                       ],
                     ),
-                    Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    if (orgMap?['website'] != null || orgMap?['slug'] != null)
+                      Text(
+                        orgMap?['website'] ?? 'dailio.app/${orgMap?['slug'] ?? ''}',
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    else
+                      Text(
+                        _isLoadingOrg ? '' : 'No website configured',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                      ),
                   ],
                 ),
               ),
-              if (isPrimaryAction)
-                ElevatedButton(
-                  onPressed: onTap,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange.shade800,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    minimumSize: const Size(0, 32),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(actionLabel, style: const TextStyle(fontSize: 12)),
-                      const SizedBox(width: 4),
-                      const Icon(Iconsax.arrow_right_3, size: 14),
-                    ],
-                  ),
-                )
-              else
-                OutlinedButton(
-                  onPressed: onTap,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    minimumSize: const Size(0, 32),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(actionLabel, style: const TextStyle(fontSize: 12, color: Colors.black)),
-                      const SizedBox(width: 4),
-                      const Icon(Iconsax.arrow_right_3, size: 14, color: Colors.black),
-                    ],
-                  ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.editOrganization),
+                icon: const Icon(Iconsax.setting_4, size: 12),
+                label: const Text('Edit', style: TextStyle(fontSize: 11)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                  minimumSize: const Size(0, 28),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          SingleChildScrollView(scrollDirection: Axis.horizontal, child: bottomWidget),
+          if (_isLoadingOrg) ...[
+            const SizedBox(height: 12),
+            const LinearProgressIndicator(color: Colors.orange, minHeight: 2),
+          ] else if (orgMap != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const CircleAvatar(radius: 4, backgroundColor: Colors.orange),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      orgMap['industry'] ?? 'Fitness & Wellness',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text('Active', style: TextStyle(fontSize: 9, color: Colors.green.shade700, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Iconsax.info_circle, size: 14, color: Colors.orange.shade700),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Organization details unavailable. Check your connection.',
+                      style: TextStyle(fontSize: 10, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildChip(String label, bool isPrimary) {
+  // ─── Module Card ────────────────────────────────────────────────────────────
+  Widget _buildModuleCard({
+    required IconData icon,
+    Color iconColor = Colors.black54,
+    Color? iconBg,
+    required String title,
+    required String subtitle,
+    required String actionLabel,
+    bool isPrimaryAction = false,
+    required VoidCallback onTap,
+    required List<String> chips,
+    required int primaryChipIndex,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isPrimary ? Colors.orange.shade50 : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isPrimary ? Colors.orange.shade200 : Colors.grey.shade200),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Text(label, style: TextStyle(fontSize: 10, color: isPrimary ? Colors.orange.shade800 : Colors.grey.shade700, fontWeight: FontWeight.w600)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: iconBg ?? const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: iconColor, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  isPrimaryAction
+                      ? ElevatedButton(
+                          onPressed: onTap,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange.shade800,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            minimumSize: const Size(0, 30),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(actionLabel, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        )
+                      : OutlinedButton(
+                          onPressed: onTap,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            minimumSize: const Size(0, 30),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            side: BorderSide(color: Colors.grey.shade300),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(actionLabel, style: const TextStyle(fontSize: 11, color: Colors.black87)),
+                        ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(chips.length, (i) {
+                    final isPrimary = i == primaryChipIndex;
+                    return Padding(
+                      padding: EdgeInsets.only(right: i < chips.length - 1 ? 6 : 0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isPrimary ? Colors.orange.shade50 : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isPrimary ? Colors.orange.shade200 : Colors.grey.shade200,
+                          ),
+                        ),
+                        child: Text(
+                          chips[i],
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: isPrimary ? Colors.orange.shade800 : Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildBranchStat(String name, String stat, bool isPrimary) {
+  // ─── Workspace Settings Card ────────────────────────────────────────────────
+  Widget _buildWorkspaceCard() {
     return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(name, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-          const SizedBox(height: 4),
-          Text(stat, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
+          _buildSettingsRow(
+            icon: Iconsax.notification_bing,
+            title: 'Push & Shift Alerts',
+            subtitle: 'Real-time attendance & gym floor pings',
+          ),
+          const Divider(height: 24),
+          _buildSettingsRow(
+            icon: Iconsax.scan,
+            title: 'Biometric Check-ins',
+            subtitle: 'Selfie & geofence enforcement on punch',
+          ),
+          const Divider(height: 24),
           Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              CircleAvatar(radius: 3, backgroundColor: isPrimary ? Colors.green : Colors.grey),
-              const SizedBox(width: 4),
-              Text(isPrimary ? 'Primary' : 'Secondary', style: TextStyle(fontSize: 8, color: isPrimary ? Colors.green : Colors.grey)),
+              const Icon(Iconsax.document_code, size: 18, color: Colors.grey),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('App Version', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                    Text('v2.4.1 (Build 4182)', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text('Up to date', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600)),
+              ),
             ],
           ),
         ],
@@ -528,24 +723,42 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildToggleRow(IconData icon, String title, String subtitle, bool value) {
+  Widget _buildSettingsRow({required IconData icon, required String title, required String subtitle}) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey),
+        Icon(icon, size: 18, color: Colors.grey),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
               Text(subtitle, style: const TextStyle(fontSize: 10, color: Colors.grey)),
             ],
           ),
         ),
-        Switch(value: value, onChanged: (v) {}, activeColor: Colors.orange),
+        Icon(Iconsax.arrow_right_3, size: 14, color: Colors.grey.shade400),
+      ],
+    );
+  }
+
+  // ─── Section Header ─────────────────────────────────────────────────────────
+  Widget _sectionHeader(String label, String? badge) {
+    return Row(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
+        if (badge != null) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(badge, style: TextStyle(fontSize: 10, color: Colors.orange.shade800, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ],
     );
   }
 }
-
-
