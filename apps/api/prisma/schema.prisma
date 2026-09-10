@@ -30,18 +30,12 @@ enum OrganizationType {
   OTHER
 }
 
-enum LocationStatus {
+enum BranchStatus {
   ACTIVE
   ARCHIVED
 }
 
-enum OrganizationMembershipStatus {
-  ACTIVE
-  INACTIVE
-  INVITED
-}
-
-enum LocationMembershipStatus {
+enum MemberStatus {
   ACTIVE
   SUSPENDED
   INACTIVE
@@ -174,34 +168,52 @@ model User {
   name       String
   email      String?    @unique
   phone      String?    @unique
+  google_id  String?    @unique
   avatar_url String?
   status     UserStatus @default(ACTIVE)
   fcm_token  String?
   created_at DateTime   @default(now())
   updated_at DateTime   @updatedAt
 
-  auth_identities          AuthIdentity[]
-  organization_memberships OrganizationMembership[]
-  audit_logs               AuditLog[]               @relation("AuditActor")
-  notifications            Notification[]
-  joinRequests             JoinRequest[]
+  members       Member[]
+  audit_logs    AuditLog[]     @relation("AuditActor")
+  notifications Notification[]
+  joinRequests  JoinRequest[]
 
   @@map("users")
 }
 
-model AuthIdentity {
-  id           String   @id @default(cuid())
-  user_id      String
-  provider     String // e.g. "google"
-  provider_sub String // Google subject ID
-  email        String?
-  created_at   DateTime @default(now())
+model Member {
+  id              String       @id @default(cuid())
+  user_id         String
+  organization_id String
+  branch_id       String
+  is_employee     Boolean      @default(false)
+  role_id         String?
+  shift_id        String?
+  status          MemberStatus @default(ACTIVE)
+  member_number   String?
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
 
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [user_id], references: [id])
+  organization Organization @relation(fields: [organization_id], references: [id])
+  branch       Branch       @relation(fields: [branch_id], references: [id])
+  role         Role?        @relation(fields: [role_id], references: [id])
+  shift        Shift?       @relation(fields: [shift_id], references: [id])
 
-  @@unique([provider, provider_sub])
+  attendance_sessions AttendanceSession[]
+  subscriptions       Subscription[]
+  ledger_entries      LedgerEntry[]
+
+  join_requests           JoinRequest[]
+  leave_requests          LeaveRequest[]
+  announcement_recipients AnnouncementRecipient[]
+
+  @@unique([organization_id, branch_id, user_id])
+  @@index([organization_id, branch_id])
   @@index([user_id])
-  @@map("auth_identities")
+  @@map("members")
 }
 
 // ============================================================
@@ -225,144 +237,83 @@ model Organization {
   archived_at DateTime?
   archived_by String?
 
-  locations                Location[]
-  organization_memberships OrganizationMembership[]
-  roles                    Role[]
-  plans                    Plan[]
-  feature_flags            FeatureFlag[]
-  audit_logs               AuditLog[]
-  announcements            Announcement[]
+  branches             Branch[]
+  organization_members Member[]
+  roles                Role[]
+  plans                Plan[]
+  feature_flags        FeatureFlag[]
+  audit_logs           AuditLog[]
+  announcements        Announcement[]
 
   @@map("organizations")
 }
 
-model Location {
-  id              String         @id @default(cuid())
+model Branch {
+  id              String       @id @default(cuid())
   organization_id String
   name            String
   address         String?
   city            String?
   state           String?
-  country         String         @default("IN")
+  country         String       @default("IN")
   postal_code     String?
   latitude        Float?
   longitude       Float?
   phone           String?
   email           String?
-  timezone        String         @default("Asia/Kolkata")
-  status          LocationStatus @default(ACTIVE)
-  week_start      Int            @default(1) // 1=Monday
-  created_at      DateTime       @default(now())
-  updated_at      DateTime       @updatedAt
+  timezone        String       @default("Asia/Kolkata")
+  status          BranchStatus @default(ACTIVE)
+  week_start      Int          @default(1) // 1=Monday
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
   archived_at     DateTime?
   archived_by     String?
 
-  organization         Organization         @relation(fields: [organization_id], references: [id])
-  location_memberships LocationMembership[]
-  join_requests        JoinRequest[]
-  attendance_policies  AttendancePolicy[]
-  attendance_sessions  AttendanceSession[]
-  shifts               Shift[]
-  leave_requests       LeaveRequest[]
-  holidays             Holiday[]
-  subscriptions        Subscription[]
-  ledger_entries       LedgerEntry[]
-  payment_attempts     PaymentAttempt[]
-  reminders            Reminder[]
-  announcements        Announcement[]
+  organization Organization @relation(fields: [organization_id], references: [id])
+
+  join_requests       JoinRequest[]
+  attendance_policies AttendancePolicy[]
+  attendance_sessions AttendanceSession[]
+  shifts              Shift[]
+  leave_requests      LeaveRequest[]
+  holidays            Holiday[]
+  subscriptions       Subscription[]
+  ledger_entries      LedgerEntry[]
+  payment_attempts    PaymentAttempt[]
+  reminders           Reminder[]
+  announcements       Announcement[]
+  members             Member[]
 
   @@index([organization_id])
-  @@map("locations")
+  @@map("branches")
 }
 
 // ============================================================
 // MEMBERSHIPS
 // ============================================================
 
-model OrganizationMembership {
-  id              String                       @id @default(cuid())
-  organization_id String
-  user_id         String?
-  first_name      String
-  last_name       String?
-  email           String?
-  phone           String?
-  avatar_url      String?
-  date_of_birth   DateTime?
-  address         String?
-  notes           String?
-  status          OrganizationMembershipStatus @default(ACTIVE)
-  invite_token    String?                      @unique
-  invite_expiry   DateTime?
-  created_at      DateTime                     @default(now())
-  updated_at      DateTime                     @updatedAt
-
-  organization         Organization         @relation(fields: [organization_id], references: [id])
-  user                 User?                @relation(fields: [user_id], references: [id])
-  location_memberships LocationMembership[]
-
-  @@unique([user_id, organization_id])
-  @@index([organization_id])
-  @@index([user_id])
-  @@map("organization_memberships")
-}
-
-model LocationMembership {
-  id                         String                   @id @default(cuid())
-  organization_id            String
-  location_id                String
-  organization_membership_id String
-  membership_number          String
-  status                     LocationMembershipStatus @default(ACTIVE)
-  joined_at                  DateTime                 @default(now())
-  suspended_at               DateTime?
-  suspended_by               String?
-  suspend_reason             String?
-  deactivated_at             DateTime?
-  deactivated_by             String?
-  created_at                 DateTime                 @default(now())
-  updated_at                 DateTime                 @updatedAt
-
-  location                Location               @relation(fields: [location_id], references: [id])
-  organization_membership OrganizationMembership @relation(fields: [organization_membership_id], references: [id])
-  join_request            JoinRequest?
-  role_assignments        RoleAssignment[]
-  attendance_sessions     AttendanceSession[]
-  shift_assignments       ShiftAssignment[]
-  leave_requests          LeaveRequest[]
-  subscriptions           Subscription[]
-  ledger_entries          LedgerEntry[]
-
-  @@unique([organization_membership_id, location_id])
-  @@unique([membership_number, location_id])
-  @@index([organization_id])
-  @@index([location_id])
-  @@index([organization_membership_id])
-  @@map("location_memberships")
-}
-
 model JoinRequest {
-  id                     String            @id @default(cuid())
-  organization_id        String
-  location_id            String
-  user_id                String
-  location_membership_id String?           @unique
-  status                 JoinRequestStatus @default(PENDING)
-  message                String?
-  rejection_reason       String?
-  reviewed_by            String?
-  reviewed_at            DateTime?
-  idempotency_key        String?           @unique
-  created_at             DateTime          @default(now())
-  updated_at             DateTime          @updatedAt
+  id               String            @id @default(cuid())
+  organization_id  String
+  branch_id        String
+  user_id          String
+  member_id        String?           @unique
+  status           JoinRequestStatus @default(PENDING)
+  message          String?
+  rejection_reason String?
+  reviewed_by      String?
+  reviewed_at      DateTime?
+  idempotency_key  String?           @unique
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
 
-  location            Location            @relation(fields: [location_id], references: [id])
-  location_membership LocationMembership? @relation(fields: [location_membership_id], references: [id])
-  user                User                @relation(fields: [user_id], references: [id])
+  branch Branch  @relation(fields: [branch_id], references: [id])
+  member Member? @relation(fields: [member_id], references: [id])
+  user   User    @relation(fields: [user_id], references: [id])
 
-  @@unique([user_id, location_id, status]) // only one PENDING per user+branch
+  @@unique([user_id, branch_id, status]) // only one PENDING per user+branch
   @@index([organization_id])
-  @@index([location_id])
+  @@index([branch_id])
   @@index([user_id])
   @@map("join_requests")
 }
@@ -374,7 +325,7 @@ model JoinRequest {
 model Role {
   id              String   @id @default(cuid())
   organization_id String
-  location_id     String?
+  branch_id       String?
   system_key      String? // OWNER, ADMIN, MEMBER — null for custom
   name            String
   description     String?
@@ -384,31 +335,12 @@ model Role {
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
-  organization     Organization     @relation(fields: [organization_id], references: [id])
-  role_assignments RoleAssignment[]
+  organization Organization @relation(fields: [organization_id], references: [id])
+  role_members Member[]
 
   @@unique([organization_id, name])
   @@index([organization_id])
   @@map("roles")
-}
-
-model RoleAssignment {
-  id                     String    @id @default(cuid())
-  organization_id        String
-  location_id            String?
-  role_id                String
-  location_membership_id String
-  assigned_by            String?
-  assigned_at            DateTime  @default(now())
-  revoked_at             DateTime?
-  revoked_by             String?
-
-  role                Role               @relation(fields: [role_id], references: [id])
-  location_membership LocationMembership @relation(fields: [location_membership_id], references: [id])
-
-  @@index([organization_id])
-  @@index([location_membership_id])
-  @@map("role_assignments")
 }
 
 // ============================================================
@@ -418,7 +350,7 @@ model RoleAssignment {
 model AttendancePolicy {
   id                          String   @id @default(cuid())
   organization_id             String
-  location_id                 String
+  branch_id                   String
   role_id                     String? // null = location default, set = role override
   version                     Int      @default(1)
   effective_from              DateTime
@@ -442,46 +374,46 @@ model AttendancePolicy {
   created_at                  DateTime @default(now())
   updated_at                  DateTime @updatedAt
 
-  location Location @relation(fields: [location_id], references: [id])
+  branch Branch @relation(fields: [branch_id], references: [id])
 
-  @@index([organization_id, location_id])
+  @@index([organization_id, branch_id])
   @@map("attendance_policies")
 }
 
 model AttendanceSession {
-  id                     String                   @id @default(cuid())
-  organization_id        String
-  location_id            String
-  location_membership_id String
-  policy_version         Int
-  state                  AttendanceSessionState   @default(OPEN)
-  source                 AttendanceSessionSource  @default(SELF)
-  derived_status         AttendanceDerivedStatus?
-  worked_minutes         Int?
-  late_minutes           Int?
-  early_leave_minutes    Int?
-  shift_id               String?
-  shift_snapshot         Json?
-  clock_in_at            DateTime // server time
-  clock_in_client_at     DateTime? // client captured time
-  clock_in_timezone      String?
-  clock_out_at           DateTime?
-  clock_out_client_at    DateTime?
-  clock_out_timezone     String?
-  corrected_at           DateTime?
-  corrected_by           String?
-  correction_reason      String?
-  idempotency_key_in     String?                  @unique
-  idempotency_key_out    String?                  @unique
-  created_at             DateTime                 @default(now())
-  updated_at             DateTime                 @updatedAt
+  id                  String                   @id @default(cuid())
+  organization_id     String
+  branch_id           String
+  member_id           String
+  policy_version      Int
+  state               AttendanceSessionState   @default(OPEN)
+  source              AttendanceSessionSource  @default(SELF)
+  derived_status      AttendanceDerivedStatus?
+  worked_minutes      Int?
+  late_minutes        Int?
+  early_leave_minutes Int?
+  shift_id            String?
+  shift_snapshot      Json?
+  clock_in_at         DateTime // server time
+  clock_in_client_at  DateTime? // client captured time
+  clock_in_timezone   String?
+  clock_out_at        DateTime?
+  clock_out_client_at DateTime?
+  clock_out_timezone  String?
+  corrected_at        DateTime?
+  corrected_by        String?
+  correction_reason   String?
+  idempotency_key_in  String?                  @unique
+  idempotency_key_out String?                  @unique
+  created_at          DateTime                 @default(now())
+  updated_at          DateTime                 @updatedAt
 
-  location            Location             @relation(fields: [location_id], references: [id])
-  location_membership LocationMembership   @relation(fields: [location_membership_id], references: [id])
-  evidence            AttendanceEvidence[]
+  branch   Branch               @relation(fields: [branch_id], references: [id])
+  member   Member?              @relation(fields: [member_id], references: [id])
+  evidence AttendanceEvidence[]
 
-  @@index([organization_id, location_id])
-  @@index([location_membership_id])
+  @@index([organization_id, branch_id])
+  @@index([member_id])
   @@map("attendance_sessions")
 }
 
@@ -512,7 +444,7 @@ model AttendanceEvidence {
 model Shift {
   id              String    @id @default(cuid())
   organization_id String
-  location_id     String
+  branch_id       String
   name            String
   start_time      String // HH:mm local
   end_time        String // HH:mm local
@@ -526,65 +458,47 @@ model Shift {
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
 
-  location          Location          @relation(fields: [location_id], references: [id])
-  shift_assignments ShiftAssignment[]
+  branch        Branch   @relation(fields: [branch_id], references: [id])
+  shift_members Member[]
 
-  @@index([organization_id, location_id])
+  @@index([organization_id, branch_id])
   @@map("shifts")
 }
 
-model ShiftAssignment {
-  id                     String    @id @default(cuid())
-  organization_id        String
-  location_id            String
-  shift_id               String
-  location_membership_id String
-  effective_from         DateTime
-  effective_to           DateTime?
-  assigned_by            String?
-  created_at             DateTime  @default(now())
-
-  shift               Shift              @relation(fields: [shift_id], references: [id])
-  location_membership LocationMembership @relation(fields: [location_membership_id], references: [id])
-
-  @@index([organization_id, location_membership_id])
-  @@map("shift_assignments")
-}
-
 model LeaveRequest {
-  id                     String             @id @default(cuid())
-  organization_id        String
-  location_id            String
-  location_membership_id String
-  start_date             DateTime // local date
-  end_date               DateTime // local date
-  reason                 String?
-  status                 LeaveRequestStatus @default(PENDING)
-  reviewed_by            String?
-  reviewed_at            DateTime?
-  review_note            String?
-  created_at             DateTime           @default(now())
-  updated_at             DateTime           @updatedAt
+  id              String             @id @default(cuid())
+  organization_id String
+  branch_id       String
+  member_id       String
+  start_date      DateTime // local date
+  end_date        DateTime // local date
+  reason          String?
+  status          LeaveRequestStatus @default(PENDING)
+  reviewed_by     String?
+  reviewed_at     DateTime?
+  review_note     String?
+  created_at      DateTime           @default(now())
+  updated_at      DateTime           @updatedAt
 
-  location            Location           @relation(fields: [location_id], references: [id])
-  location_membership LocationMembership @relation(fields: [location_membership_id], references: [id])
+  branch Branch  @relation(fields: [branch_id], references: [id])
+  member Member? @relation(fields: [member_id], references: [id])
 
-  @@index([organization_id, location_id])
-  @@index([location_membership_id])
+  @@index([organization_id, branch_id])
+  @@index([member_id])
   @@map("leave_requests")
 }
 
 model Holiday {
   id              String   @id @default(cuid())
   organization_id String
-  location_id     String?
+  branch_id       String?
   name            String
   date            DateTime // local date
   is_recurring    Boolean  @default(false)
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
-  location Location? @relation(fields: [location_id], references: [id])
+  branch Branch? @relation(fields: [branch_id], references: [id])
 
   @@index([organization_id])
   @@map("holidays")
@@ -607,7 +521,7 @@ model Plan {
   discount_percent  Float    @default(0)
   grace_days        Int      @default(0)
   is_active         Boolean  @default(true)
-  location_ids      String[] // empty = available to all locations
+  branch_ids        String[] // empty = available to all locations
   metadata          Json?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
@@ -620,37 +534,37 @@ model Plan {
 }
 
 model Subscription {
-  id                     String             @id @default(cuid())
-  organization_id        String
-  location_id            String
-  location_membership_id String
-  plan_id                String
-  plan_snapshot          Json // immutable copy of plan terms at assignment time
-  status                 SubscriptionStatus @default(DRAFT)
-  start_date             DateTime
-  end_date               DateTime
-  agreed_amount_minor    Int
-  discount_minor         Int                @default(0)
-  currency               String             @default("INR")
-  due_date               DateTime?
-  created_by             String?
-  paused_at              DateTime?
-  paused_by              String?
-  cancelled_at           DateTime?
-  cancelled_by           String?
-  cancel_reason          String?
-  renewed_from_id        String?
-  idempotency_key        String?            @unique
-  created_at             DateTime           @default(now())
-  updated_at             DateTime           @updatedAt
+  id                  String             @id @default(cuid())
+  organization_id     String
+  branch_id           String
+  member_id           String
+  plan_id             String
+  plan_snapshot       Json // immutable copy of plan terms at assignment time
+  status              SubscriptionStatus @default(DRAFT)
+  start_date          DateTime
+  end_date            DateTime
+  agreed_amount_minor Int
+  discount_minor      Int                @default(0)
+  currency            String             @default("INR")
+  due_date            DateTime?
+  created_by          String?
+  paused_at           DateTime?
+  paused_by           String?
+  cancelled_at        DateTime?
+  cancelled_by        String?
+  cancel_reason       String?
+  renewed_from_id     String?
+  idempotency_key     String?            @unique
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
 
-  location            Location           @relation(fields: [location_id], references: [id])
-  location_membership LocationMembership @relation(fields: [location_membership_id], references: [id])
-  plan                Plan               @relation(fields: [plan_id], references: [id])
-  ledger_entries      LedgerEntry[]
+  branch         Branch        @relation(fields: [branch_id], references: [id])
+  member         Member?       @relation(fields: [member_id], references: [id])
+  plan           Plan          @relation(fields: [plan_id], references: [id])
+  ledger_entries LedgerEntry[]
 
-  @@index([organization_id, location_id])
-  @@index([location_membership_id])
+  @@index([organization_id, branch_id])
+  @@index([member_id])
   @@map("subscriptions")
 }
 
@@ -659,35 +573,35 @@ model Subscription {
 // ============================================================
 
 model LedgerEntry {
-  id                     String              @id @default(cuid())
-  organization_id        String
-  location_id            String
-  location_membership_id String
-  subscription_id        String?
-  category               LedgerEntryCategory
-  amount_minor_unit      Int // positive = debit (money owed), negative = credit
-  currency               String              @default("INR")
-  description            String?
-  due_date               DateTime?
-  created_by             String?
-  reversed_by_id         String?             @unique // links to compensating entry
-  idempotency_key        String?             @unique
-  created_at             DateTime            @default(now())
+  id                String              @id @default(cuid())
+  organization_id   String
+  branch_id         String
+  member_id         String
+  subscription_id   String?
+  category          LedgerEntryCategory
+  amount_minor_unit Int // positive = debit (money owed), negative = credit
+  currency          String              @default("INR")
+  description       String?
+  due_date          DateTime?
+  created_by        String?
+  reversed_by_id    String?             @unique // links to compensating entry
+  idempotency_key   String?             @unique
+  created_at        DateTime            @default(now())
 
-  location            Location            @relation(fields: [location_id], references: [id])
-  location_membership LocationMembership  @relation(fields: [location_membership_id], references: [id])
-  subscription        Subscription?       @relation(fields: [subscription_id], references: [id])
-  allocations         PaymentAllocation[]
+  branch       Branch              @relation(fields: [branch_id], references: [id])
+  member       Member?             @relation(fields: [member_id], references: [id])
+  subscription Subscription?       @relation(fields: [subscription_id], references: [id])
+  allocations  PaymentAllocation[]
 
-  @@index([organization_id, location_id])
-  @@index([location_membership_id])
+  @@index([organization_id, branch_id])
+  @@index([member_id])
   @@map("ledger_entries")
 }
 
 model PaymentAttempt {
   id               String               @id @default(cuid())
   organization_id  String
-  location_id      String
+  branch_id        String
   amount           Int
   currency         String               @default("INR")
   method           String // CASH, CARD, UPI, GATEWAY
@@ -700,11 +614,11 @@ model PaymentAttempt {
   created_at       DateTime             @default(now())
   updated_at       DateTime             @updatedAt
 
-  location    Location            @relation(fields: [location_id], references: [id])
+  branch      Branch              @relation(fields: [branch_id], references: [id])
   allocations PaymentAllocation[]
   receipt     Receipt?
 
-  @@index([organization_id, location_id])
+  @@index([organization_id, branch_id])
   @@map("payment_attempts")
 }
 
@@ -725,7 +639,7 @@ model PaymentAllocation {
 model Receipt {
   id                 String   @id @default(cuid())
   organization_id    String
-  location_id        String
+  branch_id          String
   payment_attempt_id String   @unique
   receipt_number     String // unique within organization
   issued_at          DateTime @default(now())
@@ -734,7 +648,7 @@ model Receipt {
   payment_attempt PaymentAttempt @relation(fields: [payment_attempt_id], references: [id])
 
   @@unique([receipt_number, organization_id])
-  @@index([organization_id, location_id])
+  @@index([organization_id, branch_id])
   @@map("receipts")
 }
 
@@ -743,25 +657,25 @@ model Receipt {
 // ============================================================
 
 model Reminder {
-  id                     String    @id @default(cuid())
-  organization_id        String
-  location_id            String
-  location_membership_id String?
-  type                   String // FEE_DUE, FEE_OVERDUE, SUBSCRIPTION_EXPIRY, CUSTOM
-  message                String
-  scheduled_at           DateTime
-  channel                String    @default("IN_APP")
-  status                 String    @default("PENDING")
-  sent_at                DateTime?
-  linked_entity_type     String?
-  linked_entity_id       String?
-  created_by             String?
-  created_at             DateTime  @default(now())
-  updated_at             DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  organization_id    String
+  branch_id          String
+  member_id          String?
+  type               String // FEE_DUE, FEE_OVERDUE, SUBSCRIPTION_EXPIRY, CUSTOM
+  message            String
+  scheduled_at       DateTime
+  channel            String    @default("IN_APP")
+  status             String    @default("PENDING")
+  sent_at            DateTime?
+  linked_entity_type String?
+  linked_entity_id   String?
+  created_by         String?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
 
-  location Location @relation(fields: [location_id], references: [id])
+  branch Branch @relation(fields: [branch_id], references: [id])
 
-  @@index([organization_id, location_id])
+  @@index([organization_id, branch_id])
   @@map("reminders")
 }
 
@@ -772,7 +686,7 @@ model Reminder {
 model Announcement {
   id              String               @id @default(cuid())
   organization_id String
-  location_id     String?
+  branch_id       String?
   title           String
   body            String
   priority        Int                  @default(0)
@@ -786,7 +700,7 @@ model Announcement {
   updated_at      DateTime             @updatedAt
 
   organization Organization            @relation(fields: [organization_id], references: [id])
-  location     Location?               @relation(fields: [location_id], references: [id])
+  branch       Branch?                 @relation(fields: [branch_id], references: [id])
   recipients   AnnouncementRecipient[]
 
   @@index([organization_id])
@@ -794,15 +708,17 @@ model Announcement {
 }
 
 model AnnouncementRecipient {
-  id                         String    @id @default(cuid())
-  announcement_id            String
-  organization_membership_id String
-  read_at                    DateTime?
-  created_at                 DateTime  @default(now())
+  id              String    @id @default(cuid())
+  announcement_id String
+  member_id       String
+  read_at         DateTime?
+  created_at      DateTime  @default(now())
 
   announcement Announcement @relation(fields: [announcement_id], references: [id])
+  member       Member?      @relation(fields: [memberId], references: [id])
+  memberId     String?
 
-  @@unique([announcement_id, organization_membership_id])
+  @@unique([announcement_id, member_id])
   @@map("announcement_recipients")
 }
 
@@ -847,7 +763,7 @@ model Notification {
 model AuditLog {
   id              String      @id @default(cuid())
   organization_id String?
-  location_id     String?
+  branch_id       String?
   actor_id        String?
   action          AuditAction
   target_type     String
@@ -872,7 +788,7 @@ model AuditLog {
 model FeatureFlag {
   id              String   @id @default(cuid())
   organization_id String?
-  location_id     String?
+  branch_id       String?
   key             String
   enabled         Boolean  @default(false)
   metadata        Json?
@@ -881,6 +797,6 @@ model FeatureFlag {
 
   organization Organization? @relation(fields: [organization_id], references: [id])
 
-  @@unique([organization_id, location_id, key])
+  @@unique([organization_id, branch_id, key])
   @@map("feature_flags")
 }

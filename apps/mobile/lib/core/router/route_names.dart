@@ -1,11 +1,12 @@
 class AppRoutes {
   AppRoutes._();
 
-  static const String splash = '/';
+  
   static const String onboarding = '/onboarding';
   static const String signIn = '/sign-in';
   static const String joinOrCreate = '/join-or-create';
   static const String createOrganization = '/create-gym';
+  static const String createBranch = '/create-branch';
   static const String organizationDiscovery = '/discover';
   static const String branchSelection = '/branches';
   static const String pendingJoin = '/pending';
@@ -31,3 +32,4 @@ class AppRoutes {
   static const String notifications = '/notifications';
   static const String announcements = '/announcements';
 }
+

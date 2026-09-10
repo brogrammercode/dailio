@@ -66,6 +66,7 @@ class _MembersPageState extends State<MembersPage> {
     final firstNameController = TextEditingController();
     final lastNameController = TextEditingController();
     final emailController = TextEditingController();
+    final phoneController = TextEditingController(text: '+91 ');
 
     showModalBottomSheet(
       context: context,
@@ -95,6 +96,12 @@ class _MembersPageState extends State<MembersPage> {
                 controller: emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
               ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'Phone Number'),
+              ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () async {
@@ -107,6 +114,7 @@ class _MembersPageState extends State<MembersPage> {
                       firstName: firstNameController.text.trim(),
                       lastName: lastNameController.text.trim(),
                       email: emailController.text.trim(),
+                      phone: phoneController.text.trim(),
                     );
                     _loadMembers();
                   } catch (e) {
@@ -215,3 +223,4 @@ class _MembersPageState extends State<MembersPage> {
     );
   }
 }
+

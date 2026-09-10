@@ -3,11 +3,25 @@ import { NextFunction, Request, Response } from 'express';
 import { CreateLocationSchema, CreateOrganizationSchema } from './organizations.schema';
 import { createOrganizationWithFirstLocation, getOrganization, getUserOrganizations } from './organizations.service';
 
+import { cloudinary } from '../../lib/cloudinary';
+
 export async function createOrganization(req: Request, res: Response, next: NextFunction) {
   try {
-    const organizationData = CreateOrganizationSchema.parse(req.body.organization);
+    const orgPayload = CreateOrganizationSchema.parse(req.body.organization);
     const locationData = CreateLocationSchema.parse(req.body.location);
-    const result = await createOrganizationWithFirstLocation(req.user!.id, organizationData, locationData);
+    
+    const { logo_base64, ...organizationData } = orgPayload;
+    let logo_url: string | undefined = undefined;
+
+    if (logo_base64) {
+      const uploadResult = await cloudinary.uploader.upload(logo_base64, {
+        folder: 'organizations/logos',
+      });
+      logo_url = uploadResult.secure_url;
+    }
+
+    const finalOrgData = { ...organizationData, logo_url };
+    const result = await createOrganizationWithFirstLocation(req.user!.id, finalOrgData, locationData);
     res.status(201).json(result);
   } catch (err) {
     next(err);
@@ -31,3 +45,4 @@ export async function getOrganizationById(req: Request, res: Response, next: Nex
     next(err);
   }
 }
+

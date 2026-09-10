@@ -21,6 +21,8 @@ class ApiClient {
       ),
     );
 
+    authInterceptor.dio = _dio;
+
     _dio.interceptors.addAll([
       authInterceptor,
       tenantInterceptor,

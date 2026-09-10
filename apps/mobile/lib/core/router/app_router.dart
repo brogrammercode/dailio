@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/pages/splash_page.dart';
+
 import '../../features/auth/pages/onboarding_page.dart';
 import '../../features/context_selection/pages/join_or_create_page.dart';
 import '../../features/context_selection/pages/organization_discovery_page.dart';
 import '../../features/context_selection/pages/org_detail_page.dart';
-import '../../features/context_selection/models/location_discovery_model.dart';
+import '../../features/context_selection/models/branch_discovery_model.dart';
 import '../../features/context_selection/pages/pending_join_page.dart';
 import '../../features/context_selection/pages/context_switcher_page.dart';
 import '../../features/organization/pages/create_organization_page.dart';
+import '../../features/organization/pages/create_branch_page.dart';
+import '../../features/organization/models/create_organization_models.dart';
 import '../../features/branch/pages/members_page.dart';
 import '../../features/branch/pages/member_detail_page.dart';
 import '../../features/branch/pages/join_requests_page.dart';
@@ -19,16 +21,13 @@ import 'route_names.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-GoRouter buildRouter() {
+GoRouter buildRouter(String initialLocation) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: AppRoutes.splash,
+    initialLocation: initialLocation,
     debugLogDiagnostics: true,
     routes: [
-      GoRoute(
-        path: AppRoutes.splash,
-        builder: (_, __) => const SplashPage(),
-      ),
+      
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (_, __) => const OnboardingPage(),
@@ -44,7 +43,7 @@ GoRouter buildRouter() {
       GoRoute(
         path: AppRoutes.orgDetail,
         builder: (_, state) {
-          final locations = state.extra as List<LocationDiscoveryModel>?;
+          final locations = state.extra as List<BranchDiscoveryModel>?;
           return OrgDetailPage(locations: locations ?? []);
         },
       ),
@@ -59,6 +58,13 @@ GoRouter buildRouter() {
       GoRoute(
         path: AppRoutes.createOrganization,
         builder: (_, __) => const CreateOrganizationPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.createBranch,
+        builder: (_, state) {
+          final input = state.extra as CreateOrganizationInput;
+          return CreateBranchPage(organizationInput: input);
+        },
       ),
       // ── Main app shell with bottom nav ──────────────────────────────
       GoRoute(
@@ -88,3 +94,4 @@ GoRouter buildRouter() {
     ],
   );
 }
+

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
-import '../controllers/organization_repository.dart';
+import 'dart:convert';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../models/create_organization_models.dart';
 import '../../../core/router/route_names.dart';
-import '../../../core/storage/preferences_storage.dart';
 
 class CreateOrganizationPage extends StatefulWidget {
   const CreateOrganizationPage({super.key});
@@ -17,78 +17,40 @@ class CreateOrganizationPage extends StatefulWidget {
 class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
   final _formKey = GlobalKey<FormState>();
 
-  int _step = 1;
-
   // Organization Fields
+  String? _logoBase64;
   String _orgName = '';
   String _orgEmail = '';
-  String _orgPhone = '';
+  String _orgPhone = '+91 ';
   String _orgIndustry = 'Fitness / Gym & Athletics';
   String _orgBio = '';
   String _orgCurrency = 'INR - Indian Rupee ₹';
   String _orgTimezone = 'Asia/Kolkata (IST +05:30)';
-  // Location Fields
-  String _locName = '';
-  String _locAddress = '';
-  String _locCode = '';
-  String _locTimezone = 'IST';
-  String _locLat = '';
-  String _locLng = '';
-  double _geofenceRadius = 150;
-  bool _reqPunch = true;
-  bool _reqGeofence = true;
-  bool _reqSelfie = false;
-  bool _assignOwner = true;
 
-  bool _isLoading = false;
+  Future<void> _pickLogo() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 80);
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      final base64String = base64Encode(bytes);
+      setState(() {
+        _logoBase64 = 'data:image/jpeg;base64,$base64String';
+      });
+    }
+  }
 
   void _nextStep() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      setState(() => _step = 2);
-    }
-  }
-
-  void _prevStep() {
-    setState(() => _step = 1);
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    _formKey.currentState!.save();
-
-    setState(() => _isLoading = true);
-
-    try {
-      final repository = context.read<OrganizationRepository>();
-      final result = await repository.createOrganization(
-        CreateOrganizationInput(
-            name: _orgName, email: _orgEmail.isEmpty ? null : _orgEmail),
-        CreateLocationInput(name: _locName, address: _locAddress, city: ''),
+      final input = CreateOrganizationInput(
+        name: _orgName,
+        email: _orgEmail.isEmpty ? null : _orgEmail,
+        phone: _orgPhone.isEmpty ? null : _orgPhone,
+        timezone: _orgTimezone,
+        currency: _orgCurrency,
+        logoBase64: _logoBase64,
       );
-
-      if (mounted) {
-        final prefs = context.read<PreferencesStorage>();
-        await prefs.setActiveContext(
-          organizationId: result['organization']['id'],
-          branchId: result['location']['id'],
-          organizationName: result['organization']['name'],
-          branchName: result['location']['name'],
-        );
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Organization Created!')));
-          context.go(AppRoutes.home);
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      context.push(AppRoutes.createBranch, extra: input);
     }
   }
 
@@ -101,44 +63,20 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: const Text('Create Organization',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-        actions: [
-          IconButton(icon: const Icon(Icons.help_outline), onPressed: () {}),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                  color: const Color(0xFF3D1F00),
-                  borderRadius: BorderRadius.circular(8)),
-              alignment: Alignment.center,
-              child: const Text('D',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14)),
-            ),
-          ),
-        ],
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (_step == 2) {
-              _prevStep();
-            } else {
-              context.pop();
-            }
-          },
+          onPressed: () => context.pop(),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(36),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
             child: Row(
               children: [
-                Text('STEP $_step OF 2',
-                    style: const TextStyle(
+                const Text('STEP 1 OF 2',
+                    style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFFB45309),
@@ -147,32 +85,29 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
                 Expanded(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(2),
-                    child: LinearProgressIndicator(
-                      value: _step / 2,
-                      backgroundColor: const Color(0xFFE5E7EB),
-                      color: const Color(0xFFB45309),
+                    child: const LinearProgressIndicator(
+                      value: 0.5,
+                      backgroundColor: Color(0xFFE5E7EB),
+                      color: Color(0xFFB45309),
                       minHeight: 3,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(_step == 1 ? 'Organization Setup' : 'Final Touch',
-                    style: const TextStyle(
-                        fontSize: 11, color: Color(0xFF9CA3AF))),
+                const Text('Organization Setup',
+                    style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
               ],
             ),
           ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: _step == 1 ? _buildStep1() : _buildStep2(),
-              ),
-            ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+        child: Form(
+          key: _formKey,
+          child: _buildStep1(),
+        ),
+      ),
     );
   }
 
@@ -262,7 +197,33 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
 
         // ── CORE IDENTITY ──────────────────────────────────────────
         _sectionHeader(Icons.credit_card_outlined, 'Core Identity'),
-        const SizedBox(height: 14),
+        const SizedBox(height: 20),
+        Center(
+          child: GestureDetector(
+            onTap: _pickLogo,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFE5E7EB), width: 2),
+                image: _logoBase64 != null
+                    ? DecorationImage(
+                        image: MemoryImage(base64Decode(_logoBase64!.split(',')[1])),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: _logoBase64 == null
+                  ? const Icon(Icons.add_a_photo, color: Color(0xFF9CA3AF))
+                  : null,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Center(child: Text('Upload Logo (Optional)', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)))),
+        const SizedBox(height: 20),
 
         _fieldLabel('Organization Legal / Brand Name', required: true),
         const SizedBox(height: 6),
@@ -274,7 +235,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           onChanged: (v) => setState(() => _orgName = v),
           onSaved: (v) => _orgName = v ?? '',
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
         _fieldLabel('Workspace Slug / Code'),
         const SizedBox(height: 6),
@@ -305,7 +266,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
               'Auto-generated for deep-linking, API access, and employee clock-in portals.',
               style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
         _fieldLabel('Primary Category / Industry'),
         const SizedBox(height: 6),
@@ -322,41 +283,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           onChanged: (v) => setState(() => _orgIndustry = v!),
           onSaved: (v) => _orgIndustry = v ?? 'Fitness / Gym & Athletics',
         ),
-        const SizedBox(height: 28),
-
-        // ── BRAND IMAGERY ──────────────────────────────────────────
-        _sectionHeader(Icons.image_outlined, 'Brand Imagery'),
-        const SizedBox(height: 14),
-
-        _fieldLabel('Brand Logo Upload'),
-        const SizedBox(height: 8),
-        Container(
-          height: 120,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFD1D5DB)),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.cloud_upload_outlined,
-                  size: 32, color: Colors.grey.shade400),
-              const SizedBox(height: 8),
-              const Text('Tap to choose or drag brand logo',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF374151))),
-              const SizedBox(height: 4),
-              const Text(
-                  'PNG, JPG or SVG • High resolution 512×512 recommended (Max 5MB)',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 40),
 
         _fieldLabel('Short Organization Bio'),
         const SizedBox(height: 6),
@@ -371,7 +298,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           maxLength: 240,
           onSaved: (v) => _orgBio = v ?? '',
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 40),
 
         // ── OFFICIAL POINTS OF CONTACT ─────────────────────────────
         _sectionHeader(Icons.alternate_email, 'Official Points of Contact'),
@@ -388,7 +315,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           keyboardType: TextInputType.emailAddress,
           onSaved: (v) => _orgEmail = v ?? '',
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
         _fieldLabel('Official Phone Number'),
         const SizedBox(height: 6),
@@ -401,7 +328,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
           keyboardType: TextInputType.phone,
           onSaved: (v) => _orgPhone = v ?? '',
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 40),
 
         // ── REGIONAL & FISCAL DEFAULTS ─────────────────────────────
         _sectionHeader(Icons.language, 'Regional & Fiscal Defaults'),
@@ -462,293 +389,8 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
       ],
     );
   }
-
-  Widget _buildStep2() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text('STEP 2 OF 2: OPERATIONAL LOCATION SETUP · Final Touch',
-            style: TextStyle(
-                fontSize: 12,
-                color: Color(0xFFB45309),
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5)),
-        const SizedBox(height: 12),
-        const Text(
-            'Every operational record, member admission, and attendance punch is scoped to a location.',
-            style: TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
-        const SizedBox(height: 24),
-
-        // Branch Identification
-        const Row(children: [
-          Icon(Icons.credit_card, size: 20),
-          SizedBox(width: 8),
-          Text('Branch Identification',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))
-        ]),
-        const SizedBox(height: 16),
-        TextFormField(
-          initialValue: _locName,
-          decoration: const InputDecoration(
-              labelText: 'Branch Name *', hintText: 'Main Branch - [City]'),
-          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-          onSaved: (v) => _locName = v ?? '',
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                initialValue: _locCode,
-                decoration: const InputDecoration(labelText: 'Location Code'),
-                onSaved: (v) => _locCode = v ?? '',
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _locTimezone,
-                decoration: const InputDecoration(labelText: 'Timezone'),
-                items: ['IST', 'EST', 'PST', 'GMT']
-                    .map((i) => DropdownMenuItem(value: i, child: Text(i)))
-                    .toList(),
-                onChanged: (v) => setState(() => _locTimezone = v!),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          initialValue: _locAddress,
-          decoration: const InputDecoration(
-              labelText: 'Physical Street Address & Pincode',
-              alignLabelWithHint: true),
-          maxLines: 3,
-          onSaved: (v) => _locAddress = v ?? '',
-        ),
-
-        const SizedBox(height: 32),
-        // Geofencing & Positioning
-        Row(
-          children: [
-            const Icon(Icons.navigation_outlined, size: 20),
-            const SizedBox(width: 8),
-            const Expanded(
-                child: Text('Geofencing & Positioning',
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-            Text('Calibrate',
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13)),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Container(
-          height: 150,
-          decoration: BoxDecoration(
-              color: const Color(0xFFF3F4F6),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE5E7EB))),
-          child: const Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.location_on, size: 32, color: Color(0xFFB45309)),
-                SizedBox(height: 8),
-                Text('Tap to set location on map',
-                    style: TextStyle(color: Color(0xFF6B7280))),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Row(
-          children: [
-            Icon(Icons.check_circle, size: 14, color: Color(0xFF16A34A)),
-            SizedBox(width: 4),
-            Text('Satellite Lock OK',
-                style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF16A34A),
-                    fontWeight: FontWeight.w500)),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                initialValue: _locLat,
-                decoration: const InputDecoration(
-                    labelText: 'Latitude',
-                    prefixIcon: Icon(Icons.explore_outlined, size: 18)),
-                onSaved: (v) => _locLat = v ?? '',
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                initialValue: _locLng,
-                decoration: const InputDecoration(
-                    labelText: 'Longitude',
-                    prefixIcon: Icon(Icons.explore_outlined, size: 18)),
-                onSaved: (v) => _locLng = v ?? '',
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Geofence Radius Perimeter',
-                style: TextStyle(fontWeight: FontWeight.w500)),
-            Text('${_geofenceRadius.toInt()}m',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, color: Color(0xFFB45309))),
-          ],
-        ),
-        Slider(
-          value: _geofenceRadius,
-          min: 50,
-          max: 500,
-          divisions: 9,
-          activeColor: const Color(0xFFB45309),
-          onChanged: (v) => setState(() => _geofenceRadius = v),
-        ),
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('50m (Tight)',
-                style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-            Text('250m',
-                style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-            Text('500m (Broad)',
-                style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-          ],
-        ),
-
-        const SizedBox(height: 32),
-        // Verification Policies
-        const Row(children: [
-          Icon(Icons.security_outlined, size: 20),
-          SizedBox(width: 8),
-          Text('Verification Policies',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))
-        ]),
-        const SizedBox(height: 8),
-        CheckboxListTile(
-          title: const Text('Punch confirmation required',
-              style: TextStyle(fontSize: 14)),
-          value: _reqPunch,
-          onChanged: (v) => setState(() => _reqPunch = v ?? false),
-          controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-        CheckboxListTile(
-          title: const Text('Geofence validation enabled',
-              style: TextStyle(fontSize: 14)),
-          value: _reqGeofence,
-          onChanged: (v) => setState(() => _reqGeofence = v ?? false),
-          controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-        CheckboxListTile(
-          title: const Text('Live selfie verification',
-              style: TextStyle(fontSize: 14)),
-          value: _reqSelfie,
-          onChanged: (v) => setState(() => _reqSelfie = v ?? false),
-          controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-
-        const SizedBox(height: 32),
-        // Operational Defaults
-        const Row(children: [
-          Icon(Icons.schedule_outlined, size: 20),
-          SizedBox(width: 8),
-          Text('Operational Defaults',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))
-        ]),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              borderRadius: BorderRadius.circular(12)),
-          child: const Row(
-            children: [
-              Icon(Icons.access_time, color: Color(0xFF6B7280), size: 20),
-              SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Operating Hours Schedule Preset',
-                        style:
-                            TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
-                    SizedBox(height: 2),
-                    Text('06:00 AM - 10:00 PM',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-              Icon(Icons.edit_outlined, size: 18, color: Color(0xFFB45309)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        CheckboxListTile(
-          title: const Text('Assign Owner as initial Branch Admin',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          subtitle: const Text(
-              'You will have full permissions to manage this location.',
-              style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-          value: _assignOwner,
-          onChanged: (v) => setState(() => _assignOwner = v ?? false),
-          controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: EdgeInsets.zero,
-        ),
-
-        const SizedBox(height: 32),
-        FilledButton(
-          onPressed: _submit,
-          child: const Text('Complete Setup & Launch Location →'),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextButton(
-              onPressed: _prevStep,
-              child: const Text('Previous Step',
-                  style: TextStyle(color: Color(0xFF6B7280))),
-            ),
-            const SizedBox(width: 24),
-            TextButton(
-              onPressed: () {}, // skip for now
-              child: const Text('Skip for now',
-                  style: TextStyle(color: Color(0xFF6B7280))),
-            ),
-          ],
-        ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Text(
-            'Note: Geofence boundaries and verification policies can be updated later in the location settings.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 12,
-                color: Color(0xFF9CA3AF),
-                fontStyle: FontStyle.italic),
-          ),
-        ),
-      ],
-    );
-  }
 }
+
+
+
+

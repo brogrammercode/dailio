@@ -41,13 +41,13 @@ class _ContextSwitcherPageState extends State<ContextSwitcherPage> {
   }
 
   Future<void> _selectContext(
-      Map<String, dynamic> organization, Map<String, dynamic> location) async {
+      Map<String, dynamic> organization, Map<String, dynamic> branch) async {
     final prefs = context.read<PreferencesStorage>();
     await prefs.setActiveContext(
       organizationId: organization['id'],
-      branchId: location['id'],
+      branchId: branch['id'],
       organizationName: organization['name'],
-      branchName: location['name'],
+      branchName: branch['name'],
     );
     if (mounted) {
       context.go(AppRoutes.home);
@@ -57,60 +57,143 @@ class _ContextSwitcherPageState extends State<ContextSwitcherPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Select Location')),
+      backgroundColor: const Color(0xFFF0F2F5),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF0F2F5),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: true,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/logo.png',
+                width: 24,
+                height: 24,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text('Switch Workspace',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+          ],
+        ),
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _memberships.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('No active locations found.'),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => context.go(AppRoutes.joinOrCreate),
-                        child: const Text('Join or Create an Organization'),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: _memberships.length,
-                  itemBuilder: (context, orgIndex) {
-                    final membership = _memberships[orgIndex];
-                    final organization = membership['organization'];
-                    final locMemberships =
-                        membership['location_memberships'] as List;
+              ? _buildEmptyState()
+              : _buildList(),
+    );
+  }
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          child: Text(
-                            organization['name'],
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.domain_disabled_outlined,
+                size: 48, color: Color(0xFF9CA3AF)),
+            const SizedBox(height: 16),
+            const Text('No active branches found.',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A1A))),
+            const SizedBox(height: 8),
+            const Text(
+                'You are not currently a member of any organization or branch. Please join an existing one or create your own.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Color(0xFF6B7280))),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: () => context.go(AppRoutes.joinOrCreate),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF1A1A1A),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Join or Create Organization'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildList() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      itemCount: _memberships.length,
+      itemBuilder: (context, orgIndex) {
+        final membership = _memberships[orgIndex];
+        final organization = membership['organization'];
+        final locMemberships = membership['location_memberships'] as List;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Text(
+                  organization['name']?.toUpperCase() ?? 'ORGANIZATION',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                    color: Color(0xFF6B7280),
+                  ),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: locMemberships.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                  itemBuilder: (context, branchIndex) {
+                    final branch = locMemberships[branchIndex]['location'];
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 4),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF7ED),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        ...locMemberships.map((lm) {
-                          final location = lm['location'];
-                          return ListTile(
-                            leading: const Icon(Icons.location_on),
-                            title: Text(location['name']),
-                            subtitle: Text(location['address'] ?? ''),
-                            onTap: () => _selectContext(organization, location),
-                            trailing: const Icon(Icons.chevron_right),
-                          );
-                        }),
-                        const Divider(),
-                      ],
+                        child: const Icon(Icons.storefront_outlined,
+                            color: Color(0xFFB45309), size: 20),
+                      ),
+                      title: Text(branch['name'],
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 15)),
+                      subtitle: Text(branch['address'] ?? 'No address set',
+                          style: const TextStyle(
+                              fontSize: 12, color: Color(0xFF6B7280))),
+                      trailing: const Icon(Icons.chevron_right,
+                          color: Color(0xFFD1D5DB)),
+                      onTap: () => _selectContext(organization, branch),
                     );
                   },
                 ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

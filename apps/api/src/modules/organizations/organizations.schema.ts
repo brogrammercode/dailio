@@ -7,6 +7,8 @@ export const CreateOrganizationSchema = z.object({
   address: z.string().optional(),
   timezone: z.string().default('Asia/Kolkata'),
   currency: z.string().length(3).default('INR'),
+  logo_base64: z.string().optional(),
+  logo_url: z.string().url().optional(),
 });
 
 export const UpdateOrganizationSchema = CreateOrganizationSchema.partial();
@@ -28,3 +30,4 @@ export const CreateLocationSchema = z.object({
 export type CreateOrganizationInput = z.infer<typeof CreateOrganizationSchema>;
 export type UpdateOrganizationInput = z.infer<typeof UpdateOrganizationSchema>;
 export type CreateLocationInput = z.infer<typeof CreateLocationSchema>;
+

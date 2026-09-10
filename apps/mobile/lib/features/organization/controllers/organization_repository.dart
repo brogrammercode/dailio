@@ -8,13 +8,13 @@ class OrganizationRepository {
 
   Future<Map<String, dynamic>> createOrganization(
     CreateOrganizationInput organization,
-    CreateLocationInput location,
+    CreateBranchInput branch,
   ) async {
     final response = await apiClient.dio.post(
       '/organizations',
       data: {
         'organization': organization.toJson(),
-        'location': location.toJson(),
+        'location': branch.toJson(),
       },
     );
     return response.data as Map<String, dynamic>;

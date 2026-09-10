@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../controllers/location_repository.dart';
-import '../models/location_discovery_model.dart';
+import '../controllers/branch_repository.dart';
+import '../models/branch_discovery_model.dart';
 
 class OrganizationDiscoveryPage extends StatefulWidget {
   const OrganizationDiscoveryPage({super.key});
@@ -14,28 +14,35 @@ class OrganizationDiscoveryPage extends StatefulWidget {
 
 class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
   final _searchController = TextEditingController();
-  late final LocationRepository _repository;
-  List<LocationDiscoveryModel> _locations = [];
+  late final BranchRepository _repository;
+  List<BranchDiscoveryModel> _locations = [];
   bool _isLoading = false;
   int _selectedFilter = 0;
-  final List<String> _filters = const ['Near You', 'Popular', 'Fitness & Gyms', 'Corporate'];
-  int _bottomNavIndex = 0;
+  final List<String> _filters = const [
+    'Near You',
+    'Popular',
+    'Fitness & Gyms',
+    'Corporate'
+  ];
+  
 
   @override
   void initState() {
     super.initState();
-    _repository = context.read<LocationRepository>();
+    _repository = context.read<BranchRepository>();
     _search();
   }
 
   Future<void> _search() async {
     setState(() => _isLoading = true);
     try {
-      final results = await _repository.discoverLocations(query: _searchController.text);
+      final results =
+          await _repository.discoverBranches(query: _searchController.text);
       setState(() => _locations = results);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -43,23 +50,25 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
   }
 
   // ignore: unused_element
-  Future<void> _joinLocation(LocationDiscoveryModel location) async {
+  Future<void> _joinBranch(BranchDiscoveryModel location) async {
     try {
-      await _repository.joinLocation(location.id);
+      await _repository.joinBranch(location.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Join request sent!')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Join request sent!')));
         context.go('/pending-join');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final Map<String, List<LocationDiscoveryModel>> grouped = {};
+    final Map<String, List<BranchDiscoveryModel>> grouped = {};
     for (final loc in _locations) {
       grouped.putIfAbsent(loc.organizationId, () => []).add(loc);
     }
@@ -71,20 +80,34 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('DAILIO MULTI-TENANT', style: TextStyle(fontSize: 10, color: Color(0xFF9CA3AF), fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-            Text('Explore Tenants', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A))),
+            Text('DAILIO MULTI-TENANT',
+                style: TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFF9CA3AF),
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0)),
+            Text('Explore Tenants',
+                style: TextStyle(
+                    fontSize: 22, letterSpacing: -0.5,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A1A))),
           ],
         ),
         leading: Padding(
           padding: const EdgeInsets.only(left: 16, top: 10, bottom: 10),
-          child: Container(
-            decoration: const BoxDecoration(color: Color(0xFF1A1A1A), shape: BoxShape.circle),
-            child: const Center(child: Text('Dailio', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 8))),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Image.asset('assets/logo.png'),
           ),
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.help_outline, color: Color(0xFF4B5563)), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.notifications_none, color: Color(0xFF4B5563)), onPressed: () {}),
+          IconButton(
+              icon: const Icon(Icons.help_outline, color: Color(0xFF4B5563)),
+              onPressed: () {}),
+          IconButton(
+              icon: const Icon(Icons.notifications_none,
+                  color: Color(0xFF4B5563)),
+              onPressed: () {}),
           const SizedBox(width: 8),
         ],
       ),
@@ -100,21 +123,35 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.near_me_outlined, size: 20, color: Color(0xFF92400E)),
+                const Icon(Icons.near_me_outlined,
+                    size: 20, color: Color(0xFF92400E)),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Detected Location', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w500)),
-                      Text('Indiranagar, Bengaluru', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                      Text('Detected Location',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF6B7280),
+                              fontWeight: FontWeight.w500)),
+                      Text('Indiranagar, Bengaluru',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1A1A1A))),
                     ],
                   ),
                 ),
                 Row(
                   children: const [
-                    Text('Change', style: TextStyle(color: Color(0xFF92400E), fontSize: 13, fontWeight: FontWeight.w600)),
-                    Icon(Icons.keyboard_arrow_down, size: 16, color: Color(0xFF92400E)),
+                    Text('Change',
+                        style: TextStyle(
+                            color: Color(0xFF92400E),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                    Icon(Icons.keyboard_arrow_down,
+                        size: 16, color: Color(0xFF92400E)),
                   ],
                 ),
               ],
@@ -131,8 +168,12 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                 filled: true,
                 fillColor: Colors.white,
                 contentPadding: EdgeInsets.zero,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none),
               ),
               onSubmitted: (_) => _search(),
             ),
@@ -149,10 +190,20 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
               itemBuilder: (context, index) {
                 final isSelected = index == _selectedFilter;
                 return ActionChip(
-                  label: Text(_filters[index], style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF1A1A1A), fontWeight: FontWeight.w500)),
-                  backgroundColor: isSelected ? const Color(0xFF3D1F00) : Colors.white,
-                  side: BorderSide(color: isSelected ? Colors.transparent : const Color(0xFFE5E7EB)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  label: Text(_filters[index],
+                      style: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF1A1A1A),
+                          fontWeight: FontWeight.w500)),
+                  backgroundColor:
+                      isSelected ? const Color(0xFF3D1F00) : Colors.white,
+                  side: BorderSide(
+                      color: isSelected
+                          ? Colors.transparent
+                          : const Color(0xFFE5E7EB)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
                   onPressed: () => setState(() => _selectedFilter = index),
                 );
               },
@@ -164,8 +215,13 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                const Expanded(child: Text('Premier Organizations', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-                Text('${orgList.length} Active   Radius < 8km', style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                const Expanded(
+                    child: Text('Premier Organizations',
+                        style: TextStyle(
+                            fontSize: 22, letterSpacing: -0.5, fontWeight: FontWeight.bold))),
+                Text('${orgList.length} Active   Radius < 8km',
+                    style: const TextStyle(
+                        fontSize: 12, color: Color(0xFF6B7280))),
               ],
             ),
           ),
@@ -177,15 +233,17 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                 : orgList.isEmpty
                     ? const Center(child: Text('No organizations found'))
                     : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
                         itemCount: orgList.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 16),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final orgEntry = orgList[index];
                           final locs = orgEntry.value;
                           final orgName = locs.first.organization.name;
                           // Alternate button style like mockup
-                          final isPrimary = index % 2 == 0; 
+                          final isPrimary = index % 2 == 0;
                           return Card(
                             child: Padding(
                               padding: const EdgeInsets.all(16),
@@ -193,29 +251,44 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Container(
-                                        width: 50, height: 50,
+                                        width: 50,
+                                        height: 50,
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFF8FAFC),
-                                          borderRadius: BorderRadius.circular(10),
-                                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          border: Border.all(
+                                              color: const Color(0xFFE5E7EB)),
                                         ),
-                                        child: const Icon(Icons.business, color: Color(0xFF9CA3AF), size: 24),
+                                        child: const Icon(Icons.business,
+                                            color: Color(0xFF9CA3AF), size: 24),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Row(
                                               children: [
                                                 Flexible(
-                                                  child: Text(orgName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                                  child: Text(orgName,
+                                                      style: const TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow
+                                                          .ellipsis),
                                                 ),
                                                 const SizedBox(width: 4),
-                                                const Icon(Icons.verified, size: 16, color: Color(0xFFB45309)),
+                                                const Icon(Icons.verified,
+                                                    size: 16,
+                                                    color: Color(0xFFB45309)),
                                               ],
                                             ),
                                             const SizedBox(height: 6),
@@ -223,27 +296,65 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                                               children: [
                                                 // Rating Pill
                                                 Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                  decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(4)),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFFFEF3C7),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4)),
                                                   child: Row(
                                                     children: const [
-                                                      Icon(Icons.star_outline, size: 12, color: Color(0xFFB45309)),
+                                                      Icon(Icons.star_outline,
+                                                          size: 12,
+                                                          color: Color(
+                                                              0xFFB45309)),
                                                       SizedBox(width: 2),
-                                                      Text('4.9', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A))),
+                                                      Text('4.9',
+                                                          style: TextStyle(
+                                                              fontSize: 11,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color: Color(
+                                                                  0xFF1A1A1A))),
                                                     ],
                                                   ),
                                                 ),
                                                 const SizedBox(width: 8),
                                                 // Location
-                                                const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF9CA3AF)),
+                                                const Icon(
+                                                    Icons.location_on_outlined,
+                                                    size: 12,
+                                                    color: Color(0xFF9CA3AF)),
                                                 const SizedBox(width: 2),
-                                                const Text('100ft Rd • 1.2 km', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                                                const Text('100ft Rd • 1.2 km',
+                                                    style: TextStyle(
+                                                        fontSize: 11,
+                                                        color:
+                                                            Color(0xFF6B7280))),
                                                 const SizedBox(width: 8),
                                                 // Branches Pill
                                                 Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                  decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(4)),
-                                                  child: Text('${locs.length} Branch${locs.length > 1 ? 'es' : ''}', style: const TextStyle(fontSize: 11, color: Color(0xFF1E40AF))),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFFEFF6FF),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4)),
+                                                  child: Text(
+                                                      '${locs.length} Branch${locs.length > 1 ? 'es' : ''}',
+                                                      style: const TextStyle(
+                                                          fontSize: 11,
+                                                          color: Color(
+                                                              0xFF1E40AF))),
                                                 ),
                                               ],
                                             ),
@@ -257,18 +368,37 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                                     children: [
                                       // Accepting requests pill
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(12)),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                            color: const Color(0xFFDCFCE7),
+                                            borderRadius:
+                                                BorderRadius.circular(12)),
                                         child: Row(
                                           children: [
-                                            Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle)),
+                                            Container(
+                                                width: 6,
+                                                height: 6,
+                                                decoration: const BoxDecoration(
+                                                    color: Color(0xFF16A34A),
+                                                    shape: BoxShape.circle)),
                                             const SizedBox(width: 4),
-                                            const Text('Accepting Join Requests', style: TextStyle(fontSize: 11, color: Color(0xFF16A34A), fontWeight: FontWeight.w600)),
+                                            const Text(
+                                                'Accepting Join Requests',
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Color(0xFF16A34A),
+                                                    fontWeight:
+                                                        FontWeight.w600)),
                                           ],
                                         ),
                                       ),
                                       const Spacer(),
-                                      const Text('Est. 2019', style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500)),
+                                      const Text('Est. 2019',
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFF9CA3AF),
+                                              fontWeight: FontWeight.w500)),
                                     ],
                                   ),
                                   const SizedBox(height: 16),
@@ -277,12 +407,23 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                                     height: 40,
                                     child: FilledButton(
                                       style: FilledButton.styleFrom(
-                                        backgroundColor: isPrimary ? const Color(0xFF92400E) : const Color(0xFFE0E7FF),
-                                        foregroundColor: isPrimary ? Colors.white : const Color(0xFF1E40AF),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        backgroundColor: isPrimary
+                                            ? const Color(0xFF92400E)
+                                            : const Color(0xFFE0E7FF),
+                                        foregroundColor: isPrimary
+                                            ? Colors.white
+                                            : const Color(0xFF1E40AF),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8)),
                                       ),
-                                      onPressed: () => context.push('/org-detail/${orgEntry.key}', extra: orgEntry.value),
-                                      child: const Text('View Org & Branches →', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                      onPressed: () => context.push(
+                                          '/org-detail/${orgEntry.key}',
+                                          extra: orgEntry.value),
+                                      child: const Text('View Org & Branches →',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13)),
                                     ),
                                   ),
                                 ],
@@ -311,18 +452,24 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                         color: const Color(0xFFB45309),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.business_center, color: Colors.white, size: 20),
+                      child: const Icon(Icons.business_center,
+                          color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Looking to set up your own organizati...', 
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A))),
+                          Text('Looking to set up your own organizati...',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1A1A1A))),
                           SizedBox(height: 2),
-                          Text('Manage branches, schedules, and audit punch-ins seamlessly.', 
-                            style: TextStyle(fontSize: 12, color: Color(0xFF4B5563))),
+                          Text(
+                              'Manage branches, schedules, and audit punch-ins seamlessly.',
+                              style: TextStyle(
+                                  fontSize: 12, color: Color(0xFF4B5563))),
                         ],
                       ),
                     ),
@@ -335,10 +482,12 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF92400E),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () => context.push('/create-gym'),
-                    child: const Text('Create an Organization 🚀', style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: const Text('Create an Organization 🚀',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
@@ -346,7 +495,7 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
+/*      bottomNavigationBar: BottomNavigationBar(
         currentIndex: _bottomNavIndex,
         onTap: (i) => setState(() => _bottomNavIndex = i),
         selectedItemColor: const Color(0xFF3D1F00),
@@ -354,10 +503,12 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
         showUnselectedLabels: true,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
-          BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: 'Workspace'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Account'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.grid_view), label: 'Workspace'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline), label: 'Account'),
         ],
-      ),
+      ),*/
     );
   }
 }
