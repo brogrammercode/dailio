@@ -1,7 +1,6 @@
 class AppRoutes {
   AppRoutes._();
 
-  
   static const String onboarding = '/onboarding';
   static const String signIn = '/sign-in';
   static const String joinOrCreate = '/join-or-create';
@@ -37,5 +36,3 @@ class AppRoutes {
   static const String notifications = '/notifications';
   static const String announcements = '/announcements';
 }
-
-

@@ -1,16 +1,10 @@
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../features/auth/controllers/auth_cubit.dart';
-import '../../features/auth/controllers/auth_state.dart';
 import '../../features/attendance/pages/attendance_page.dart';
 import '../../features/fees/pages/fees_page.dart';
 import '../../features/payments/pages/payments_page.dart';
 import '../../features/settings/pages/settings_page.dart';
-import '../router/route_names.dart';
-import '../storage/preferences_storage.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -47,63 +41,8 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final prefs = context.read<PreferencesStorage>();
-    final orgName = prefs.activeOrganizationName ?? 'My Organization';
-    final branchName = prefs.activeBranchName;
-
     return Scaffold(
-      extendBody: true, // Allows the body to flow underneath the floating nav bar
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(orgName,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            if (branchName != null)
-              Text(branchName, style: const TextStyle(fontSize: 12)),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Iconsax.repeat),
-            tooltip: 'Switch Location',
-            onPressed: () => context.push(AppRoutes.contextSwitcher),
-          ),
-          BlocBuilder<AuthCubit, AuthState>(
-            builder: (context, state) {
-              final initials = state is AuthAuthenticated
-                  ? state.user.name
-                      .trim()
-                      .split(' ')
-                      .map((w) => w.isEmpty ? '' : w[0])
-                      .take(2)
-                      .join()
-                      .toUpperCase()
-                  : '?';
-              return Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: GestureDetector(
-                  onTap: () => context.push(AppRoutes.profile),
-                  child: CircleAvatar(
-                    radius: 16,
-                    backgroundColor:
-                        Theme.of(context).colorScheme.primaryContainer,
-                    child: Text(
-                      initials,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+      extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,

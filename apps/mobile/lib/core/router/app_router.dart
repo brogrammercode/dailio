@@ -68,7 +68,8 @@ GoRouter buildRouter(String initialLocation) {
         path: AppRoutes.createBranch,
         builder: (_, state) {
           final input = state.extra as CreateOrganizationInput?;
-          return CreateBranchPage(organizationInput: input ?? CreateOrganizationInput(name: ''));
+          return CreateBranchPage(
+              organizationInput: input ?? CreateOrganizationInput(name: ''));
         },
       ),
       // ── Main App Shell ──────────────────────────────────────────────────────
