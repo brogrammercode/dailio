@@ -1,4 +1,4 @@
-﻿class JoinRequestModel {
+class JoinRequestModel {
   final String id;
   final String userId;
   final String organizationId;
@@ -25,7 +25,8 @@
       branchId: json['branch_id'],
       status: json['status'],
       message: json['message'],
-      user: json['user'] != null ? RequestUserModel.fromJson(json['user']) : null,
+      user:
+          json['user'] != null ? RequestUserModel.fromJson(json['user']) : null,
     );
   }
 }
@@ -52,4 +53,3 @@ class RequestUserModel {
     );
   }
 }
-

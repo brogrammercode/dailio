@@ -34,11 +34,13 @@ class ConflictException extends AppException {
 }
 
 class NetworkException extends AppException {
-  const NetworkException([String message = 'Network error. Please check your connection.'])
+  const NetworkException(
+      [String message = 'Network error. Please check your connection.'])
       : super(code: 'NETWORK_ERROR', message: message);
 }
 
 class ServerException extends AppException {
-  const ServerException([String message = 'An unexpected server error occurred'])
+  const ServerException(
+      [String message = 'An unexpected server error occurred'])
       : super(code: 'SERVER_ERROR', message: message);
 }

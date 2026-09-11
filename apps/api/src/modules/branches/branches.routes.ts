@@ -1,12 +1,17 @@
-import { Router } from 'express';
-
+﻿import { Router } from 'express';
 import { authenticate } from '../../middleware/auth';
-
-import { discoverBranches } from './branches.controller';
+import { discoverBranches, createBranch, updateBranch, getBranch, getOrganizationBranches } from './branches.controller';
 
 const router: Router = Router();
 
-// Publicly discoverable branches (requires authentication but no specific tenant)
 router.get('/branches/discover', authenticate, discoverBranches);
 
+// Under organizations
+router.get('/organizations/:organization_id/branches', authenticate, getOrganizationBranches);
+router.post('/organizations/:organization_id/branches', authenticate, createBranch);
+router.get('/organizations/:organization_id/branches/:branch_id', authenticate, getBranch);
+router.patch('/organizations/:organization_id/branches/:branch_id', authenticate, updateBranch);
+
 export default router;
+
+

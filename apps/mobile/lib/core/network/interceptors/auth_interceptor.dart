@@ -20,14 +20,18 @@ class AuthInterceptor extends QueuedInterceptor {
   }
 
   @override
-  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
+  Future<void> onError(
+      DioException err, ErrorInterceptorHandler handler) async {
     if (err.response?.statusCode == 401) {
       final currentToken = await _secureStorage.getAccessToken();
-      final requestToken = err.requestOptions.headers['Authorization']?.replaceAll('Bearer ', '');
-      
+      final requestToken = err.requestOptions.headers['Authorization']
+          ?.replaceAll('Bearer ', '');
+
       // If the token in storage is already different from the one that caused the 401,
       // it means a concurrent request already refreshed it. Just retry!
-      if (currentToken != null && requestToken != null && currentToken != requestToken) {
+      if (currentToken != null &&
+          requestToken != null &&
+          currentToken != requestToken) {
         err.requestOptions.headers['Authorization'] = 'Bearer $currentToken';
         try {
           final retryResponse = await dio.fetch(err.requestOptions);
@@ -38,12 +42,13 @@ class AuthInterceptor extends QueuedInterceptor {
       }
 
       final refreshToken = await _secureStorage.getRefreshToken();
-      
+
       if (refreshToken != null) {
         try {
           // Use a completely separate Dio instance to avoid interceptor infinite loops
-          final tokenDio = Dio(BaseOptions(baseUrl: err.requestOptions.baseUrl));
-          
+          final tokenDio =
+              Dio(BaseOptions(baseUrl: err.requestOptions.baseUrl));
+
           final response = await tokenDio.post(
             '/auth/refresh',
             data: {'refreshToken': refreshToken},
@@ -62,7 +67,7 @@ class AuthInterceptor extends QueuedInterceptor {
               // Retry the original request with the new access token
               final opts = err.requestOptions;
               opts.headers['Authorization'] = 'Bearer $newAccess';
-              
+
               final retryResponse = await dio.fetch(opts);
               return handler.resolve(retryResponse);
             }
@@ -76,7 +81,7 @@ class AuthInterceptor extends QueuedInterceptor {
         await _secureStorage.clearTokens();
       }
     }
-    
+
     // Pass the error to the next interceptor if not resolved
     handler.next(err);
   }

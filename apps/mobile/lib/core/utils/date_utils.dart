@@ -8,15 +8,21 @@ class AppDateUtils {
   static final _timeFormatter = DateFormat('hh:mm a');
   static final _monthFormatter = DateFormat('MMMM yyyy');
 
-  static String formatDate(DateTime date) => _dateFormatter.format(date.toLocal());
-  static String formatDateTime(DateTime date) => _dateTimeFormatter.format(date.toLocal());
-  static String formatTime(DateTime date) => _timeFormatter.format(date.toLocal());
-  static String formatMonth(DateTime date) => _monthFormatter.format(date.toLocal());
+  static String formatDate(DateTime date) =>
+      _dateFormatter.format(date.toLocal());
+  static String formatDateTime(DateTime date) =>
+      _dateTimeFormatter.format(date.toLocal());
+  static String formatTime(DateTime date) =>
+      _timeFormatter.format(date.toLocal());
+  static String formatMonth(DateTime date) =>
+      _monthFormatter.format(date.toLocal());
 
   static bool isToday(DateTime date) {
     final now = DateTime.now();
     final local = date.toLocal();
-    return local.year == now.year && local.month == now.month && local.day == now.day;
+    return local.year == now.year &&
+        local.month == now.month &&
+        local.day == now.day;
   }
 
   static bool isYesterday(DateTime date) {

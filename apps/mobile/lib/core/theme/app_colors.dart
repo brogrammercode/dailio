@@ -4,10 +4,10 @@ class AppColors {
   AppColors._();
 
   // Brand
-  static const Color seed = Color(0xFFB45309);        // warm amber-brown
-  static const Color brandDark = Color(0xFF3D1F00);   // deep brown
+  static const Color seed = Color(0xFFB45309); // warm amber-brown
+  static const Color brandDark = Color(0xFF3D1F00); // deep brown
   static const Color brandAccent = Color(0xFFB45309); // CTA buttons
-  static const Color background = Color(0xFFF0F2F5);  // page bg
+  static const Color background = Color(0xFFF0F2F5); // page bg
 
   // Semantic
   static const Color error = Color(0xFFDC2626);

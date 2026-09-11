@@ -18,7 +18,8 @@ class AppBlocObserver extends BlocObserver {
   void onTransition(Bloc bloc, Transition transition) {
     super.onTransition(bloc, transition);
     if (kDebugMode) {
-      debugPrint('[BLoC] Transition: ${bloc.runtimeType}\n  Current: ${transition.currentState}\n  Next: ${transition.nextState}');
+      debugPrint(
+          '[BLoC] Transition: ${bloc.runtimeType}\n  Current: ${transition.currentState}\n  Next: ${transition.nextState}');
     }
   }
 

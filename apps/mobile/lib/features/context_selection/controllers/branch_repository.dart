@@ -8,8 +8,7 @@ class BranchRepository {
 
   BranchRepository({required this.apiClient});
 
-  Future<List<BranchDiscoveryModel>> discoverBranches(
-      {String? query}) async {
+  Future<List<BranchDiscoveryModel>> discoverBranches({String? query}) async {
     final response = await apiClient.dio.get(
       '/branches/discover',
       queryParameters:

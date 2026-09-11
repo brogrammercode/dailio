@@ -25,15 +25,14 @@ class EmptyStateWidget extends StatelessWidget {
             Icon(icon, size: 64, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 16),
             Text(title, style: Theme.of(context).textTheme.titleMedium),
-            if (subtitle != null) ...
-            [
+            if (subtitle != null) ...[
               const SizedBox(height: 8),
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
               ),
             ],
             if (action != null) ...[

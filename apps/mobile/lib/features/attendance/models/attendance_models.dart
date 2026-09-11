@@ -1,13 +1,20 @@
 class AttendanceSessionModel {
   final String id;
-  final String state;   // OPEN | CLOSED
+  final String state; // OPEN | CLOSED
   final String? derivedStatus;
   final DateTime clockInServerTime;
   final DateTime? clockOutServerTime;
   final int? workedMinutes;
   final String? memberName; // populated from includes
 
-  AttendanceSessionModel({required this.id, required this.state, this.derivedStatus, required this.clockInServerTime, this.clockOutServerTime, this.workedMinutes, this.memberName});
+  AttendanceSessionModel(
+      {required this.id,
+      required this.state,
+      this.derivedStatus,
+      required this.clockInServerTime,
+      this.clockOutServerTime,
+      this.workedMinutes,
+      this.memberName});
 
   factory AttendanceSessionModel.fromJson(Map<String, dynamic> j) {
     final lm = j['location_membership'] as Map<String, dynamic>?;
@@ -17,7 +24,9 @@ class AttendanceSessionModel {
       state: j['state'] ?? 'OPEN',
       derivedStatus: j['derived_status'],
       clockInServerTime: DateTime.parse(j['clock_in_server_time']),
-      clockOutServerTime: j['clock_out_server_time'] != null ? DateTime.parse(j['clock_out_server_time']) : null,
+      clockOutServerTime: j['clock_out_server_time'] != null
+          ? DateTime.parse(j['clock_out_server_time'])
+          : null,
       workedMinutes: j['worked_minutes'],
       memberName: om?['first_name'],
     );

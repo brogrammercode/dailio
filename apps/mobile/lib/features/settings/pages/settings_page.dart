@@ -96,19 +96,19 @@ class _SettingsPageState extends State<SettingsPage> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
                 children: [
-                  // ── Context Pill ───────────────────────────────────────
+                  // â”€â”€ Context Pill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   _buildContextPill(orgName, branchName),
                   const SizedBox(height: 16),
 
-                  // ── Profile Card ───────────────────────────────────────
+                  // â”€â”€ Profile Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   _buildProfileCard(context, user),
                   const SizedBox(height: 16),
 
-                  // ── Organization Card ──────────────────────────────────
+                  // â”€â”€ Organization Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   _buildOrgCard(context, orgMap, orgName),
                   const SizedBox(height: 24),
 
-                  // ── Management Modules ─────────────────────────────────
+                  // â”€â”€ Management Modules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   _sectionHeader('MANAGEMENT & OPERATIONS', '6 Modules'),
                   const SizedBox(height: 12),
 
@@ -140,7 +140,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: 'Branch Locations',
                     subtitle: 'Manage your gym branches & facilities',
                     actionLabel: 'Manage',
-                    onTap: () => context.push(AppRoutes.createBranch),
+                    onTap: () => context.push(AppRoutes.manageBranches),
                     chips: const ['Primary Branch', 'Add Branch'],
                     primaryChipIndex: 0,
                   ),
@@ -188,14 +188,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
                   const SizedBox(height: 24),
 
-                  // ── Workspace Settings ──────────────────────────────────
+                  // â”€â”€ Workspace Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   _sectionHeader('WORKSPACE SETTINGS', null),
                   const SizedBox(height: 12),
                   _buildWorkspaceCard(),
 
                   const SizedBox(height: 24),
 
-                  // ── Sign Out ────────────────────────────────────────────
+                  // â”€â”€ Sign Out â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   OutlinedButton.icon(
                     onPressed: _confirmSignOut,
                     icon:
@@ -216,7 +216,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Tap to confirm — this will end all active kiosk sessions.',
+                    'Tap to confirm â€” this will end all active kiosk sessions.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 10, color: Colors.grey),
                   ),
@@ -229,7 +229,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // ─── Context Pill ───────────────────────────────────────────────────────────
+  // â”€â”€â”€ Context Pill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildContextPill(String? orgName, String? branchName) {
     if (orgName == null) {
       return Container(
@@ -318,7 +318,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // ─── Profile Card ───────────────────────────────────────────────────────────
+  // â”€â”€â”€ Profile Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildProfileCard(BuildContext context, UserModel? user) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -480,7 +480,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // ─── Organization Card ──────────────────────────────────────────────────────
+  // â”€â”€â”€ Organization Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildOrgCard(
       BuildContext context, Map<String, dynamic>? orgMap, String? orgName) {
     return Container(
@@ -630,7 +630,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // ─── Module Card ────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Module Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildModuleCard({
     required IconData icon,
     Color iconColor = Colors.black54,
@@ -766,7 +766,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // ─── Workspace Settings Card ────────────────────────────────────────────────
+  // â”€â”€â”€ Workspace Settings Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildWorkspaceCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -849,7 +849,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // ─── Section Header ─────────────────────────────────────────────────────────
+  // â”€â”€â”€ Section Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _sectionHeader(String label, String? badge) {
     return Row(
       children: [

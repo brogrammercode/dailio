@@ -1,4 +1,4 @@
-﻿import 'package:iconsax/iconsax.dart';
+import 'package:iconsax/iconsax.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,18 +10,16 @@ import 'package:dio/dio.dart';
 
 import '../controllers/organization_repository.dart';
 import '../models/create_organization_models.dart';
-import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
 
-class CreateBranchPage extends StatefulWidget {
-  final CreateOrganizationInput organizationInput;
-  const CreateBranchPage({super.key, required this.organizationInput});
+class AddBranchPage extends StatefulWidget {
+  const AddBranchPage({super.key});
 
   @override
-  State<CreateBranchPage> createState() => _CreateBranchPageState();
+  State<AddBranchPage> createState() => _AddBranchPageState();
 }
 
-class _CreateBranchPageState extends State<CreateBranchPage> {
+class _AddBranchPageState extends State<AddBranchPage> {
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
@@ -258,15 +256,15 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     if (hasGesture && position.center != null) {
       setState(() => _isMapDragging = true);
       setState(() {
-        _currentLocation = position.center!;
-        _latController.text = position.center!.latitude.toString();
-        _lngController.text = position.center!.longitude.toString();
+        _currentLocation = position.center;
+        _latController.text = position.center.latitude.toString();
+        _lngController.text = position.center.longitude.toString();
       });
       if (_mapDebounce?.isActive ?? false) _mapDebounce!.cancel();
       _mapDebounce = Timer(const Duration(milliseconds: 500), () {
         if (mounted) {
           setState(() => _isMapDragging = false);
-          _reverseGeocode(position.center!);
+          _reverseGeocode(position.center);
         }
       });
     }
@@ -279,11 +277,13 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     setState(() => _isLoading = true);
     try {
       final repository = context.read<OrganizationRepository>();
+      final prefs = context.read<PreferencesStorage>();
+      final orgId = prefs.activeOrganizationId!;
       final lat = double.tryParse(_latController.text);
       final lng = double.tryParse(_lngController.text);
 
-      final result = await repository.createOrganization(
-        widget.organizationInput,
+      await repository.createBranch(
+        orgId,
         CreateBranchInput(
           name: _nameController.text,
           address: _streetController.text,
@@ -297,18 +297,9 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
       );
 
       if (mounted) {
-        final prefs = context.read<PreferencesStorage>();
-        await prefs.setActiveContext(
-          organizationId: result['organization']['id'],
-          branchId: result['location']['id'],
-          organizationName: result['organization']['name'],
-          branchName: result['location']['name'],
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Organization & Branch Created!')));
-          context.go(AppRoutes.home);
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Branch created successfully!')));
+        context.pop();
       }
     } catch (e) {
       if (mounted)
@@ -379,7 +370,6 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
         child: Column(
           children: [
             _buildHeader(context),
-            _buildProgress(),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
@@ -425,10 +415,10 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
               : const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Complete Registration',
+                    Text('Create Branch',
                         style: TextStyle(fontWeight: FontWeight.bold)),
                     SizedBox(width: 8),
-                    Icon(Iconsax.tick_circle, size: 18),
+                    Icon(Iconsax.shop_add, size: 18),
                   ],
                 ),
         ),
@@ -440,7 +430,7 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             decoration: BoxDecoration(
@@ -457,42 +447,15 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Create Branch',
+                Text('Add New Branch',
                     style:
                         TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 SizedBox(height: 4),
-                Text('Set up your first physical location.',
+                Text('Expand your organization to a new location.',
                     style: TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgress() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-      child: Row(
-        children: [
-          const Text('STEP 2 OF 2',
-              style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange)),
-          const SizedBox(width: 12),
-          Expanded(
-              child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                      value: 1.0,
-                      backgroundColor: Colors.grey.shade200,
-                      color: Colors.orange,
-                      minHeight: 4))),
-          const SizedBox(width: 12),
-          Text('Branch Setup',
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
         ],
       ),
     );

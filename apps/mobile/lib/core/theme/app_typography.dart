@@ -25,8 +25,10 @@ TextTheme buildTextTheme(ColorScheme colorScheme) {
       fontWeight: FontWeight.w600,
       letterSpacing: 0.15,
     ),
-    bodyLarge: GoogleFonts.spaceGrotesk(fontSize: 16, fontWeight: FontWeight.w400),
-    bodyMedium: GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w400),
+    bodyLarge:
+        GoogleFonts.spaceGrotesk(fontSize: 16, fontWeight: FontWeight.w400),
+    bodyMedium:
+        GoogleFonts.spaceGrotesk(fontSize: 14, fontWeight: FontWeight.w400),
     labelLarge: GoogleFonts.spaceGrotesk(
       fontSize: 14,
       fontWeight: FontWeight.w600,

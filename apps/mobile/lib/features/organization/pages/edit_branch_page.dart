@@ -1,4 +1,4 @@
-﻿import 'package:iconsax/iconsax.dart';
+import 'package:iconsax/iconsax.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,19 +9,18 @@ import 'package:latlong2/latlong.dart';
 import 'package:dio/dio.dart';
 
 import '../controllers/organization_repository.dart';
-import '../models/create_organization_models.dart';
-import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 
-class CreateBranchPage extends StatefulWidget {
-  final CreateOrganizationInput organizationInput;
-  const CreateBranchPage({super.key, required this.organizationInput});
+class EditBranchPage extends StatefulWidget {
+  final String branchId;
+  const EditBranchPage({super.key, required this.branchId});
 
   @override
-  State<CreateBranchPage> createState() => _CreateBranchPageState();
+  State<EditBranchPage> createState() => _EditBranchPageState();
 }
 
-class _CreateBranchPageState extends State<CreateBranchPage> {
+class _EditBranchPageState extends State<EditBranchPage> {
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
@@ -47,15 +46,36 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
 
   bool _isCheckingCode = false;
   bool _isCodeUnique = true;
-  bool _isLoading = false;
+  bool _isLoading = true;
+  bool _isSaving = false;
   bool _isDetectingLocation = false;
   bool _isMapDragging = false;
+
+  // Cached original values for dirty tracking
+  Map<String, dynamic>? _branch;
+  String _originalName = '';
+  String _originalAddress = '';
+  String _originalCity = '';
+  String _originalState = '';
+  String _originalCountry = '';
+  String _originalPostal = '';
+  double _originalLat = 0;
+  double _originalLng = 0;
 
   @override
   void initState() {
     super.initState();
-    _nameController.addListener(_onNameChanged);
+    _nameController.addListener(_onFieldChanged);
+    _streetController.addListener(_onFieldChanged);
+    _cityController.addListener(_onFieldChanged);
+    _stateController.addListener(_onFieldChanged);
+    _countryController.addListener(_onFieldChanged);
+    _postalController.addListener(_onFieldChanged);
+    _latController.addListener(_onFieldChanged);
+    _lngController.addListener(_onFieldChanged);
     _codeController.addListener(_onCodeChanged);
+
+    _loadBranch();
   }
 
   @override
@@ -77,17 +97,77 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     super.dispose();
   }
 
-  void _onNameChanged() {
-    if (_codeController.text.isEmpty || _nameController.text.length > 2) {
-      final base = _nameController.text
-          .replaceAll(RegExp(r'[^a-zA-Z0-9]'), '')
-          .toUpperCase();
-      if (base.length >= 3) {
-        final newCode = "$base-01";
-        if (_codeController.text != newCode) {
-          _codeController.text = newCode;
-        }
+  void _onFieldChanged() => setState(() {});
+
+  bool get _isDirty {
+    if (_branch == null) return false;
+    final lat = double.tryParse(_latController.text) ?? 0;
+    final lng = double.tryParse(_lngController.text) ?? 0;
+
+    return _nameController.text != _originalName ||
+        _streetController.text != _originalAddress ||
+        _cityController.text != _originalCity ||
+        _stateController.text != _originalState ||
+        _countryController.text != _originalCountry ||
+        _postalController.text != _originalPostal ||
+        lat != _originalLat ||
+        lng != _originalLng;
+  }
+
+  Future<void> _loadBranch() async {
+    try {
+      final repository = context.read<OrganizationRepository>();
+      final prefs = context.read<PreferencesStorage>();
+      final orgId = prefs.activeOrganizationId!;
+      final branch = await repository.getBranchById(orgId, widget.branchId);
+
+      if (mounted) {
+        _initData(branch);
+        setState(() => _isLoading = false);
       }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error loading branch: $e')));
+      }
+    }
+  }
+
+  void _initData(Map<String, dynamic> branch) {
+    _branch = branch;
+    _originalName = branch['name'] ?? '';
+    _originalAddress = branch['address'] ?? '';
+    _originalCity = branch['city'] ?? '';
+    _originalState = branch['state'] ?? '';
+    _originalPostal = branch['postal_code'] ?? '';
+    _originalCountry = branch['country'] ?? 'India';
+
+    final lat = double.tryParse(branch['latitude']?.toString() ?? '0') ?? 0;
+    final lng = double.tryParse(branch['longitude']?.toString() ?? '0') ?? 0;
+    _originalLat = lat;
+    _originalLng = lng;
+
+    _nameController.text = _originalName;
+    _streetController.text = _originalAddress;
+    _cityController.text = _originalCity;
+    _stateController.text = _originalState;
+    _postalController.text = _originalPostal;
+    _countryController.text = _originalCountry;
+
+    if (lat != 0 && lng != 0) {
+      _currentLocation = LatLng(lat, lng);
+      _latController.text = lat.toString();
+      _lngController.text = lng.toString();
+      _mapController.move(_currentLocation, 15.0);
+    }
+  }
+
+  void _discardChanges() {
+    if (_branch != null) {
+      setState(() {
+        _initData(_branch!);
+      });
     }
   }
 
@@ -258,15 +338,15 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     if (hasGesture && position.center != null) {
       setState(() => _isMapDragging = true);
       setState(() {
-        _currentLocation = position.center!;
-        _latController.text = position.center!.latitude.toString();
-        _lngController.text = position.center!.longitude.toString();
+        _currentLocation = position.center;
+        _latController.text = position.center.latitude.toString();
+        _lngController.text = position.center.longitude.toString();
       });
       if (_mapDebounce?.isActive ?? false) _mapDebounce!.cancel();
       _mapDebounce = Timer(const Duration(milliseconds: 500), () {
         if (mounted) {
           setState(() => _isMapDragging = false);
-          _reverseGeocode(position.center!);
+          _reverseGeocode(position.center);
         }
       });
     }
@@ -276,46 +356,59 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
 
-    setState(() => _isLoading = true);
+    setState(() => _isSaving = true);
     try {
       final repository = context.read<OrganizationRepository>();
+      final prefs = context.read<PreferencesStorage>();
       final lat = double.tryParse(_latController.text);
       final lng = double.tryParse(_lngController.text);
 
-      final result = await repository.createOrganization(
-        widget.organizationInput,
-        CreateBranchInput(
-          name: _nameController.text,
-          address: _streetController.text,
-          city: _cityController.text,
-          state: _stateController.text,
-          country: _countryController.text,
-          postalCode: _postalController.text,
-          latitude: lat,
-          longitude: lng,
-        ),
+      final result = await repository.updateBranch(
+        prefs.activeOrganizationId!,
+        widget.branchId,
+        {
+          if (_nameController.text != _originalName)
+            'name': _nameController.text,
+          if (_streetController.text != _originalAddress)
+            'address': _streetController.text,
+          if (_cityController.text != _originalCity)
+            'city': _cityController.text,
+          if (_stateController.text != _originalState)
+            'state': _stateController.text,
+          if (_countryController.text != _originalCountry)
+            'country': _countryController.text,
+          if (_postalController.text != _originalPostal)
+            'postal_code': _postalController.text,
+          if (lat != _originalLat) 'latitude': lat,
+          if (lng != _originalLng) 'longitude': lng,
+        },
       );
 
       if (mounted) {
-        final prefs = context.read<PreferencesStorage>();
-        await prefs.setActiveContext(
-          organizationId: result['organization']['id'],
-          branchId: result['location']['id'],
-          organizationName: result['organization']['name'],
-          branchName: result['location']['name'],
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Organization & Branch Created!')));
-          context.go(AppRoutes.home);
+        _initData(result);
+        if (_nameController.text != _originalName &&
+            prefs.activeBranchId == widget.branchId) {
+          await prefs.setActiveContext(
+            organizationId: prefs.activeOrganizationId!,
+            branchId: widget.branchId,
+            organizationName: prefs.activeOrganizationName,
+            branchName: _nameController.text,
+          );
         }
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Branch updated successfully!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating));
       }
     } catch (e) {
       if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Failed to update: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating));
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -376,125 +469,145 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            _buildProgress(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
+        child: _isLoading
+            ? ShimmerLoader.profile()
+            : Stack(
+                children: [
+                  ListView(
+                    padding:
+                        EdgeInsets.fromLTRB(24, 16, 24, _isDirty ? 140 : 40),
                     children: [
-                      _buildBasicInfo(),
+                      _buildHeader(context),
                       const SizedBox(height: 24),
-                      _buildLocationSection(),
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            _buildBasicInfo(),
+                            const SizedBox(height: 24),
+                            _buildLocationSection(),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ),
+                  if (_isDirty)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                        decoration:
+                            BoxDecoration(color: Colors.white, boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, -4))
+                        ]),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: _isSaving ? null : _discardChanges,
+                                style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                    side: BorderSide(
+                                        color: Colors.grey.shade300)),
+                                child: const Text('Discard',
+                                    style: TextStyle(
+                                        color: Colors.black87,
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton(
+                                onPressed: _isSaving ? null : _submit,
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange.shade800,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12))),
+                                child: _isSaving
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2))
+                                    : const Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text('Save Changes',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold)),
+                                          SizedBox(width: 8),
+                                          Icon(Iconsax.tick_circle, size: 18),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
-            ),
-          ],
-        ),
-      ),
-      bottomSheet: Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        decoration: BoxDecoration(color: Colors.white, boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -4))
-        ]),
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange.shade800,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            minimumSize: const Size(double.infinity, 0),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2))
-              : const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Complete Registration',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    SizedBox(width: 8),
-                    Icon(Iconsax.tick_circle, size: 18),
-                  ],
-                ),
-        ),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        GestureDetector(
+          onTap: () => context.pop(),
+          child: Container(
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
                 borderRadius: BorderRadius.circular(8)),
-            child: IconButton(
-                icon: const Icon(Iconsax.arrow_left, size: 20),
-                onPressed: () => context.pop(),
-                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                padding: EdgeInsets.zero),
+            child: const Icon(Iconsax.arrow_left, size: 18),
           ),
-          const SizedBox(width: 16),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Create Branch',
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                SizedBox(height: 4),
-                Text('Set up your first physical location.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
+        ),
+        const SizedBox(width: 16),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Edit Branch',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text('Update branch details and location.',
+                  style: TextStyle(fontSize: 11, color: Colors.grey)),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgress() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-      child: Row(
-        children: [
-          const Text('STEP 2 OF 2',
-              style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange)),
-          const SizedBox(width: 12),
-          Expanded(
-              child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                      value: 1.0,
-                      backgroundColor: Colors.grey.shade200,
-                      color: Colors.orange,
-                      minHeight: 4))),
-          const SizedBox(width: 12),
-          Text('Branch Setup',
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-        ],
-      ),
+        ),
+        if (_isDirty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.shade200)),
+            child: Text('Unsaved',
+                style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.orange.shade800,
+                    fontWeight: FontWeight.bold)),
+          ),
+      ],
     );
   }
 

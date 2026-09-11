@@ -64,10 +64,13 @@ class PendingJoinPage extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF4B5563),
                   side: const BorderSide(color: Color(0xFFD1D5DB)),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text('Return to dashboard', style: TextStyle(fontWeight: FontWeight.w600)),
+                child: const Text('Return to dashboard',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ],
           ),

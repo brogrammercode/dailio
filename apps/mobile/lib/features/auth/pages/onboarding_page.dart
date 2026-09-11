@@ -286,8 +286,7 @@ class _HeroVisualizerState extends State<_HeroVisualizer>
               ],
             ),
             child: const Center(
-              child: Icon(Iconsax.building,
-                  color: Color(0xFFB45309), size: 24),
+              child: Icon(Iconsax.building, color: Color(0xFFB45309), size: 24),
             ),
           ),
 

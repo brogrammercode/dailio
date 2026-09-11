@@ -61,4 +61,31 @@ class OrganizationRepository {
     });
     return response.data['role'] as Map<String, dynamic>;
   }
+
+  Future<Map<String, dynamic>> createBranch(
+      String orgId, CreateBranchInput branch) async {
+    final response = await apiClient.dio
+        .post('/organizations/$orgId/branches', data: branch.toJson());
+    return response.data['data'] as Map<String, dynamic>;
+  }
+
+  Future<List<Map<String, dynamic>>> getOrganizationBranches(
+      String orgId) async {
+    final response = await apiClient.dio.get('/organizations/$orgId/branches');
+    return List<Map<String, dynamic>>.from(response.data['data']);
+  }
+
+  Future<Map<String, dynamic>> updateBranch(
+      String orgId, String branchId, Map<String, dynamic> data) async {
+    final response = await apiClient.dio
+        .patch('/organizations/$orgId/branches/$branchId', data: data);
+    return response.data['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getBranchById(
+      String orgId, String branchId) async {
+    final response =
+        await apiClient.dio.get('/organizations/$orgId/branches/$branchId');
+    return response.data['data'] as Map<String, dynamic>;
+  }
 }

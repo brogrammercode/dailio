@@ -22,28 +22,42 @@ class JoinOrCreatePage extends StatelessWidget {
             return AlertDialog(
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Color(0xFF1A1A1A))),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: const Text('Sign Out',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: Color(0xFF1A1A1A))),
               content: const Text(
                 'Are you sure you want to sign out? You will need to sign in again to access workspaces.',
-                style: TextStyle(color: Color(0xFF4B5563), fontSize: 14, height: 1.5),
+                style: TextStyle(
+                    color: Color(0xFF4B5563), fontSize: 14, height: 1.5),
               ),
               actions: [
                 TextButton(
-                  onPressed: isSigningOut ? null : () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                  onPressed: isSigningOut
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel',
+                      style: TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontWeight: FontWeight.w600)),
                 ),
                 FilledButton(
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFFDC2626),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: isSigningOut
                       ? null
                       : () async {
                           setState(() => isSigningOut = true);
                           try {
-                            await context.read<PreferencesStorage>().clearContext();
+                            await context
+                                .read<PreferencesStorage>()
+                                .clearContext();
                             if (context.mounted) {
                               await context.read<AuthCubit>().signOut();
                             }
@@ -62,9 +76,13 @@ class JoinOrCreatePage extends StatelessWidget {
                           height: 20,
                           child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white)),
                         )
-                      : const Text('Sign Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      : const Text('Sign Out',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600)),
                 ),
               ],
             );
@@ -91,7 +109,8 @@ class JoinOrCreatePage extends StatelessWidget {
             },
             color: Colors.white,
             surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'signout',
@@ -99,7 +118,10 @@ class JoinOrCreatePage extends StatelessWidget {
                   children: [
                     Icon(Iconsax.logout, size: 20, color: Color(0xFFDC2626)),
                     SizedBox(width: 12),
-                    Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w600)),
+                    Text('Sign Out',
+                        style: TextStyle(
+                            color: Color(0xFFDC2626),
+                            fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -148,7 +170,8 @@ class JoinOrCreatePage extends StatelessWidget {
               _buildOptionCard(
                 context: context,
                 title: 'Create an Organization',
-                description: 'Set up a new multi-tenant workspace, configure your branches, and invite your workforce.',
+                description:
+                    'Set up a new multi-tenant workspace, configure your branches, and invite your workforce.',
                 icon: Icons.domain_add,
                 iconColor: const Color(0xFFB45309),
                 iconBg: const Color(0xFFFFF7ED),
@@ -160,7 +183,8 @@ class JoinOrCreatePage extends StatelessWidget {
               _buildOptionCard(
                 context: context,
                 title: 'Join an Organization',
-                description: 'Search for your employer\'s workspace and send a request to join your specific branch.',
+                description:
+                    'Search for your employer\'s workspace and send a request to join your specific branch.',
                 icon: Icons.search,
                 iconColor: const Color(0xFF22C55E),
                 iconBg: const Color(0xFFF0FDF4),
@@ -249,4 +273,3 @@ class JoinOrCreatePage extends StatelessWidget {
     );
   }
 }
-

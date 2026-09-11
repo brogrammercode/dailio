@@ -4,7 +4,12 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { NotFoundError } from '../../lib/errors';
 
-import type { ListMembersQuery, AssistedAdmissionInput, MemberActionInput, UpdateMemberInput } from './members.schema';
+import type {
+  ListMembersQuery,
+  AssistedAdmissionInput,
+  MemberActionInput,
+  UpdateMemberInput,
+} from './members.schema';
 
 export async function listMembers(
   organization_id: string,
@@ -249,7 +254,7 @@ export async function updateMember(
       include: {
         user: true,
         role: true,
-      }
+      },
     });
 
     await tx.auditLog.create({

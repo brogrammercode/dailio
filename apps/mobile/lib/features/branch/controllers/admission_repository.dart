@@ -1,4 +1,4 @@
-﻿import 'package:injectable/injectable.dart';
+import 'package:injectable/injectable.dart';
 import '../../../core/network/api_client.dart';
 import '../models/join_request_model.dart';
 
@@ -38,4 +38,3 @@ class AdmissionRepository {
     );
   }
 }
-
