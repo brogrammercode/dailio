@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/widgets/shimmer_loader.dart';
+import '../../organization/controllers/organization_repository.dart';
+import '../../organization/models/role_model.dart';
 import '../controllers/members_repository.dart';
 import '../models/member_model.dart';
 
@@ -21,23 +23,29 @@ class _MembersPageState extends State<MembersPage> {
   bool _isLoading = true;
   String? _errorMessage;
   List<MemberModel> _members = [];
+  List<RoleModel> _roles = [];
   Map<String, dynamic> _meta = {};
 
   late final MembersRepository _repo;
+  late final OrganizationRepository _orgRepo;
   late final String _branchId;
+  late final String _orgId;
 
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
   String _currentSearch = '';
   String? _currentStatus; // null for all
+  String? _currentRoleId; // null for all
 
   @override
   void initState() {
     super.initState();
     _repo = context.read<MembersRepository>();
+    _orgRepo = context.read<OrganizationRepository>();
     _branchId = context.read<PreferencesStorage>().activeBranchId!;
-    _loadMembers();
+    _orgId = context.read<PreferencesStorage>().activeOrganizationId!;
 
+    _loadInitialData();
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -46,6 +54,21 @@ class _MembersPageState extends State<MembersPage> {
     _searchController.dispose();
     _debounce?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      final roleMaps = await _orgRepo.getRoles(_orgId);
+      final roles = roleMaps.map((e) => RoleModel.fromJson(e)).toList();
+      if (mounted) {
+        setState(() {
+          _roles = roles;
+        });
+      }
+    } catch (e) {
+      debugPrint("Failed to load roles: $e");
+    }
+    _loadMembers();
   }
 
   void _onSearchChanged() {
@@ -66,8 +89,12 @@ class _MembersPageState extends State<MembersPage> {
       _errorMessage = null;
     });
     try {
-      final data = await _repo.listMembers(_branchId,
-          search: _currentSearch, status: _currentStatus);
+      final data = await _repo.listMembers(
+        _branchId,
+        search: _currentSearch,
+        status: _currentStatus,
+        roleId: _currentRoleId,
+      );
       final list = ((data['data'] ?? []) as List)
           .map((e) => MemberModel.fromJson(e))
           .toList();
@@ -91,6 +118,13 @@ class _MembersPageState extends State<MembersPage> {
     _loadMembers();
   }
 
+  void _setRoleFilter(String? roleId) {
+    setState(() {
+      _currentRoleId = roleId;
+    });
+    _loadMembers();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,6 +133,7 @@ class _MembersPageState extends State<MembersPage> {
         child: Stack(
           children: [
             Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildHeader(context),
                 _buildTabs(context),
@@ -176,7 +211,7 @@ class _MembersPageState extends State<MembersPage> {
                           context.push(AppRoutes.newAdmission);
                         },
                         icon: const Icon(Iconsax.user_add, size: 16),
-                        label: const Text('+ New Admission',
+                        label: const Text('+ Admission',
                             style: TextStyle(fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange.shade800,
@@ -219,7 +254,7 @@ class _MembersPageState extends State<MembersPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Member Management',
+                Text('Member Directory',
                     style:
                         TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 SizedBox(height: 4),
@@ -311,33 +346,53 @@ class _MembersPageState extends State<MembersPage> {
 
   Widget _buildSearchAndFilters() {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search member by name, ID, phone...',
-              hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
-              prefixIcon: const Icon(Iconsax.search_normal_1,
-                  size: 18, color: Colors.grey),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade200)),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade200)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search member by name, ID, phone...',
+                hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+                prefixIcon: const Icon(Iconsax.search_normal_1,
+                    size: 18, color: Colors.grey),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200)),
+              ),
             ),
           ),
           const SizedBox(height: 16),
+          // Role Filters
+          if (_roles.isNotEmpty) ...[
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  _buildRoleChip('All Roles', null),
+                  ..._roles.map((r) => _buildRoleChip(r.name, r.id)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          // Status Filters
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
               children: [
-                _buildFilterChip('All', null),
+                _buildFilterChip('All Status', null),
                 _buildFilterChip('Active', 'ACTIVE'),
                 _buildFilterChip('Suspended', 'SUSPENDED'),
                 _buildFilterChip('Inactive', 'INACTIVE'),
@@ -349,6 +404,32 @@ class _MembersPageState extends State<MembersPage> {
     );
   }
 
+  Widget _buildRoleChip(String label, String? roleId) {
+    final isActive = _currentRoleId == roleId;
+    return InkWell(
+      onTap: () => _setRoleFilter(roleId),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.black87 : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: isActive ? Colors.black87 : Colors.grey.shade300),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: isActive ? Colors.white : Colors.grey.shade700,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFilterChip(String label, String? status) {
     final isActive = _currentStatus == status;
     return InkWell(
@@ -356,18 +437,18 @@ class _MembersPageState extends State<MembersPage> {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: isActive ? Colors.orange.shade800 : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: isActive ? Colors.orange.shade800 : Colors.grey.shade200),
+              color: isActive ? Colors.orange.shade800 : Colors.grey.shade300),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 12,
-            color: isActive ? Colors.white : Colors.grey.shade800,
+            fontSize: 11,
+            color: isActive ? Colors.white : Colors.grey.shade700,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -410,16 +491,18 @@ class _MembersPageState extends State<MembersPage> {
       child: Column(
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Stack(
                 children: [
                   CircleAvatar(
-                    radius: 24,
+                    radius: 26,
                     backgroundColor: Colors.orange.shade100,
                     child: Text(member.name.substring(0, 1).toUpperCase(),
                         style: TextStyle(
                             color: Colors.orange.shade800,
-                            fontWeight: FontWeight.bold)),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18)),
                   ),
                   Positioned(
                     bottom: 0,
@@ -442,14 +525,20 @@ class _MembersPageState extends State<MembersPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Text(member.name,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text(member.email ?? member.phone ?? 'No contact info',
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey),
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
                       children: [
-                        Expanded(
-                            child: Text(member.name,
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
-                                overflow: TextOverflow.ellipsis)),
-                        const SizedBox(width: 8),
                         if (member.role != null)
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -462,16 +551,27 @@ class _MembersPageState extends State<MembersPage> {
                                     fontSize: 9,
                                     color: Colors.orange.shade800,
                                     fontWeight: FontWeight.bold)),
-                          )
+                          ),
+                        if (member.joinedAt != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(4)),
+                            child: Text(
+                                'Joined ${member.joinedAt!.split('T')[0]}',
+                                style: const TextStyle(
+                                    fontSize: 9,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.bold)),
+                          ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(member.email ?? member.phone ?? 'No contact info',
-                        style:
-                            const TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               OutlinedButton.icon(
                 onPressed: () {
                   context.push(AppRoutes.configureMember
@@ -479,9 +579,9 @@ class _MembersPageState extends State<MembersPage> {
                 },
                 icon: const Icon(Iconsax.setting_4, size: 14),
                 label: const Text('Configure',
-                    style: TextStyle(fontSize: 12, color: Colors.black)),
+                    style: TextStyle(fontSize: 11, color: Colors.black)),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   minimumSize: const Size(0, 32),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8)),

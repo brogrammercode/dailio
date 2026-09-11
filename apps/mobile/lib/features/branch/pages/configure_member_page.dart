@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../core/storage/preferences_storage.dart';
-import '../../../core/widgets/shimmer_loader.dart';
+import '../../organization/controllers/organization_repository.dart';
+import '../../organization/models/role_model.dart';
 import '../controllers/members_repository.dart';
 import '../models/member_model.dart';
 
@@ -20,29 +22,60 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
   bool _isLoading = true;
   String? _errorMessage;
   MemberModel? _member;
+  List<RoleModel> _roles = [];
 
   late final MembersRepository _repo;
+  late final OrganizationRepository _orgRepo;
   late final String _branchId;
+  late final String _orgId;
 
   bool _isSubmitting = false;
+
+  // Editable fields
+  String? _selectedRoleId;
+  bool _isGeofenceExempt = false;
+  bool _isSelfieMandatory = true;
+  bool _isMultiBranch = false;
+
+  // Original state check
+  bool get _isDirty {
+    if (_member == null) return false;
+    if (_selectedRoleId != _member!.role?.id) return true;
+    // other overrides are dummy right now but keep dirty check
+    return false;
+  }
 
   @override
   void initState() {
     super.initState();
     _repo = context.read<MembersRepository>();
+    _orgRepo = context.read<OrganizationRepository>();
     _branchId = context.read<PreferencesStorage>().activeBranchId!;
-    _loadMember();
+    _orgId = context.read<PreferencesStorage>().activeOrganizationId!;
+    _loadData();
   }
 
-  Future<void> _loadMember() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
     try {
-      final data = await _repo.getMember(_branchId, widget.memberId);
+      final futures = await Future.wait([
+        _repo.getMember(_branchId, widget.memberId),
+        _orgRepo.getRoles(_orgId),
+      ]);
+
+      final memberData = futures[0] as Map<String, dynamic>;
+      final roleMaps = futures[1] as List<Map<String, dynamic>>;
+      final roles = roleMaps.map((e) => RoleModel.fromJson(e)).toList();
+
+      final m = MemberModel.fromJson(memberData['data'] ?? memberData);
+
       setState(() {
-        _member = MemberModel.fromJson(data['data'] ?? data);
+        _member = m;
+        _roles = roles;
+        _selectedRoleId = m.role?.id;
       });
     } catch (e) {
       setState(() {
@@ -50,6 +83,30 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       });
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    if (_member == null || !_isDirty) return;
+    setState(() => _isSubmitting = true);
+
+    try {
+      await _repo.updateMember(_branchId, widget.memberId, {
+        'role_id': _selectedRoleId,
+        // 'is_geofence_exempt': _isGeofenceExempt,
+        // 'is_selfie_mandatory': _isSelfieMandatory,
+        // 'is_multi_branch': _isMultiBranch,
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Member configuration saved!')));
+      await _loadData(); // reload
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error saving changes: $e')));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -62,7 +119,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Member suspended successfully.')));
-      _loadMember();
+      _loadData();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -97,7 +154,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
         child: _isLoading
-            ? ShimmerLoader.list()
+            ? _buildSkeleton()
             : _errorMessage != null
                 ? Center(
                     child: Column(
@@ -105,7 +162,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                       children: [
                         Text('Error: $_errorMessage'),
                         TextButton(
-                            onPressed: _loadMember, child: const Text('Retry'))
+                            onPressed: _loadData, child: const Text('Retry'))
                       ],
                     ),
                   )
@@ -131,57 +188,104 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                           ),
 
                           // Bottom Bar
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              padding:
-                                  const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                boxShadow: [
-                                  BoxShadow(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.05),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, -4))
-                                ],
-                              ),
-                              child: ElevatedButton.icon(
-                                onPressed: _isSubmitting
-                                    ? null
-                                    : () {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(const SnackBar(
-                                                content: Text(
-                                                    'Configuration saved!')));
-                                      },
-                                icon: _isSubmitting
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2))
-                                    : const Icon(Iconsax.save_2, size: 18),
-                                label: const Text('Save Member Configuration',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange.shade700,
-                                  foregroundColor: Colors.white,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 16),
-                                  minimumSize: const Size(double.infinity, 0),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
+                          if (_isDirty)
+                            Positioned(
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              child: Container(
+                                padding:
+                                    const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.05),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, -4))
+                                  ],
+                                ),
+                                child: ElevatedButton.icon(
+                                  onPressed:
+                                      _isSubmitting ? null : _saveChanges,
+                                  icon: _isSubmitting
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2))
+                                      : const Icon(Iconsax.save_2, size: 18),
+                                  label: const Text('Save Member Configuration',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange.shade700,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    minimumSize: const Size(double.infinity, 0),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                  ),
                                 ),
                               ),
-                            ),
-                          )
+                            )
                         ],
                       ),
+      ),
+    );
+  }
+
+  Widget _buildSkeleton() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Row(
+            children: [
+              Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8))),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(width: 150, height: 20, color: Colors.white),
+                    const SizedBox(height: 8),
+                    Container(width: 100, height: 12, color: Colors.white),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Container(
+              height: 120,
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16))),
+          const SizedBox(height: 16),
+          Container(
+              height: 180,
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16))),
+          const SizedBox(height: 16),
+          Container(
+              height: 180,
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16))),
+        ],
       ),
     );
   }
@@ -288,10 +392,12 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                   children: [
                     Row(
                       children: [
-                        Text(_member!.name,
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold)),
-                        const Spacer(),
+                        Expanded(
+                            child: Text(_member!.name,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis)),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
@@ -310,17 +416,21 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                     Row(children: [
                       const Icon(Iconsax.sms, size: 12, color: Colors.grey),
                       const SizedBox(width: 4),
-                      Text(_member!.email ?? 'No email',
-                          style:
-                              const TextStyle(fontSize: 11, color: Colors.grey))
+                      Expanded(
+                          child: Text(_member!.email ?? 'No email',
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.grey),
+                              overflow: TextOverflow.ellipsis))
                     ]),
                     const SizedBox(height: 2),
                     Row(children: [
                       const Icon(Iconsax.call, size: 12, color: Colors.grey),
                       const SizedBox(width: 4),
-                      Text(_member!.phone ?? 'No phone',
-                          style:
-                              const TextStyle(fontSize: 11, color: Colors.grey))
+                      Expanded(
+                          child: Text(_member!.phone ?? 'No phone',
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.grey),
+                              overflow: TextOverflow.ellipsis))
                     ]),
                   ],
                 ),
@@ -408,10 +518,32 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
     return _buildSectionCard(
       title: 'Role & Facility Access',
       icon: Iconsax.building_4,
-      badge: 'Access Level: ${_member!.role?.name ?? "N/A"}',
+      badge:
+          'Access Level: ${_roles.firstWhere((r) => r.id == _selectedRoleId, orElse: () => _roles.first).name}',
       children: [
         _buildLabel('Primary Role'),
-        _buildDropdown(_member!.role?.name ?? 'No Role Assigned'),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200)),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: _selectedRoleId,
+              items: _roles
+                  .map((r) => DropdownMenuItem<String>(
+                      value: r.id,
+                      child:
+                          Text(r.name, style: const TextStyle(fontSize: 12))))
+                  .toList(),
+              onChanged: (val) {
+                setState(() => _selectedRoleId = val);
+              },
+            ),
+          ),
+        ),
         const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -431,7 +563,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
           ],
         ),
         const SizedBox(height: 8),
-        _buildDropdown('Main Branch', icon: Iconsax.location),
+        _buildDropdown('Main Branch (Locked)', icon: Iconsax.location),
       ],
     );
   }
@@ -536,17 +668,26 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       badge: 'Audit-Enforced',
       children: [
         _buildToggleRow(
-            'Exempt from Geofence', 'Allow clock-in outside the radius', false),
+            'Exempt from Geofence',
+            'Allow clock-in outside the radius',
+            _isGeofenceExempt,
+            (v) => setState(() => _isGeofenceExempt = v)),
         const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: Divider(height: 1)),
-        _buildToggleRow('Selfie Clock-in Mandatory',
-            'Require facial capture at gate kiosk or mobile', true),
+        _buildToggleRow(
+            'Selfie Clock-in Mandatory',
+            'Require facial capture at gate kiosk or mobile',
+            _isSelfieMandatory,
+            (v) => setState(() => _isSelfieMandatory = v)),
         const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: Divider(height: 1)),
-        _buildToggleRow('Multi-Branch Clock-in',
-            'Permit cross-attendance at sister clubs', false),
+        _buildToggleRow(
+            'Multi-Branch Clock-in',
+            'Permit cross-attendance at sister clubs',
+            _isMultiBranch,
+            (v) => setState(() => _isMultiBranch = v)),
       ],
     );
   }
@@ -617,7 +758,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       badgeTextColor: Colors.grey.shade700,
       children: [
         _buildToggleRow('Employee Eligible for Salary',
-            'Activate payroll disbursements', false),
+            'Activate payroll disbursements', false, null),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -781,7 +922,8 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
     );
   }
 
-  Widget _buildToggleRow(String title, String subtitle, bool value) {
+  Widget _buildToggleRow(String title, String subtitle, bool value,
+      ValueChanged<bool>? onChanged) {
     return Row(
       children: [
         Expanded(
@@ -799,7 +941,8 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         ),
         Switch(
             value: value,
-            onChanged: (v) {},
+            onChanged: onChanged,
+            activeThumbImage: null,
             activeThumbColor: Colors.orange.shade600),
       ],
     );

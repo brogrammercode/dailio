@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 
-import { ListMembersQuerySchema, AssistedAdmissionSchema, MemberActionSchema } from './members.schema';
+import { ListMembersQuerySchema, AssistedAdmissionSchema, MemberActionSchema, UpdateMemberSchema } from './members.schema';
 import * as membersService from './members.service';
 
 export async function listMembers(req: Request, res: Response, next: NextFunction) {
@@ -65,6 +65,21 @@ export async function deactivate(req: Request, res: Response, next: NextFunction
   try {
     const parsed = MemberActionSchema.parse({ body: req.body });
     const member = await membersService.deactivateMember(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      req.params.member_id,
+      parsed.body
+    );
+    res.json({ data: member });
+  } catch (error) {
+    next(error);
+  }
+}
+export async function update(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = UpdateMemberSchema.parse({ body: req.body });
+    const member = await membersService.updateMember(
       req.user!.id,
       req.organization!.id,
       req.branch!.id,

@@ -1,11 +1,4 @@
-﻿class RoleModel {
-  final String id;
-  final String name;
-  final String? systemKey;
-  RoleModel({required this.id, required this.name, this.systemKey});
-  factory RoleModel.fromJson(Map<String, dynamic> j) => RoleModel(
-    id: j['id'], name: j['name'], systemKey: j['system_key']);
-}
+﻿import '../../organization/models/role_model.dart';
 
 class MemberModel {
   final String id;
@@ -46,4 +39,3 @@ class MemberModel {
 
   String get fullName => name;
 }
-

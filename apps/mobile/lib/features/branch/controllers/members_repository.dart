@@ -1,14 +1,15 @@
-﻿import '../../../core/network/api_client.dart';
+import '../../../core/network/api_client.dart';
 
 class MembersRepository {
   final ApiClient apiClient;
 
   MembersRepository({required this.apiClient});
 
-  Future<Map<String, dynamic>> listMembers(String branchId, {String? search, String? status, int page = 1}) async {
+  Future<Map<String, dynamic>> listMembers(String branchId, {String? search, String? status, String? roleId, int page = 1}) async {
     final query = <String, dynamic>{'page': page};
     if (search != null && search.isNotEmpty) query['search'] = search;
     if (status != null && status.isNotEmpty) query['status'] = status;
+    if (roleId != null && roleId.isNotEmpty) query['role_id'] = roleId;
 
     final response = await apiClient.dio.get(
       '/branches/$branchId/members',
@@ -50,5 +51,10 @@ class MembersRepository {
       data: data,
     );
   }
+  Future<void> updateMember(String branchId, String memberId, Map<String, dynamic> data) async {
+    await apiClient.dio.patch(
+      '/branches/$branchId/members/$memberId',
+      data: data,
+    );
+  }
 }
-

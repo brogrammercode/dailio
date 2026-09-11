@@ -4,14 +4,14 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { NotFoundError } from '../../lib/errors';
 
-import type { ListMembersQuery, AssistedAdmissionInput, MemberActionInput } from './members.schema';
+import type { ListMembersQuery, AssistedAdmissionInput, MemberActionInput, UpdateMemberInput } from './members.schema';
 
 export async function listMembers(
   organization_id: string,
   branch_id: string,
   query: ListMembersQuery,
 ) {
-  const { search, status, page, limit } = query;
+  const { search, status, page, limit, role_id } = query;
 
   const where: Prisma.MemberWhereInput = {
     organization_id,
@@ -20,6 +20,10 @@ export async function listMembers(
 
   if (status) {
     where.status = status;
+  }
+
+  if (role_id) {
+    where.role_id = role_id;
   }
 
   if (search) {
@@ -216,5 +220,51 @@ export async function createAssistedAdmission(
     });
 
     return member;
+  });
+}
+
+export async function updateMember(
+  actor_id: string,
+  organization_id: string,
+  branch_id: string,
+  member_id: string,
+  data: UpdateMemberInput,
+) {
+  return prisma.$transaction(async (tx) => {
+    const member = await tx.member.findUnique({
+      where: { id: member_id },
+    });
+
+    if (!member || member.organization_id !== organization_id || member.branch_id !== branch_id) {
+      throw new NotFoundError('Member');
+    }
+
+    const updated = await tx.member.update({
+      where: { id: member_id },
+      data: {
+        role_id: data.role_id !== undefined ? data.role_id : undefined,
+        // other configuration fields can be added here if they exist in DB
+        updated_at: new Date(),
+      },
+      include: {
+        user: true,
+        role: true,
+      }
+    });
+
+    await tx.auditLog.create({
+      data: {
+        id: ulid(),
+        organization_id,
+        branch_id: branch_id,
+        actor_id,
+        action: 'UPDATE',
+        target_type: 'Member',
+        target_id: member_id,
+        after_state: data as any,
+      },
+    });
+
+    return updated;
   });
 }
