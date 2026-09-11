@@ -94,7 +94,7 @@ GoRouter buildRouter(String initialLocation) {
       ),
       GoRoute(
         path: AppRoutes.configureMember,
-        builder: (_, __) => const ConfigureMemberPage(),
+        builder: (_, state) => ConfigureMemberPage(memberId: state.pathParameters['memberId']!),
       ),
       // ── Settings module routes ──────────────────────────────────────────────
       GoRoute(

@@ -26,7 +26,7 @@ class AppRoutes {
   static const String plans = '/home/branch/plans';
   static const String newAdmission = '/home/branch/new-admission';
   static const String editOrganization = '/home/settings/edit-organization';
-  static const String configureMember = '/home/branch/configure-member';
+  static const String configureMember = '/home/branch/configure-member/:memberId';
   static const String subscriptionPlans = '/home/branch/subscription-plans';
   static const String shiftManagement = '/home/branch/shift-management';
   static const String payrollManagement = '/home/branch/payroll-management';
