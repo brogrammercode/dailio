@@ -42,7 +42,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
     try {
       final data = await _repo.getMember(_branchId, widget.memberId);
       setState(() {
-        _member = MemberModel.fromJson(data['member'] ?? data);
+        _member = MemberModel.fromJson(data['data'] ?? data);
       });
     } catch (e) {
       setState(() {

@@ -68,12 +68,12 @@ class _MembersPageState extends State<MembersPage> {
     try {
       final data = await _repo.listMembers(_branchId,
           search: _currentSearch, status: _currentStatus);
-      final list = (data['members'] as List)
+      final list = ((data['data'] ?? []) as List)
           .map((e) => MemberModel.fromJson(e))
           .toList();
       setState(() {
         _members = list;
-        _meta = data['meta'] ?? {};
+        _meta = data;
       });
     } catch (e) {
       setState(() {
