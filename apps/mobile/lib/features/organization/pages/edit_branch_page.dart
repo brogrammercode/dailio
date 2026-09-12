@@ -1,4 +1,4 @@
-import 'package:iconsax/iconsax.dart';
+﻿import 'package:iconsax/iconsax.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -159,7 +159,7 @@ class _EditBranchPageState extends State<EditBranchPage> {
       _currentLocation = LatLng(lat, lng);
       _latController.text = lat.toString();
       _lngController.text = lng.toString();
-      _mapController.move(_currentLocation, 15.0);
+      try { _mapController.move(_currentLocation, 15.0); } catch (_) {}
     }
   }
 
@@ -879,3 +879,4 @@ class _EditBranchPageState extends State<EditBranchPage> {
     );
   }
 }
+

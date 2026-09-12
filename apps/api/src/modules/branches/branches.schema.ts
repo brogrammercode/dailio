@@ -23,8 +23,9 @@ export const CreateBranchSchema = z.object({
 });
 
 export const UpdateBranchSchema = CreateBranchSchema.partial().extend({
-  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+  status: z.enum(['ACTIVE', 'ARCHIVED']).optional(),
 });
 
 export type CreateBranchInput = z.infer<typeof CreateBranchSchema>;
 export type UpdateBranchInput = z.infer<typeof UpdateBranchSchema>;
+

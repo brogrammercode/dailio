@@ -1,4 +1,4 @@
-import '../../../core/network/api_client.dart';
+﻿import '../../../core/network/api_client.dart';
 import '../models/create_organization_models.dart';
 
 class OrganizationRepository {
@@ -88,4 +88,26 @@ class OrganizationRepository {
         await apiClient.dio.get('/organizations/$orgId/branches/$branchId');
     return response.data['data'] as Map<String, dynamic>;
   }
+
+  Future<List<Map<String, dynamic>>> getOrganizationPlans(String orgId) async {
+    final response = await apiClient.dio.get('/organizations/$orgId/plans');
+    return List<Map<String, dynamic>>.from(response.data['data']);
+  }
+
+  Future<Map<String, dynamic>> createPlan(
+      String orgId, Map<String, dynamic> data) async {
+    final response = await apiClient.dio
+        .post('/organizations/$orgId/plans', data: data);
+    return response.data['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updatePlan(
+      String orgId, String planId, Map<String, dynamic> data) async {
+    final response = await apiClient.dio
+        .patch('/organizations/$orgId/plans/$planId', data: data);
+    return response.data['data'] as Map<String, dynamic>;
+  }
+
 }
+
+

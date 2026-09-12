@@ -1,0 +1,6 @@
+- in subscription plans page, there were more elements in the page such as
+- skeleton is not aligning the actual coponenets, make the skeleton resembling them actually
+- while CRUDing subscription plans, we need to give branch_id as well in the schema because subscription plans will be as per branch, not onlt subscripion, shift, payroll, etc will also be branch oriented
+- in the members directory page, give one more tab (teritiary tab) for branche filteration - All, (branches) (default wil be already selected from where the current user belongs), No branch.
+- give this branch tab in subscription, shift and payroll page as well where the current user's branch will be already selected
+- add some more fields in members- subscription_id, shift_id, salary_structure_id, which we will be allting these things to a member in Configure member page for each member

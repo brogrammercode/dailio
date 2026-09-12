@@ -71,16 +71,38 @@ class _ManageBranchesPageState extends State<ManageBranchesPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          await context.push(AppRoutes.addBranch);
-          _loadBranches(); // Refresh list after adding
-        },
-        backgroundColor: Colors.orange.shade800,
-        foregroundColor: Colors.white,
-        icon: const Icon(Iconsax.add, size: 20),
-        label: const Text('Add Branch',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+      bottomSheet: Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        decoration: BoxDecoration(color: Colors.white, boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          )
+        ]),
+        child: ElevatedButton(
+          onPressed: () async {
+            await context.push(AppRoutes.addBranch);
+            _loadBranches(); // Refresh list after adding
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange.shade800,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            minimumSize: const Size(double.infinity, 0),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Create New Branch',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              SizedBox(width: 8),
+              Icon(Iconsax.add_square, size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -167,104 +189,177 @@ class _ManageBranchesPageState extends State<ManageBranchesPage> {
       onRefresh: _loadBranches,
       color: Colors.orange,
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
         itemCount: _branches.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, __) => const SizedBox(height: 16),
         itemBuilder: (context, index) {
           final branch = _branches[index];
           final isActive = branch['status'] == 'ACTIVE';
+          final prefs = context.read<PreferencesStorage>();
+          final isPrimary = prefs.activeBranchId == branch['id'];
+
           return Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.grey.shade200),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2))
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
               ],
             ),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Iconsax.shop, color: Colors.orange),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Iconsax.shop,
+                          color: Colors.orange, size: 24),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              branch['name'] ?? 'Unnamed Branch',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                          Text(
+                            branch['name'] ?? 'Unnamed Branch',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.black87),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? Colors.green.shade50
-                                  : Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              isActive ? 'Active' : 'Inactive',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: isActive
-                                      ? Colors.green.shade700
-                                      : Colors.red.shade700),
-                            ),
+                          const SizedBox(height: 4),
+                          Text(
+                            [branch['city'], branch['state']]
+                                .where(
+                                    (e) => e != null && e.toString().isNotEmpty)
+                                .join(', '),
+                            style: TextStyle(
+                                color: Colors.grey.shade600, fontSize: 13),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        [branch['city'], branch['state']]
-                            .where((e) => e != null && e.toString().isNotEmpty)
-                            .join(', '),
-                        style: TextStyle(
-                            color: Colors.grey.shade600, fontSize: 13),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () async {
+                        await context.push(AppRoutes.editBranch
+                            .replaceFirst(':branchId', branch['id']));
+                        _loadBranches(); // Refresh list after edit
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade50,
+                        foregroundColor: Colors.orange.shade800,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        minimumSize: const Size(0, 36),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
+                      child: const Text('Edit',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(Iconsax.location, size: 14, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
                         branch['address'] ?? 'No address provided',
                         style:
                             const TextStyle(color: Colors.grey, fontSize: 12),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () async {
-                    await context.push(AppRoutes.editBranch
-                        .replaceFirst(':branchId', branch['id']));
-                    _loadBranches(); // Refresh list after edit
-                  },
-                  icon:
-                      const Icon(Iconsax.edit, size: 20, color: Colors.orange),
-                  style: IconButton.styleFrom(
-                      backgroundColor: Colors.orange.shade50),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? Colors.green.shade50
+                            : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: isActive
+                                ? Colors.green.shade100
+                                : Colors.red.shade100),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                              isActive
+                                  ? Iconsax.tick_circle
+                                  : Iconsax.close_circle,
+                              size: 12,
+                              color: isActive
+                                  ? Colors.green.shade700
+                                  : Colors.red.shade700),
+                          const SizedBox(width: 4),
+                          Text(
+                            isActive ? 'Active' : 'Inactive',
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isActive
+                                    ? Colors.green.shade700
+                                    : Colors.red.shade700),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (isPrimary)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.blue.shade100),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Iconsax.star1,
+                                size: 12, color: Colors.blue.shade700),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Current Context',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade700),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),

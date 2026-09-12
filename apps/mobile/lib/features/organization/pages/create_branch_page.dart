@@ -95,11 +95,12 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     if (_codeController.text.isNotEmpty) {
       setState(() => _isCheckingCode = true);
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted)
+        if (mounted) {
           setState(() {
             _isCheckingCode = false;
             _isCodeUnique = true;
           });
+        }
       });
     }
   }
@@ -159,9 +160,10 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
   Future<void> _detectLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please enable location services.')));
+      }
       await Geolocator.openLocationSettings();
       return;
     }
@@ -169,16 +171,18 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Location permissions are denied.')));
+        }
         return;
       }
     }
     if (permission == LocationPermission.deniedForever) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Location permissions are permanently denied.')));
+      }
       await Geolocator.openAppSettings();
       return;
     }
@@ -195,9 +199,10 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
       _mapController.move(newLoc, 15.0);
       await _reverseGeocode(newLoc);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error detecting location: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isDetectingLocation = false);
     }
@@ -238,8 +243,9 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
             '';
         String combinedStreet =
             [road, neighbourhood].where((e) => e.isNotEmpty).join(', ');
-        if (combinedStreet.isEmpty)
+        if (combinedStreet.isEmpty) {
           combinedStreet = response.data['display_name']?.split(',')[0] ?? '';
+        }
 
         setState(() {
           _streetController.text = combinedStreet;
@@ -311,9 +317,10 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
         }
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

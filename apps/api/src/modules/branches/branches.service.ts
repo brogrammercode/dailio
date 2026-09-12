@@ -46,3 +46,4 @@ export async function getOrganizationBranches(organizationId: string) {
     orderBy: { created_at: 'asc' },
   });
 }
+
