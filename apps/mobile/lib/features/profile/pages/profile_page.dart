@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -111,6 +111,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     try {
+      if (!mounted) return;
       final cubit = context.read<AuthCubit>();
       await cubit.updateProfile(
         name: name != _originalName ? name : null,
@@ -172,7 +173,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       _isDirty ? 140 : 40,
                     ),
                     children: [
-                      // ── Header (consistent with Settings page) ─────────
+                      //  Header (consistent with Settings page) 
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -227,7 +228,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 28),
 
-                      // ── Avatar ─────────────────────────────────────────
+                      //  Avatar 
                       Center(
                         child: Column(
                           children: [
@@ -295,7 +296,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               onPressed: _pickImage,
                               child: Text(
                                 _pickedImage != null
-                                    ? 'Photo selected — tap to change'
+                                    ? 'Photo selected  tap to change'
                                     : 'Change profile photo',
                                 style: TextStyle(
                                     fontSize: 12,
@@ -303,7 +304,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     fontWeight: FontWeight.w600),
                               ),
                             ),
-                            const Text('JPG or PNG • Max 5 MB',
+                            const Text('JPG or PNG  Max 5 MB',
                                 style: TextStyle(
                                     fontSize: 10, color: Colors.grey)),
                           ],
@@ -311,7 +312,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 24),
 
-                      // ── Google Account Badge ────────────────────────────
+                      //  Google Account Badge 
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
@@ -371,7 +372,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 28),
 
-                      // ── Identity Fields ─────────────────────────────────
+                      //  Identity Fields 
                       _buildSectionHeader('Identity', 'REQUIRED'),
                       const SizedBox(height: 14),
                       _buildFieldLabel('Full Name'),
@@ -394,7 +395,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 28),
 
-                      // ── Notification Preferences ────────────────────────
+                      //  Notification Preferences 
                       _buildSectionHeader('Notifications & Privacy', null),
                       const SizedBox(height: 6),
                       const Text(
@@ -422,7 +423,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
 
-                  // ── Save / Discard bar (only when dirty) ────────────────
+                  //  Save / Discard bar (only when dirty) 
                   if (_isDirty)
                     Positioned(
                       bottom: 0,
@@ -508,7 +509,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // ─── Helpers ─────────────────────────────────────────────────────────────
+  //  Helpers 
 
   Widget _buildSectionHeader(String title, String? badge) {
     return Row(
@@ -645,3 +646,5 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 }
+
+

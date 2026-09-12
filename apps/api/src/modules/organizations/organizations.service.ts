@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ulid } from 'ulid';
 
 import { prisma } from '../../lib/prisma';
@@ -168,3 +169,4 @@ export async function updateOrganization(organization_id: string, user_id: strin
   if (!membership) throw new NotFoundError('Organization');
   return prisma.organization.update({ where: { id: organization_id }, data });
 }
+

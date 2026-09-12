@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +18,8 @@ import 'features/auth/controllers/auth_repository.dart';
 import 'features/context_selection/controllers/branch_repository.dart';
 import 'features/branch/controllers/admission_repository.dart';
 import 'features/branch/controllers/members_repository.dart';
+import 'features/branch/controllers/shift_repository.dart';
+import 'features/branch/controllers/payroll_repository.dart';
 import 'features/organization/controllers/organization_repository.dart';
 import 'features/attendance/controllers/attendance_repository.dart';
 
@@ -48,6 +50,8 @@ void main() async {
   final admissionRepository = AdmissionRepository(apiClient: apiClient);
   final organizationRepository = OrganizationRepository(apiClient: apiClient);
   final membersRepository = MembersRepository(apiClient: apiClient);
+  final shiftRepository = ShiftRepository(apiClient);
+  final payrollRepository = PayrollRepository(apiClient);
   final attendanceRepository = AttendanceRepository(apiClient: apiClient);
 
   String initialRoute = AppRoutes.onboarding;
@@ -94,6 +98,8 @@ void main() async {
       admissionRepository: admissionRepository,
       organizationRepository: organizationRepository,
       membersRepository: membersRepository,
+      shiftRepository: shiftRepository,
+      payrollRepository: payrollRepository,
       attendanceRepository: attendanceRepository,
       initialRoute: initialRoute,
     ),

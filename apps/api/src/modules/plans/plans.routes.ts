@@ -1,7 +1,9 @@
 ﻿import { Router } from 'express';
+
 import { authenticate } from '../../middleware/auth';
 import { resolveTenantContext } from '../../middleware/tenant';
 import { requirePermission } from '../../middleware/permission';
+
 import { getPlans, createPlan, updatePlan } from './plans.controller';
 
 const router: Router = Router();

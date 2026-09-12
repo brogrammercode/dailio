@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
@@ -23,7 +23,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
   String _orgPhone = '+91 ';
   String _orgType = 'GYM';
   String _orgAddress = '';
-  String _orgCurrency = 'INR - Indian Rupee ₹';
+  String _orgCurrency = 'INR - Indian Rupee â‚¹';
   String _orgTimezone = 'Asia/Kolkata (IST +05:30)';
 
   Future<void> _pickLogo() async {
@@ -273,9 +273,9 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         _buildDropdownField(
             'Default Currency',
             [
-              'INR - Indian Rupee ₹',
+              'INR - Indian Rupee â‚¹',
               'USD - US Dollar \$',
-              'AED - UAE Dirham د.إ'
+              'AED - UAE Dirham Ø¯.Ø¥'
             ],
             _orgCurrency,
             (v) => setState(() => _orgCurrency = v!)),
@@ -400,3 +400,4 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
     );
   }
 }
+

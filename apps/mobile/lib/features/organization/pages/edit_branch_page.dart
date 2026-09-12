@@ -175,11 +175,12 @@ class _EditBranchPageState extends State<EditBranchPage> {
     if (_codeController.text.isNotEmpty) {
       setState(() => _isCheckingCode = true);
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted)
+        if (mounted) {
           setState(() {
             _isCheckingCode = false;
             _isCodeUnique = true;
           });
+        }
       });
     }
   }
@@ -239,9 +240,10 @@ class _EditBranchPageState extends State<EditBranchPage> {
   Future<void> _detectLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please enable location services.')));
+      }
       await Geolocator.openLocationSettings();
       return;
     }
@@ -249,16 +251,18 @@ class _EditBranchPageState extends State<EditBranchPage> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Location permissions are denied.')));
+        }
         return;
       }
     }
     if (permission == LocationPermission.deniedForever) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Location permissions are permanently denied.')));
+      }
       await Geolocator.openAppSettings();
       return;
     }
@@ -275,9 +279,10 @@ class _EditBranchPageState extends State<EditBranchPage> {
       _mapController.move(newLoc, 15.0);
       await _reverseGeocode(newLoc);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error detecting location: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isDetectingLocation = false);
     }
@@ -318,8 +323,9 @@ class _EditBranchPageState extends State<EditBranchPage> {
             '';
         String combinedStreet =
             [road, neighbourhood].where((e) => e.isNotEmpty).join(', ');
-        if (combinedStreet.isEmpty)
+        if (combinedStreet.isEmpty) {
           combinedStreet = response.data['display_name']?.split(',')[0] ?? '';
+        }
 
         setState(() {
           _streetController.text = combinedStreet;
@@ -335,7 +341,7 @@ class _EditBranchPageState extends State<EditBranchPage> {
   }
 
   void _onMapPositionChanged(MapCamera position, bool hasGesture) {
-    if (hasGesture && position.center != null) {
+    if (hasGesture) {
       setState(() => _isMapDragging = true);
       setState(() {
         _currentLocation = position.center;
@@ -395,6 +401,7 @@ class _EditBranchPageState extends State<EditBranchPage> {
             branchName: _nameController.text,
           );
         }
+        if (!mounted) return;
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Branch updated successfully!'),
@@ -402,11 +409,12 @@ class _EditBranchPageState extends State<EditBranchPage> {
             behavior: SnackBarBehavior.floating));
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Failed to update: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating));
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -879,4 +887,5 @@ class _EditBranchPageState extends State<EditBranchPage> {
     );
   }
 }
+
 

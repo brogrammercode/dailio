@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ulid } from 'ulid';
 
 import { prisma } from '../../lib/prisma';
@@ -5,9 +6,13 @@ import { NotFoundError, ConflictError } from '../../lib/errors';
 
 import type { CreateRoleInput, UpdateRoleInput } from './roles.schema';
 
-export async function getRoles(organization_id: string) {
+export async function getRoles(organization_id: string, branch_id?: string) {
+  const where: any = { organization_id };
+  if (branch_id && branch_id !== 'none') {
+    where.branch_id = branch_id;
+  }
   return prisma.role.findMany({
-    where: { organization_id },
+    where,
     orderBy: { created_at: 'asc' },
   });
 }
@@ -31,6 +36,7 @@ export async function createRole(data: CreateRoleInput) {
       id: ulid(),
       organization_id: data.organization_id,
       name: data.name,
+      branch_id: data.branch_id || null,
       permissions: data.permissions,
       is_protected: false,
       is_system: false,
@@ -67,6 +73,10 @@ export async function updateRole(role_id: string, data: UpdateRoleInput) {
     data: {
       ...(data.name !== undefined && { name: data.name }),
       ...(data.permissions !== undefined && { permissions: data.permissions }),
+      ...(data.branch_id !== undefined && { branch_id: data.branch_id }),
     },
   });
 }
+
+
+

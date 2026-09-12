@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ulid } from 'ulid';
 import type { Prisma } from '@prisma/client';
 
@@ -248,6 +249,9 @@ export async function updateMember(
       where: { id: member_id },
       data: {
         role_id: data.role_id !== undefined ? data.role_id : undefined,
+          subscription_id: data.subscription_id !== undefined ? data.subscription_id : undefined,
+          shift_id: data.shift_id !== undefined ? data.shift_id : undefined,
+          salary_structure_id: data.salary_structure_id !== undefined ? data.salary_structure_id : undefined,
         // other configuration fields can be added here if they exist in DB
         updated_at: new Date(),
       },
@@ -273,3 +277,37 @@ export async function updateMember(
     return updated;
   });
 }
+export async function listOrganizationMembers(organizationId: string, branchId?: string) {
+  const where: any = { organization_id: organizationId };
+  if (branchId && branchId !== 'none') {
+    where.branch_id = branchId;
+  }
+  
+  const members = await prisma.member.findMany({
+    where,
+    include: {
+      user: true,
+      role: true,
+      branch: true,
+    },
+    orderBy: { created_at: 'desc' }
+  });
+  
+  // If user requested 'none', we could theoretically filter here, but we made branch_id required.
+  // We'll just return an empty array or filter manually if we changed schema.
+  if (branchId === 'none') {
+    return { data: members.filter(m => !m.branch_id) };
+  }
+  
+  return {
+    data: members,
+    meta: {
+      total: members.length,
+      page: 1,
+      limit: members.length
+    }
+  };
+}
+
+
+

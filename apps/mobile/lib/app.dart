@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,6 +12,8 @@ import 'features/auth/controllers/auth_repository.dart';
 import 'features/context_selection/controllers/branch_repository.dart';
 import 'features/branch/controllers/admission_repository.dart';
 import 'features/branch/controllers/members_repository.dart';
+import 'features/branch/controllers/shift_repository.dart';
+import 'features/branch/controllers/payroll_repository.dart';
 import 'features/organization/controllers/organization_repository.dart';
 import 'features/attendance/controllers/attendance_repository.dart';
 
@@ -24,6 +26,8 @@ class MainApp extends StatefulWidget {
   final AdmissionRepository admissionRepository;
   final OrganizationRepository organizationRepository;
   final MembersRepository membersRepository;
+  final ShiftRepository shiftRepository;
+  final PayrollRepository payrollRepository;
   final AttendanceRepository attendanceRepository;
   final String initialRoute;
 
@@ -37,6 +41,8 @@ class MainApp extends StatefulWidget {
     required this.admissionRepository,
     required this.organizationRepository,
     required this.membersRepository,
+    required this.shiftRepository,
+    required this.payrollRepository,
     required this.attendanceRepository,
     required this.initialRoute,
   });
@@ -64,6 +70,8 @@ class _MainAppState extends State<MainApp> {
         RepositoryProvider.value(value: widget.admissionRepository),
         RepositoryProvider.value(value: widget.organizationRepository),
         RepositoryProvider.value(value: widget.membersRepository),
+        RepositoryProvider.value(value: widget.shiftRepository),
+        RepositoryProvider.value(value: widget.payrollRepository),
         RepositoryProvider.value(value: widget.attendanceRepository),
       ],
       child: MultiBlocProvider(
@@ -83,3 +91,6 @@ class _MainAppState extends State<MainApp> {
     );
   }
 }
+
+
+

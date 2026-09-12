@@ -1,5 +1,7 @@
 ﻿import { Request, Response, NextFunction } from 'express';
+
 import { DiscoverBranchesQuerySchema, CreateBranchSchema, UpdateBranchSchema } from './branches.schema';
+import { getOrganizationBranches as getOrgBranchesService } from './branches.service';
 import { discoverBranches as discoverService, createBranch as createService, updateBranch as updateService, getBranchById as getBranchService } from './branches.service';
 
 export async function discoverBranches(req: Request, res: Response, next: NextFunction) {
@@ -49,9 +51,10 @@ export async function getBranch(req: Request, res: Response, next: NextFunction)
 export async function getOrganizationBranches(req: Request, res: Response, next: NextFunction) {
   try {
     const orgId = req.params.organization_id;
-    const result = await require('./branches.service').getOrganizationBranches(orgId);
+    const result = await getOrgBranchesService(orgId);
     res.json({ data: result });
   } catch (err) {
     next(err);
   }
 }
+

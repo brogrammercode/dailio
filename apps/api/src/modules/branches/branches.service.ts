@@ -1,4 +1,5 @@
 ﻿import { prisma } from '../../lib/prisma';
+
 import type { DiscoverBranchesQuery, CreateBranchInput, UpdateBranchInput } from './branches.schema';
 
 export async function discoverBranches({ query, limit, cursor }: DiscoverBranchesQuery) {

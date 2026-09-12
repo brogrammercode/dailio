@@ -11,9 +11,12 @@ import {
   suspend,
   deactivate,
   update,
+  getOrganizationMembers
 } from './members.controller';
 
 const router: Router = Router();
+
+router.get('/organizations/:organization_id/members', authenticate, getOrganizationMembers);
 
 router.get(
   '/branches/:branch_id/members',

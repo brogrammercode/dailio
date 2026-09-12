@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -159,10 +159,12 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
 
       final data = <String, dynamic>{};
       if (name != _originalName) data['name'] = name;
-      if (_emailCtrl.text.trim() != _originalEmail)
+      if (_emailCtrl.text.trim() != _originalEmail) {
         data['email'] = _emailCtrl.text.trim();
-      if (_phoneCtrl.text.trim() != _originalPhone)
+      }
+      if (_phoneCtrl.text.trim() != _originalPhone) {
         data['phone'] = _phoneCtrl.text.trim();
+      }
       if (_currency != _originalCurrency) data['currency'] = _currency;
       if (_timezone != _originalTimezone) data['timezone'] = _timezone;
 
@@ -230,7 +232,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                           _isDirty ? 140 : 40,
                         ),
                         children: [
-                          // ── Header ─────────────────────────────────────
+                          //  Header 
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
@@ -287,7 +289,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                           ),
                           const SizedBox(height: 24),
 
-                          // ── Logo Section ───────────────────────────────
+                          //  Logo Section 
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -377,7 +379,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                           ),
                           const SizedBox(height: 28),
 
-                          // ── Form Fields ──────────────────────────────────
+                          //  Form Fields 
                           _buildFormSection(
                             title: 'Organization Legal / Brand Name',
                             badge: 'REQUIRED',
@@ -492,7 +494,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                         ],
                       ),
 
-                      // ── Save / Discard bar (only when dirty) ───────────
+                      //  Save / Discard bar (only when dirty) 
                       if (_isDirty)
                         Positioned(
                           bottom: 0,
@@ -575,7 +577,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
     );
   }
 
-  // ─── Helpers ─────────────────────────────────────────────────────────────
+  //  Helpers 
 
   Widget _buildErrorState() {
     return Center(
@@ -738,3 +740,4 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
     );
   }
 }
+

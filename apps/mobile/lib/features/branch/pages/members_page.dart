@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/widgets/shimmer_loader.dart';
+import '../../../core/widgets/branch_filter_tabs.dart';
 import '../../organization/controllers/organization_repository.dart';
 import '../../organization/models/role_model.dart';
 import '../controllers/members_repository.dart';
@@ -36,6 +37,7 @@ class _MembersPageState extends State<MembersPage> {
   String _currentSearch = '';
   String? _currentStatus; // null for all
   String? _currentRoleId; // null for all
+  String? _selectedFilterBranchId;
 
   @override
   void initState() {
@@ -43,6 +45,7 @@ class _MembersPageState extends State<MembersPage> {
     _repo = context.read<MembersRepository>();
     _orgRepo = context.read<OrganizationRepository>();
     _branchId = context.read<PreferencesStorage>().activeBranchId!;
+    _selectedFilterBranchId = _branchId;
     _orgId = context.read<PreferencesStorage>().activeOrganizationId!;
 
     _loadInitialData();
@@ -89,8 +92,9 @@ class _MembersPageState extends State<MembersPage> {
       _errorMessage = null;
     });
     try {
-      final data = await _repo.listMembers(
-        _branchId,
+      final data = await _repo.listOrganizationMembers(
+        _orgId,
+        branchId: _selectedFilterBranchId,
         search: _currentSearch,
         status: _currentStatus,
         roleId: _currentRoleId,
@@ -137,6 +141,8 @@ class _MembersPageState extends State<MembersPage> {
               children: [
                 _buildHeader(context),
                 _buildTabs(context),
+                const SizedBox(height: 8),
+                BranchFilterTabs(selectedBranchId: _selectedFilterBranchId, onChanged: (val) { setState(() { _selectedFilterBranchId = val; }); _loadMembers(); }),
                 _buildSearchAndFilters(),
                 Expanded(
                   child: _isLoading
@@ -634,3 +640,4 @@ class _MembersPageState extends State<MembersPage> {
     );
   }
 }
+

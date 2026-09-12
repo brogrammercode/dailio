@@ -1,4 +1,5 @@
-﻿import { prisma } from '../../lib/prisma';
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+import { prisma } from '../../lib/prisma';
 import { AppError } from '../../lib/errors';
 
 export async function getOrganizationPlans(organizationId: string) {
@@ -30,5 +31,6 @@ export async function updatePlan(organizationId: string, planId: string, data: a
     data,
   });
 }
+
 
 

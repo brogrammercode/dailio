@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +9,7 @@ import '../../organization/controllers/organization_repository.dart';
 import '../../organization/models/role_model.dart';
 import '../controllers/members_repository.dart';
 import '../models/member_model.dart';
+import '../controllers/shift_repository.dart';
 
 class ConfigureMemberPage extends StatefulWidget {
   final String memberId;
@@ -23,6 +24,14 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
   String? _errorMessage;
   MemberModel? _member;
   List<RoleModel> _roles = [];
+  List<Map<String, dynamic>> _branches = [];
+  List<Map<String, dynamic>> _shifts = [];
+  List<Map<String, dynamic>> _plans = [];
+
+  String? _selectedBranchId;
+  String? _selectedShiftId;
+  String? _selectedPlanId;
+  String? _selectedSalaryStructureId;
 
   late final MembersRepository _repo;
   late final OrganizationRepository _orgRepo;
@@ -41,7 +50,10 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
   bool get _isDirty {
     if (_member == null) return false;
     if (_selectedRoleId != _member!.role?.id) return true;
-    // other overrides are dummy right now but keep dirty check
+    if (_selectedBranchId != _member!.branchId) return true;
+    if (_selectedShiftId != _member!.shiftId) return true;
+    if (_selectedPlanId != _member!.subscriptionId) return true;
+    if (_selectedSalaryStructureId != _member!.salaryStructureId) return true;
     return false;
   }
 
@@ -64,18 +76,32 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       final futures = await Future.wait([
         _repo.getMember(_branchId, widget.memberId),
         _orgRepo.getRoles(_orgId),
+        _orgRepo.getOrganizationBranches(_orgId),
+        _orgRepo.getOrganizationPlans(_orgId),
+        context.read<ShiftRepository>().listShifts(_orgId),
       ]);
 
       final memberData = futures[0] as Map<String, dynamic>;
       final roleMaps = futures[1] as List<Map<String, dynamic>>;
       final roles = roleMaps.map((e) => RoleModel.fromJson(e)).toList();
 
+      final branches = (futures[2] as List).cast<Map<String, dynamic>>();
+      final plans = (futures[3] as List).cast<Map<String, dynamic>>();
+      final shifts = (futures[4] as List).cast<Map<String, dynamic>>();
+
       final m = MemberModel.fromJson(memberData['data'] ?? memberData);
 
       setState(() {
         _member = m;
         _roles = roles;
+        _branches = branches;
+        _plans = plans;
+        _shifts = shifts;
         _selectedRoleId = m.role?.id;
+        _selectedBranchId = m.branchId;
+        _selectedShiftId = m.shiftId;
+        _selectedPlanId = m.subscriptionId;
+        _selectedSalaryStructureId = m.salaryStructureId;
       });
     } catch (e) {
       setState(() {
@@ -93,9 +119,10 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
     try {
       await _repo.updateMember(_branchId, widget.memberId, {
         'role_id': _selectedRoleId,
-        // 'is_geofence_exempt': _isGeofenceExempt,
-        // 'is_selfie_mandatory': _isSelfieMandatory,
-        // 'is_multi_branch': _isMultiBranch,
+        'branch_id': _selectedBranchId,
+        'subscription_id': _selectedPlanId,
+        'shift_id': _selectedShiftId,
+        'salary_structure_id': _selectedSalaryStructureId,
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -317,7 +344,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               Text(
-                  'Member #${_member!.membershipNumber.isNotEmpty ? _member!.membershipNumber : _member!.id.substring(0, 8)} â€¢ ${_member!.name}',
+                  'Member #${_member!.membershipNumber.isNotEmpty ? _member!.membershipNumber : _member!.id.substring(0, 8)} Ã¢â‚¬Â¢ ${_member!.name}',
                   style: const TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
@@ -518,145 +545,81 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
     return _buildSectionCard(
       title: 'Role & Facility Access',
       icon: Iconsax.building_4,
-      badge:
-          'Access Level: ${_roles.firstWhere((r) => r.id == _selectedRoleId, orElse: () => _roles.first).name}',
       children: [
         _buildLabel('Primary Role'),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200)),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               isExpanded: true,
               value: _selectedRoleId,
-              items: _roles
-                  .map((r) => DropdownMenuItem<String>(
-                      value: r.id,
-                      child:
-                          Text(r.name, style: const TextStyle(fontSize: 12))))
-                  .toList(),
-              onChanged: (val) {
-                setState(() => _selectedRoleId = val);
-              },
+              items: _roles.map((r) => DropdownMenuItem<String>(value: r.id, child: Text(r.name))).toList(),
+              onChanged: (val) => setState(() => _selectedRoleId = val),
             ),
           ),
         ),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildLabel('Assigned Branch Facility'),
-            const Row(
-              children: [
-                Icon(Icons.swap_horiz, size: 12, color: Colors.orange),
-                SizedBox(width: 4),
-                Text('Transfer Branch',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.orange,
-                        fontWeight: FontWeight.bold)),
-              ],
-            )
-          ],
+        _buildLabel('Assigned Branch'),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              hint: const Text('No Branch Assigned'),
+              value: _selectedBranchId,
+              items: [const DropdownMenuItem<String>(value: null, child: Text('No Branch (HQ)')), ..._branches.map((b) => DropdownMenuItem<String>(value: b['id'], child: Text(b['name'])))],
+              onChanged: (val) => setState(() => _selectedBranchId = val),
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
-        _buildDropdown('Main Branch (Locked)', icon: Iconsax.location),
       ],
     );
   }
 
   Widget _buildAssignedWork() {
     return _buildSectionCard(
-      title: 'Assigned Work /\nTraining Shift',
+      title: 'Assigned Work Shift',
       icon: Iconsax.clock,
-      badge: 'Not Assigned',
-      badgeColor: Colors.orange.shade50,
-      badgeTextColor: Colors.orange.shade800,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildLabel('Select Rostered Shift'),
-            const Text('Weekly Off: None',
-                style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.orange,
-                    fontWeight: FontWeight.bold)),
-          ],
+        _buildLabel('Primary Shift'),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              hint: const Text('No Shift Assigned'),
+              value: _selectedShiftId,
+              items: [const DropdownMenuItem<String>(value: null, child: Text('No Shift Assigned')), ..._shifts.map((s) => DropdownMenuItem<String>(value: s['id'], child: Text(s['name'])))],
+              onChanged: (val) => setState(() => _selectedShiftId = val),
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
-        _buildDropdown('No Shift Assigned', icon: Iconsax.clock),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            const Icon(Iconsax.info_circle, size: 14, color: Colors.orange),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                  'Assign a shift to enable geofenced clock-ins and attendance tracking.',
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-            )
-          ],
-        )
       ],
     );
   }
 
   Widget _buildSubscription() {
     return _buildSectionCard(
-      title: 'Assign / Change\nSubscription',
+      title: 'Subscription Plan',
       icon: Iconsax.card,
-      badge: 'No Active Plan',
-      badgeColor: Colors.grey.shade100,
-      badgeTextColor: Colors.grey.shade700,
       children: [
-        _buildLabel('Selected Membership Plan'),
-        _buildDropdown('Select Plan...', icon: Iconsax.monitor),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                  _buildLabel('START DATE'),
-                  _buildDropdown('--/--/----', icon: Iconsax.calendar_1)
-                ])),
-            const SizedBox(width: 12),
-            Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                  _buildLabel('EXPIRY DATE'),
-                  _buildDropdown('--/--/----', icon: Iconsax.calendar_2)
-                ])),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Auto-Renew Subscription',
-                      style:
-                          TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text('Bill linked card upon plan expiry',
-                      style:
-                          TextStyle(fontSize: 10, color: Colors.grey.shade500)),
-                ],
-              ),
+        _buildLabel('Allotted Plan'),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              hint: const Text('No Plan Assigned'),
+              value: _selectedPlanId,
+              items: [const DropdownMenuItem<String>(value: null, child: Text('No Plan Assigned')), ..._plans.map((p) => DropdownMenuItem<String>(value: p['id'], child: Text(p['name'])))],
+              onChanged: (val) => setState(() => _selectedPlanId = val),
             ),
-            Switch(
-                value: false,
-                onChanged: (v) {},
-                activeThumbColor: Colors.orange.shade600),
-          ],
-        )
+          ),
+        ),
       ],
     );
   }
@@ -751,32 +714,23 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
 
   Widget _buildPayroll() {
     return _buildSectionCard(
-      title: 'Employee\nCompensation & Payroll',
-      icon: Iconsax.wallet_2,
-      badge: 'Not Eligible',
-      badgeColor: Colors.grey.shade100,
-      badgeTextColor: Colors.grey.shade700,
+      title: 'Payroll & Salary',
+      icon: Iconsax.money_3,
       children: [
-        _buildToggleRow('Employee Eligible for Salary',
-            'Activate payroll disbursements', false, null),
-        const SizedBox(height: 16),
+        _buildLabel('Salary Structure'),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200)),
-          child: const Row(
-            children: [
-              Icon(Iconsax.setting_4, size: 16, color: Colors.orange),
-              SizedBox(width: 12),
-              Text('Configure Salary Structure',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              Spacer(),
-              Icon(Iconsax.arrow_right_3, size: 14, color: Colors.grey),
-            ],
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              hint: const Text('No Salary Structure'),
+              value: _selectedSalaryStructureId,
+              items: const [DropdownMenuItem<String>(value: null, child: Text('No Salary Structure'))], // TODO: bind actual salary structures once backend supports it
+              onChanged: (val) => setState(() => _selectedSalaryStructureId = val),
+            ),
           ),
-        )
+        ),
       ],
     );
   }
@@ -847,7 +801,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
   Widget _buildSectionCard(
       {required String title,
       required IconData icon,
-      required String badge,
+      String? badge,
       Color? badgeColor,
       Color? badgeTextColor,
       required List<Widget> children}) {
@@ -874,7 +828,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                   child: Text(title,
                       style: const TextStyle(
                           fontSize: 12, fontWeight: FontWeight.bold))),
-              Container(
+              if (badge != null) Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                     color: badgeColor ?? Colors.grey.shade100,
@@ -899,26 +853,6 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(text,
           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-    );
-  }
-
-  Widget _buildDropdown(String value, {IconData? icon}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade200)),
-      child: Row(
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 14, color: Colors.grey),
-            const SizedBox(width: 8)
-          ],
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 12))),
-          const Icon(Iconsax.arrow_down_1, size: 14, color: Colors.grey),
-        ],
-      ),
     );
   }
 
@@ -948,3 +882,12 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
     );
   }
 }
+
+
+
+
+
+
+
+
+

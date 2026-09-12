@@ -1,4 +1,4 @@
-import 'package:iconsax/iconsax.dart';
+﻿import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -335,7 +335,7 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                                                     size: 12,
                                                     color: Color(0xFF9CA3AF)),
                                                 const SizedBox(width: 2),
-                                                const Text('100ft Rd • 1.2 km',
+                                                const Text('100ft Rd  1.2 km',
                                                     style: TextStyle(
                                                         fontSize: 11,
                                                         color:
@@ -424,7 +424,7 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                                       onPressed: () => context.push(
                                           '/org-detail/${orgEntry.key}',
                                           extra: orgEntry.value),
-                                      child: const Text('View Org & Branches →',
+                                      child: const Text('View Org & Branches ',
                                           style: TextStyle(
                                               fontWeight: FontWeight.w600,
                                               fontSize: 13)),
@@ -490,7 +490,7 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                           borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () => context.push('/create-gym'),
-                    child: const Text('Create an Organization 🚀',
+                    child: const Text('Create an Organization ',
                         style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
                 ),
@@ -516,3 +516,4 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
     );
   }
 }
+

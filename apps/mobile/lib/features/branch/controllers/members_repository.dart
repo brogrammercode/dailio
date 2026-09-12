@@ -1,4 +1,4 @@
-import '../../../core/network/api_client.dart';
+﻿import '../../../core/network/api_client.dart';
 
 class MembersRepository {
   final ApiClient apiClient;
@@ -69,4 +69,18 @@ class MembersRepository {
       data: data,
     );
   }
+
+  Future<Map<String, dynamic>> listOrganizationMembers(String orgId, {String? branchId, String? search, String? status, String? roleId}) async {
+    final query = <String, dynamic>{};
+    if (branchId != null) query['branch_id'] = branchId;
+    if (search != null && search.isNotEmpty) query['search'] = search;
+    if (status != null && status.isNotEmpty) query['status'] = status;
+    if (roleId != null && roleId.isNotEmpty) query['role_id'] = roleId;
+    
+    final response = await apiClient.dio.get('/organizations/$orgId/members', queryParameters: query);
+    return response.data as Map<String, dynamic>;
+  }
+
 }
+
+

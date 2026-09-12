@@ -184,17 +184,19 @@ model User {
 }
 
 model Member {
-  id              String       @id @default(cuid())
-  user_id         String
-  organization_id String
-  branch_id       String
-  is_employee     Boolean      @default(false)
-  role_id         String?
-  shift_id        String?
-  status          MemberStatus @default(ACTIVE)
-  member_number   String?
-  created_at      DateTime     @default(now())
-  updated_at      DateTime     @updatedAt
+  id                  String       @id @default(cuid())
+  user_id             String
+  organization_id     String
+  branch_id           String
+  is_employee         Boolean      @default(false)
+  role_id             String?
+  shift_id            String?
+  subscription_id     String?
+  salary_structure_id String?
+  status              MemberStatus @default(ACTIVE)
+  member_number       String?
+  created_at          DateTime     @default(now())
+  updated_at          DateTime     @updatedAt
 
   user         User         @relation(fields: [user_id], references: [id])
   organization Organization @relation(fields: [organization_id], references: [id])
@@ -244,6 +246,7 @@ model Organization {
   feature_flags        FeatureFlag[]
   audit_logs           AuditLog[]
   announcements        Announcement[]
+  salaryStructures     SalaryStructure[]
 
   @@map("organizations")
 }
@@ -283,6 +286,8 @@ model Branch {
   reminders           Reminder[]
   announcements       Announcement[]
   members             Member[]
+  plans               Plan[]
+  salaryStructures    SalaryStructure[]
 
   @@index([organization_id])
   @@map("branches")
@@ -326,7 +331,7 @@ model Role {
   id              String   @id @default(cuid())
   organization_id String
   branch_id       String?
-  system_key      String? // OWNER, ADMIN, MEMBER — null for custom
+  system_key      String? // OWNER, ADMIN, MEMBER ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â null for custom
   name            String
   description     String?
   is_protected    Boolean  @default(false)
@@ -521,12 +526,13 @@ model Plan {
   discount_percent  Float    @default(0)
   grace_days        Int      @default(0)
   is_active         Boolean  @default(true)
-  branch_ids        String[] // empty = available to all locations
+  branch_id         String?
   metadata          Json?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 
   organization  Organization   @relation(fields: [organization_id], references: [id])
+  branch        Branch?        @relation(fields: [branch_id], references: [id])
   subscriptions Subscription[]
 
   @@index([organization_id])
@@ -799,4 +805,24 @@ model FeatureFlag {
 
   @@unique([organization_id, branch_id, key])
   @@map("feature_flags")
+}
+
+// ============================================================
+// PAYROLL & SALARY
+// ============================================================
+
+model SalaryStructure {
+  id              String   @id @default(cuid())
+  organization_id String
+  branch_id       String
+  name            String
+  amount          Int
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  branch       Branch       @relation(fields: [branch_id], references: [id])
+
+  @@index([organization_id, branch_id])
+  @@map("salary_structures")
 }

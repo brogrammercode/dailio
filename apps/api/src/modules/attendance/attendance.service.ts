@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ulid } from 'ulid';
 import type { Prisma } from '@prisma/client';
 
@@ -182,3 +183,4 @@ export async function listSessions(actor_id: string, organization_id: string, br
     orderBy: { clock_in_at: 'desc' },
   });
 }
+

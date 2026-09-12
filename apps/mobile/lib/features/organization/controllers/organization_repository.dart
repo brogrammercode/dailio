@@ -37,28 +37,36 @@ class OrganizationRepository {
     return response.data['organization'] as Map<String, dynamic>;
   }
 
-  Future<List<Map<String, dynamic>>> getRoles(String orgId) async {
-    final response = await apiClient.dio
-        .get('/roles', queryParameters: {'organization_id': orgId});
+  Future<List<Map<String, dynamic>>> getRoles(String orgId, {String? branchId}) async {
+    final query = <String, dynamic>{'organization_id': orgId};
+    if (branchId != null) query['branch_id'] = branchId;
+    final response = await apiClient.dio.get('/roles', queryParameters: query);
     return List<Map<String, dynamic>>.from(response.data['roles']);
   }
 
   Future<Map<String, dynamic>> createRole(
-      String orgId, String name, List<String> permissions) async {
-    final response = await apiClient.dio.post('/roles', data: {
+      String orgId, String name, List<String> permissions, {String? branchId}) async {
+    final payload = <String, dynamic>{
       'organization_id': orgId,
       'name': name,
       'permissions': permissions,
-    });
+    };
+    if (branchId != null && branchId != 'none') payload['branch_id'] = branchId;
+    
+    final response = await apiClient.dio.post('/roles', data: payload);
     return response.data['role'] as Map<String, dynamic>;
   }
 
-  Future<Map<String, dynamic>> updateRole(
-      String roleId, String name, List<String> permissions) async {
-    final response = await apiClient.dio.patch('/roles/$roleId', data: {
-      'name': name,
-      'permissions': permissions,
-    });
+  Future<Map<String, dynamic>> updateRole(String roleId, {String? name, List<String>? permissions, String? branchId, bool clearBranch = false}) async {
+    final data = <String, dynamic>{};
+    if (name != null) data['name'] = name;
+    if (permissions != null) data['permissions'] = permissions;
+    if (branchId != null) {
+      data['branch_id'] = branchId;
+    } else if (clearBranch) {
+      data['branch_id'] = null;
+    }
+    final response = await apiClient.dio.patch('/roles/$roleId', data: data);
     return response.data['role'] as Map<String, dynamic>;
   }
 
@@ -109,5 +117,7 @@ class OrganizationRepository {
   }
 
 }
+
+
 
 

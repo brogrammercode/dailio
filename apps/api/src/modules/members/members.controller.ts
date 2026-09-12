@@ -96,3 +96,13 @@ export async function update(req: Request, res: Response, next: NextFunction) {
     next(error);
   }
 }
+export async function getOrganizationMembers(req: Request, res: Response, next: NextFunction) {
+  try {
+    const orgId = req.params.organization_id;
+    const branchId = req.query.branch_id as string | undefined;
+    const result = await membersService.listOrganizationMembers(orgId, branchId);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}

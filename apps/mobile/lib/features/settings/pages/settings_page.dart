@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
@@ -96,19 +96,19 @@ class _SettingsPageState extends State<SettingsPage> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
                 children: [
-                  // â”€â”€ Context Pill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  //  Context Pill 
                   _buildContextPill(orgName, branchName),
                   const SizedBox(height: 16),
 
-                  // â”€â”€ Profile Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  //  Profile Card 
                   _buildProfileCard(context, user),
                   const SizedBox(height: 16),
 
-                  // â”€â”€ Organization Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  //  Organization Card 
                   _buildOrgCard(context, orgMap, orgName),
                   const SizedBox(height: 24),
 
-                  // â”€â”€ Management Modules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  //  Management Modules 
                   _sectionHeader('MANAGEMENT & OPERATIONS', '6 Modules'),
                   const SizedBox(height: 12),
 
@@ -188,14 +188,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
                   const SizedBox(height: 24),
 
-                  // â”€â”€ Workspace Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  //  Workspace Settings 
                   _sectionHeader('WORKSPACE SETTINGS', null),
                   const SizedBox(height: 12),
                   _buildWorkspaceCard(),
 
                   const SizedBox(height: 24),
 
-                  // â”€â”€ Sign Out â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  //  Sign Out 
                   OutlinedButton.icon(
                     onPressed: _confirmSignOut,
                     icon:
@@ -216,7 +216,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Tap to confirm â€” this will end all active kiosk sessions.',
+                    'Tap to confirm  this will end all active kiosk sessions.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 10, color: Colors.grey),
                   ),
@@ -229,7 +229,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // â”€â”€â”€ Context Pill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  //  Context Pill 
   Widget _buildContextPill(String? orgName, String? branchName) {
     if (orgName == null) {
       return Container(
@@ -318,7 +318,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // â”€â”€â”€ Profile Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  //  Profile Card 
   Widget _buildProfileCard(BuildContext context, UserModel? user) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -480,7 +480,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // â”€â”€â”€ Organization Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  //  Organization Card 
   Widget _buildOrgCard(
       BuildContext context, Map<String, dynamic>? orgMap, String? orgName) {
     return Container(
@@ -630,7 +630,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // â”€â”€â”€ Module Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  //  Module Card 
   Widget _buildModuleCard({
     required IconData icon,
     Color iconColor = Colors.black54,
@@ -766,7 +766,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // â”€â”€â”€ Workspace Settings Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  //  Workspace Settings Card 
   Widget _buildWorkspaceCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -849,7 +849,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // â”€â”€â”€ Section Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  //  Section Header 
   Widget _sectionHeader(String label, String? badge) {
     return Row(
       children: [
@@ -878,3 +878,4 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
+

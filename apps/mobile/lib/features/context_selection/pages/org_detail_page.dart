@@ -1,4 +1,4 @@
-import 'package:iconsax/iconsax.dart';
+﻿import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -418,7 +418,7 @@ class _OrgDetailPageState extends State<OrgDetailPage> {
                             Icon(Icons.near_me_outlined,
                                 size: 12, color: Color(0xFF6B7280)),
                             SizedBox(width: 4),
-                            Text('1.2 km away • Flagship Center',
+                            Text('1.2 km away  Flagship Center',
                                 style: TextStyle(
                                     color: Color(0xFF6B7280), fontSize: 13)),
                           ],
@@ -473,7 +473,7 @@ class _OrgDetailPageState extends State<OrgDetailPage> {
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8))),
                             onPressed: () => _joinBranch(loc),
-                            child: const Text('Request to Join Branch →',
+                            child: const Text('Request to Join Branch ',
                                 style: TextStyle(fontWeight: FontWeight.w600)),
                           ),
                         ),
@@ -579,3 +579,4 @@ class _StatBox extends StatelessWidget {
     );
   }
 }
+

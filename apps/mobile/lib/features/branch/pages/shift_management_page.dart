@@ -1,9 +1,67 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shimmer/shimmer.dart';
+import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/branch_filter_tabs.dart';
+import '../../organization/controllers/organization_repository.dart';
+import '../controllers/shift_repository.dart';
 
-class ShiftManagementPage extends StatelessWidget {
+class ShiftManagementPage extends StatefulWidget {
   const ShiftManagementPage({super.key});
+
+  @override
+  State<ShiftManagementPage> createState() => _ShiftManagementPageState();
+}
+
+class _ShiftManagementPageState extends State<ShiftManagementPage> {
+  String? _selectedFilterBranchId;
+  late final String _orgId;
+  late final ShiftRepository _repo;
+
+  List<Map<String, dynamic>> _shifts = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFilterBranchId = context.read<PreferencesStorage>().activeBranchId;
+    _orgId = context.read<PreferencesStorage>().activeOrganizationId!;
+    _repo = context.read<ShiftRepository>();
+    _loadShifts();
+  }
+
+  Future<void> _loadShifts() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final data = await _repo.listShifts(_orgId, branchId: _selectedFilterBranchId == 'none' ? null : _selectedFilterBranchId);
+      if (mounted) setState(() => _shifts = data);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showShiftModal({Map<String, dynamic>? shift}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => _ShiftFormSheet(
+        orgId: _orgId,
+        defaultBranchId: _selectedFilterBranchId,
+        shiftToEdit: shift,
+        onSaved: _loadShifts,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,751 +70,346 @@ class ShiftManagementPage extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            ListView(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 150),
+            Column(
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8)),
-                      child: IconButton(
-                        icon: const Icon(Iconsax.arrow_left, size: 20),
-                        onPressed: () => context.pop(),
-                        constraints:
-                            const BoxConstraints(minWidth: 40, minHeight: 40),
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Shift Management',
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 4),
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                  radius: 3, backgroundColor: Colors.green),
-                              SizedBox(width: 4),
-                              Text('Main Branch - Indiranagar',
-                                  style: TextStyle(
-                                      fontSize: 10, color: Colors.grey)),
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
-                    const Icon(Iconsax.message_question,
-                        size: 20, color: Colors.grey),
-                    const SizedBox(width: 12),
-                    const CircleAvatar(
-                        radius: 14,
-                        backgroundColor: Colors.black,
-                        child: Text('D',
-                            style:
-                                TextStyle(color: Colors.white, fontSize: 12))),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Overview Card
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade200)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const CircleAvatar(
-                              radius: 4, backgroundColor: Colors.green),
-                          const SizedBox(width: 8),
-                          const Text('LIVE BRANCH OPERATIONS',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey)),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                borderRadius: BorderRadius.circular(12)),
-                            child: Row(
-                              children: [
-                                const Icon(Iconsax.verify,
-                                    size: 10, color: Colors.green),
-                                const SizedBox(width: 4),
-                                Text('99.2% Punctuality',
-                                    style: TextStyle(
-                                        fontSize: 9,
-                                        color: Colors.green.shade700,
-                                        fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      const Text('Workforce Shifts & Rosters',
-                          style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      const Text('Indiranagar Central Studio • Cycle Q2',
-                          style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                              child: _buildStatBox('Active Shifts', '3', null)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                              child:
-                                  _buildStatBox('Rostered Staff', '28', null)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                              child: _buildStatBox(
-                                  'Floor Coverage', '18.5h', null)),
-                        ],
-                      )
-                    ],
-                  ),
+                _buildHeader(context),
+                const SizedBox(height: 16),
+                BranchFilterTabs(
+                  contentPadding: EdgeInsets.zero,
+                  selectedBranchId: _selectedFilterBranchId,
+                  onChanged: (val) {
+                    setState(() => _selectedFilterBranchId = val);
+                    _loadShifts();
+                  },
                 ),
                 const SizedBox(height: 16),
-
-                // Horizontal Tabs
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildTab('Morning Shift', Iconsax.sun_1, true),
-                      const SizedBox(width: 8),
-                      _buildTab('Evening Shift', Iconsax.moon, false),
-                      const SizedBox(width: 8),
-                      _buildTab('General Duty', Iconsax.clock, false),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Shift Details Form
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade200)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Text('Morning Shift Regular',
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold)),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                          color: Colors.green.shade50,
-                                          borderRadius:
-                                              BorderRadius.circular(12)),
-                                      child: Text('Active',
-                                          style: TextStyle(
-                                              fontSize: 9,
-                                              color: Colors.green.shade700,
-                                              fontWeight: FontWeight.bold)),
-                                    )
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                const Text('Code: SFT-MOR-01 • 22 Assigned',
-                                    style: TextStyle(
-                                        fontSize: 10, color: Colors.grey)),
-                              ],
-                            ),
-                          ),
-                          Switch(
-                              value: true,
-                              onChanged: (v) {},
-                              activeColor: Colors.orange.shade800),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      const Text('Shift Label',
-                          style: TextStyle(
-                              fontSize: 10, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      _buildTextField(
-                          'Morning Shift Regular', Iconsax.building_4),
-                      const SizedBox(height: 24),
-
-                      // Time Slot
-                      Row(
-                        children: [
-                          const Icon(Iconsax.clock,
-                              size: 16, color: Colors.orange),
-                          const SizedBox(width: 8),
-                          const Text('Operating Time Slot',
-                              style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold)),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                                color: Colors.orange.shade100,
-                                borderRadius: BorderRadius.circular(4)),
-                            child: Text('8h 00m Total Duration',
-                                style: TextStyle(
-                                    fontSize: 9,
-                                    color: Colors.orange.shade800,
-                                    fontWeight: FontWeight.bold)),
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                              child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                const Text('Shift Start',
-                                    style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 8),
-                                _buildTextField('06:00 AM', Iconsax.clock)
-                              ])),
-                          const SizedBox(width: 12),
-                          Expanded(
-                              child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                const Text('Shift End',
-                                    style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 8),
-                                _buildTextField('02:00 PM', Iconsax.timer_1)
-                              ])),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Grace Window
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                            color: Colors.blue.shade50.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(8)),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Iconsax.timer_1,
-                                    size: 14, color: Colors.orange),
-                                const SizedBox(width: 8),
-                                const Text('Arrival Grace Window',
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold)),
-                                const Spacer(),
-                                Text('15 Mins',
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.orange.shade800,
-                                        fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Stack(
-                              children: [
-                                Container(
-                                    height: 4,
-                                    decoration: BoxDecoration(
-                                        color: Colors.blue.shade100,
-                                        borderRadius:
-                                            BorderRadius.circular(2))),
-                                Container(
-                                    height: 4,
-                                    width: 80,
-                                    decoration: BoxDecoration(
-                                        color: Colors.orange.shade800,
-                                        borderRadius:
-                                            BorderRadius.circular(2))),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                                'Punches recorded up to 06:15 AM marked on-time\nwithout penalties.',
-                                style: TextStyle(
-                                    fontSize: 10, color: Colors.blue.shade800)),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                  color: Colors.grey.shade50,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border:
-                                      Border.all(color: Colors.grey.shade200)),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Early Departure',
-                                      style: TextStyle(
-                                          fontSize: 10, color: Colors.grey)),
-                                  const SizedBox(height: 4),
-                                  const Text('15 Mins Tol.',
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 2),
-                                  const Text('Valid past 01:45 PM',
-                                      style: TextStyle(
-                                          fontSize: 9, color: Colors.grey)),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                  color: Colors.grey.shade50,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border:
-                                      Border.all(color: Colors.grey.shade200)),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Half-Day Limit',
-                                      style: TextStyle(
-                                          fontSize: 10, color: Colors.grey)),
-                                  const SizedBox(height: 4),
-                                  const Text('4h Minimum',
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 2),
-                                  const Text('Requires 240 mins',
-                                      style: TextStyle(
-                                          fontSize: 9, color: Colors.grey)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Breaks & Roster Rules
-                      const Row(children: [
-                        Icon(Iconsax.cup, size: 16, color: Colors.grey),
-                        SizedBox(width: 8),
-                        Text('Breaks & Roster Rules',
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.bold))
-                      ]),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Mandated Rest Break',
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold)),
-                                Text('Deducted automatically from shift time',
-                                    style: TextStyle(
-                                        fontSize: 9, color: Colors.grey)),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border:
-                                    Border.all(color: Colors.grey.shade200)),
-                            child: const Text('30 mins',
-                                style: TextStyle(
-                                    fontSize: 11, fontWeight: FontWeight.bold)),
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Auto-close Incomplete Shifts',
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold)),
-                                Text('Applies to unpunched check-outs',
-                                    style: TextStyle(
-                                        fontSize: 9, color: Colors.grey)),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border:
-                                    Border.all(color: Colors.grey.shade200)),
-                            child: const Text('After 10h',
-                                style: TextStyle(
-                                    fontSize: 11, fontWeight: FontWeight.bold)),
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Recurrence Pattern
-                      Row(
-                        children: [
-                          const Icon(Iconsax.calendar,
-                              size: 16, color: Colors.grey),
-                          const SizedBox(width: 8),
-                          const Text('Recurrence Pattern',
-                              style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold)),
-                          const Spacer(),
-                          Text('6 Days Operating',
-                              style: TextStyle(
-                                  fontSize: 9,
-                                  color: Colors.orange.shade800,
-                                  fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildDayChip('M', true),
-                          _buildDayChip('T', true),
-                          _buildDayChip('W', true),
-                          _buildDayChip('T', true),
-                          _buildDayChip('F', true),
-                          _buildDayChip('S', true),
-                          _buildDayChip('S', false),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                          'Sunday tagged as weekly standard rest window.',
-                          style: TextStyle(fontSize: 10, color: Colors.grey)),
-                      const SizedBox(height: 24),
-
-                      // Geofence & Compliance Audit
-                      const Row(children: [
-                        Icon(Iconsax.shield_tick,
-                            size: 16, color: Colors.orange),
-                        SizedBox(width: 8),
-                        Text('Geofence & Compliance Audit',
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.bold))
-                      ]),
-                      const SizedBox(height: 16),
-                      _buildCheckboxRow(
-                          'Geofence Boundary Required',
-                          'Radius 50m around Main Branch Indiranagar',
-                          true,
-                          Iconsax.location),
-                      _buildCheckboxRow(
-                          'Mandatory Live Selfie Punch',
-                          'Biometric anti-spoof verification enabled',
-                          true,
-                          Iconsax.camera),
-                      _buildCheckboxRow(
-                          'Permit Sister Branches',
-                          'Allows punch at Koramangala & Whitefield',
-                          false,
-                          Iconsax.hierarchy),
-                      const SizedBox(height: 24),
-
-                      // Assigned Personnel
-                      Row(
-                        children: [
-                          const Icon(Iconsax.people,
-                              size: 16, color: Colors.orange),
-                          const SizedBox(width: 8),
-                          const Text('Assigned Personnel',
-                              style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold)),
-                          const Spacer(),
-                          const Text('Manage Shift Roster',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.bold)),
-                          const Icon(Iconsax.arrow_right_3,
-                              size: 12, color: Colors.orange),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 100,
-                            height: 24,
-                            child: Stack(
-                              children: [
-                                const Positioned(
-                                    left: 0,
-                                    child: CircleAvatar(
-                                        radius: 12,
-                                        backgroundImage: NetworkImage(
-                                            'https://i.pravatar.cc/150?img=1'))),
-                                const Positioned(
-                                    left: 16,
-                                    child: CircleAvatar(
-                                        radius: 12,
-                                        backgroundImage: NetworkImage(
-                                            'https://i.pravatar.cc/150?img=2'))),
-                                const Positioned(
-                                    left: 32,
-                                    child: CircleAvatar(
-                                        radius: 12,
-                                        backgroundImage: NetworkImage(
-                                            'https://i.pravatar.cc/150?img=3'))),
-                                Positioned(
-                                    left: 48,
-                                    child: CircleAvatar(
-                                        radius: 12,
-                                        backgroundColor: Colors.orange.shade800,
-                                        child: const Text('+19',
-                                            style: TextStyle(
-                                                fontSize: 10,
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold)))),
-                              ],
-                            ),
-                          ),
-                          const Spacer(),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Text('22 Scheduled',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold)),
-                              Text('Devika, Arjun & 20 more',
-                                  style: TextStyle(
-                                      fontSize: 9,
-                                      color: Colors.grey.shade500)),
-                            ],
-                          )
-                        ],
-                      )
-                    ],
-                  ),
+                Expanded(
+                  child: _isLoading
+                      ? _buildSkeleton()
+                      : _error != null
+                          ? Center(child: Text('Error: $_error'))
+                          : _shifts.isEmpty
+                              ? _buildEmptyState()
+                              : _buildShiftsList(),
                 )
               ],
             ),
-
-            // Bottom Bar
             Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF9FAFB),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.white.withOpacity(0.9),
-                        blurRadius: 10,
-                        spreadRadius: 10)
-                  ],
+              bottom: 24,
+              left: 24,
+              right: 24,
+              child: ElevatedButton(
+                onPressed: () => _showShiftModal(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
                 ),
-                child: Column(
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Iconsax.save_2, size: 18),
-                      label: const Text('Save Shift Parameters',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade800,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        minimumSize: const Size(double.infinity, 0),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Iconsax.copy,
-                          size: 16, color: Colors.black),
-                      label: const Text('Duplicate to Other Branches',
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold)),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.white,
-                        side: BorderSide(color: Colors.grey.shade300),
-                        minimumSize: const Size(double.infinity, 0),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                    )
+                    Icon(Iconsax.add, size: 20),
+                    SizedBox(width: 8),
+                    Text('New Shift', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatBox(String title, String value, String? subtitle) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-          color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 9, color: Colors.grey)),
-          const SizedBox(height: 4),
-          Text(value,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTab(String label, IconData icon, bool isActive) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isActive ? Colors.orange.shade800 : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: isActive ? Colors.orange.shade800 : Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: isActive ? Colors.white : Colors.grey),
-          const SizedBox(width: 8),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: isActive ? Colors.white : Colors.grey.shade700)),
-          if (isActive) ...[
-            const SizedBox(width: 8),
-            const CircleAvatar(radius: 3, backgroundColor: Colors.white)
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextField(String text, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade200)),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: Colors.grey),
-          const SizedBox(width: 8),
-          Text(text, style: const TextStyle(fontSize: 11)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDayChip(String letter, bool isActive) {
-    return Container(
-      width: 36,
-      height: 36,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: isActive ? Colors.orange.shade800 : Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(letter,
-          style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: isActive ? Colors.white : Colors.grey.shade500)),
-    );
-  }
-
-  Widget _buildCheckboxRow(
-      String title, String subtitle, bool isChecked, IconData icon) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: Colors.grey),
+          Container(
+            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+            child: IconButton(
+              icon: const Icon(Iconsax.arrow_left, size: 20),
+              onPressed: () => context.pop(),
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              padding: EdgeInsets.zero,
+            ),
+          ),
           const SizedBox(width: 12),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 11, fontWeight: FontWeight.bold)),
-                Text(subtitle,
-                    style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                Text('Shift Management', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                SizedBox(height: 4),
+                Text('Configure timings and rosters', style: TextStyle(fontSize: 10, color: Colors.grey)),
               ],
             ),
           ),
-          Icon(isChecked ? Icons.check_box : Icons.check_box_outline_blank,
-              color: isChecked ? Colors.orange.shade800 : Colors.grey,
-              size: 18),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSkeleton() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+      itemCount: 4,
+      itemBuilder: (context, index) => Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
+        child: Row(
+          children: [
+            Shimmer.fromColors(
+              baseColor: Colors.grey.shade200,
+              highlightColor: Colors.grey.shade100,
+              child: Container(width: 48, height: 48, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Shimmer.fromColors(baseColor: Colors.grey.shade200, highlightColor: Colors.grey.shade100, child: Container(width: 120, height: 14, color: Colors.white)),
+                  const SizedBox(height: 8),
+                  Shimmer.fromColors(baseColor: Colors.grey.shade200, highlightColor: Colors.grey.shade100, child: Container(width: 80, height: 12, color: Colors.white)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Iconsax.clock, size: 64, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          const Text('No Shifts Found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('Create a shift to manage staff timings.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+          const SizedBox(height: 64),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShiftsList() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+      itemCount: _shifts.length,
+      itemBuilder: (context, index) {
+        final shift = _shifts[index];
+        final tIn = shift['time_in'] ?? '00:00';
+        final tOut = shift['time_out'] ?? '00:00';
+        
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
+                child: Icon(Iconsax.clock, color: Colors.blue.shade700, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(shift['name'] ?? 'Unnamed', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 4),
+                    Text('$tIn - $tOut', style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Iconsax.edit, size: 18, color: Colors.blue),
+                onPressed: () => _showShiftModal(shift: shift),
+              ),
+              IconButton(
+                icon: const Icon(Iconsax.trash, size: 18, color: Colors.red),
+                onPressed: () async {
+                  await _repo.deleteShift(_orgId, shift['id']);
+                  _loadShifts();
+                },
+              )
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ShiftFormSheet extends StatefulWidget {
+  final String orgId;
+  final String? defaultBranchId;
+  final Map<String, dynamic>? shiftToEdit;
+  final VoidCallback onSaved;
+
+  const _ShiftFormSheet({required this.orgId, this.defaultBranchId, this.shiftToEdit, required this.onSaved});
+
+  @override
+  State<_ShiftFormSheet> createState() => _ShiftFormSheetState();
+}
+
+class _ShiftFormSheetState extends State<_ShiftFormSheet> {
+  final _formKey = GlobalKey<FormState>();
+  String _name = '';
+  String _timeIn = '09:00';
+  String _timeOut = '18:00';
+  bool _isOvernight = false;
+  String? _selectedBranchId;
+  
+  List<Map<String, dynamic>> _branches = [];
+  bool _isLoadingBranches = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.shiftToEdit != null) {
+      _name = widget.shiftToEdit!['name'] ?? '';
+      _timeIn = widget.shiftToEdit!['time_in'] ?? '09:00';
+      _timeOut = widget.shiftToEdit!['time_out'] ?? '18:00';
+      _isOvernight = widget.shiftToEdit!['is_overnight'] ?? false;
+      _selectedBranchId = widget.shiftToEdit!['branch_id'];
+    } else {
+      _selectedBranchId = widget.defaultBranchId == 'none' ? null : widget.defaultBranchId;
+    }
+    _loadBranches();
+  }
+
+  Future<void> _loadBranches() async {
+    try {
+      final repo = context.read<OrganizationRepository>();
+      final branches = await repo.getOrganizationBranches(widget.orgId);
+      if (mounted) {
+        setState(() {
+          _branches = branches;
+          _isLoadingBranches = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingBranches = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    _formKey.currentState!.save();
+
+    setState(() => _isSaving = true);
+    try {
+      final repo = context.read<ShiftRepository>();
+      final data = {
+        'name': _name,
+        'branch_id': _selectedBranchId,
+        'time_in': _timeIn,
+        'time_out': _timeOut,
+        'is_overnight': _isOvernight,
+      };
+      
+      if (widget.shiftToEdit != null) {
+        await repo.updateShift(widget.orgId, widget.shiftToEdit!['id'], data);
+      } else {
+        await repo.createShift(widget.orgId, data);
+      }
+      
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onSaved();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.shiftToEdit != null ? 'Edit Shift' : 'New Shift', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+            const SizedBox(height: 24),
+            if (!_isLoadingBranches)
+              DropdownButtonFormField<String>(
+                value: _selectedBranchId,
+                decoration: InputDecoration(labelText: 'Branch', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black))),
+                items: [
+                  const DropdownMenuItem<String>(value: null, child: Text('No Branch (HQ)')),
+                  ..._branches.map((b) => DropdownMenuItem<String>(value: b['id'], child: Text(b['name'])))
+                ],
+                onChanged: (val) => setState(() => _selectedBranchId = val),
+              ),
+            const SizedBox(height: 16),
+            TextFormField(
+              initialValue: _name,
+              decoration: InputDecoration(labelText: 'Shift Name', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black))),
+              onSaved: (val) => _name = val ?? '',
+              validator: (val) => (val == null || val.isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    initialValue: _timeIn,
+                    decoration: InputDecoration(labelText: 'Time In (HH:MM)', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black))),
+                    onSaved: (val) => _timeIn = val ?? '09:00',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    initialValue: _timeOut,
+                    decoration: InputDecoration(labelText: 'Time Out (HH:MM)', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black))),
+                    onSaved: (val) => _timeOut = val ?? '18:00',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              title: const Text('Overnight Shift', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              subtitle: const Text('Check if shift crosses midnight', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              value: _isOvernight,
+              onChanged: (val) => setState(() => _isOvernight = val),
+              activeColor: Colors.black,
+              contentPadding: EdgeInsets.zero,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _isSaving ? null : _submit,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 56), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
+              child: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text(widget.shiftToEdit != null ? 'Save Changes' : 'Create Shift', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }

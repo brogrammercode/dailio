@@ -1,4 +1,4 @@
-﻿import 'package:iconsax/iconsax.dart';
+import 'package:iconsax/iconsax.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -261,18 +261,18 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
   }
 
   void _onMapPositionChanged(MapCamera position, bool hasGesture) {
-    if (hasGesture && position.center != null) {
+    if (hasGesture) {
       setState(() => _isMapDragging = true);
       setState(() {
-        _currentLocation = position.center!;
-        _latController.text = position.center!.latitude.toString();
-        _lngController.text = position.center!.longitude.toString();
+        _currentLocation = position.center;
+        _latController.text = position.center.latitude.toString();
+        _lngController.text = position.center.longitude.toString();
       });
       if (_mapDebounce?.isActive ?? false) _mapDebounce!.cancel();
       _mapDebounce = Timer(const Duration(milliseconds: 500), () {
         if (mounted) {
           setState(() => _isMapDragging = false);
-          _reverseGeocode(position.center!);
+          _reverseGeocode(position.center);
         }
       });
     }

@@ -34,7 +34,11 @@ export const UpdateMemberSchema = z.object({
     is_geofence_exempt: z.boolean().optional(),
     is_selfie_mandatory: z.boolean().optional(),
     is_multi_branch: z.boolean().optional(),
+    subscription_id: z.string().nullable().optional(),
+    shift_id: z.string().nullable().optional(),
+    salary_structure_id: z.string().nullable().optional(),
   }),
 });
 
 export type UpdateMemberInput = z.infer<typeof UpdateMemberSchema>['body'];
+

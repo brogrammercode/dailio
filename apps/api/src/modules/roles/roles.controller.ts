@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 
 import { ValidationError } from '../../lib/errors';
 
@@ -40,3 +40,4 @@ export async function updateRole(req: Request, res: Response, next: NextFunction
     next(err);
   }
 }
+

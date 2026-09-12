@@ -23,8 +23,9 @@ class PreferencesStorage {
   }) async {
     await _prefs.setString(_organizationIdKey, organizationId);
     await _prefs.setString(_branchIdKey, branchId);
-    if (organizationName != null)
+    if (organizationName != null) {
       await _prefs.setString(_organizationNameKey, organizationName);
+    }
     if (branchName != null) await _prefs.setString(_branchNameKey, branchName);
   }
 

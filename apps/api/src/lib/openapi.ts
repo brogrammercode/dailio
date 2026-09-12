@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 import { OpenApiGeneratorV3, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 
 export const registry = new OpenAPIRegistry();
@@ -22,3 +23,4 @@ registry.registerComponent('securitySchemes', 'BearerAuth', {
   scheme: 'bearer',
   bearerFormat: 'JWT',
 });
+

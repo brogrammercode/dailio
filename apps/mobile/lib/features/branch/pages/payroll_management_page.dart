@@ -1,206 +1,120 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shimmer/shimmer.dart';
+import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/branch_filter_tabs.dart';
+import '../../organization/controllers/organization_repository.dart';
+import '../controllers/payroll_repository.dart';
 
-class PayrollManagementPage extends StatelessWidget {
+class PayrollManagementPage extends StatefulWidget {
   const PayrollManagementPage({super.key});
+
+  @override
+  State<PayrollManagementPage> createState() => _PayrollManagementPageState();
+}
+
+class _PayrollManagementPageState extends State<PayrollManagementPage> {
+  String? _selectedFilterBranchId;
+  late final String _orgId;
+  late final PayrollRepository _repo;
+
+  List<Map<String, dynamic>> _structures = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFilterBranchId = context.read<PreferencesStorage>().activeBranchId;
+    _orgId = context.read<PreferencesStorage>().activeOrganizationId!;
+    _repo = context.read<PayrollRepository>();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final data = await _repo.listSalaryStructures(_orgId, branchId: _selectedFilterBranchId == 'none' ? null : _selectedFilterBranchId);
+      if (mounted) setState(() => _structures = data);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showAddStructureModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => _AddStructureSheet(
+        orgId: _orgId,
+        defaultBranchId: _selectedFilterBranchId,
+        onCreated: _loadData,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
+        child: Stack(
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Column(
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8)),
-                  child: IconButton(
-                    icon: const Icon(Iconsax.arrow_left, size: 20),
-                    onPressed: () => context.pop(),
-                    constraints:
-                        const BoxConstraints(minWidth: 40, minHeight: 40),
-                    padding: EdgeInsets.zero,
-                  ),
+                _buildHeader(context),
+                const SizedBox(height: 16),
+                BranchFilterTabs(
+                  contentPadding: EdgeInsets.zero,
+                  selectedBranchId: _selectedFilterBranchId,
+                  onChanged: (val) {
+                    setState(() => _selectedFilterBranchId = val);
+                    _loadData();
+                  },
                 ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Payroll & Salary Management',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 4),
-                      Row(
-                        children: [
-                          CircleAvatar(
-                              radius: 3, backgroundColor: Colors.green),
-                          SizedBox(width: 4),
-                          Text('Main Branch - Indiranagar',
-                              style:
-                                  TextStyle(fontSize: 10, color: Colors.grey)),
-                        ],
-                      )
-                    ],
-                  ),
-                ),
-                const Icon(Iconsax.message_question,
-                    size: 20, color: Colors.grey),
-                const SizedBox(width: 12),
-                const CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.black,
-                    child: Text('D',
-                        style: TextStyle(color: Colors.white, fontSize: 12))),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: _isLoading
+                      ? _buildSkeleton()
+                      : _error != null
+                          ? Center(child: Text('Error: $_error'))
+                          : _structures.isEmpty
+                              ? _buildEmptyState()
+                              : _buildList(),
+                )
               ],
             ),
-            const SizedBox(height: 24),
-
-            // Top Tabs
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                        color: Colors.orange.shade800,
-                        borderRadius: BorderRadius.circular(12)),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Iconsax.wallet_2, size: 16, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text('Salary Structure',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
+            Positioned(
+              bottom: 24,
+              left: 24,
+              right: 24,
+              child: ElevatedButton(
+                onPressed: _showAddStructureModal,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(12)),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Iconsax.receipt_item,
-                            size: 16, color: Colors.grey),
-                        SizedBox(width: 8),
-                        Text('Payroll Runs',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                                fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Iconsax.add, size: 20),
+                    SizedBox(width: 8),
+                    Text('New Salary Structure', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Filters
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterChip('All Roles (14)', false),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Admins (3)', false),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Trainers (8)', true),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Operations (3)', false),
-                ],
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // Header
-            Row(
-              children: [
-                const Expanded(
-                  child: Text('Active Compensation\nProfiles',
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8)),
-                  child: const Text('Indiranagar\nUnit',
-                      style: TextStyle(fontSize: 10, color: Colors.black)),
-                ),
-                const SizedBox(width: 12),
-                const Icon(Iconsax.setting_4, size: 16, color: Colors.orange),
-                const SizedBox(width: 4),
-                const Text('Formulas\nActive',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.orange,
-                        fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Employees
-            _buildEmployeeCard(
-              name: 'Arjun Mehta',
-              id: '#RFC-029',
-              role: 'Lead Coach & Personal Trainer',
-              avatarIdx: 1,
-              baseSalary: '₹55,000',
-              varComm: '₹600/session',
-              varCommLabel: 'Variable PT Comm.',
-              allowances: '₹5,000',
-              allowancesType: '(Fit & Med)',
-              account: 'HDFC •••• 4821',
-              revisedDate: 'Revised 12 Jan 2025',
-              isVerified: true,
-            ),
-            _buildEmployeeCard(
-              name: 'Sarah Jenkins',
-              id: '#RFC-014',
-              role: 'Shift Operations Admin',
-              avatarIdx: 4,
-              baseSalary: '₹42,000',
-              varComm: '₹350/hr',
-              varCommLabel: 'Overtime Tier',
-              allowances: '₹3,500',
-              allowancesType: '(Desk Shift)',
-              account: 'ICICI •••• 9923',
-              revisedDate: 'Direct Deposit Linked',
-              isVerified: true,
-              isDirectDeposit: true,
-            ),
-            _buildEmployeeCard(
-              name: 'Karan Sharma',
-              id: '#RFC-044',
-              role: 'Senior Floor Trainer',
-              avatarIdx: 3,
-              baseSalary: '₹38,000',
-              varComm: '₹450/session',
-              varCommLabel: 'Variable Comm.',
-              allowances: '₹2,000',
-              allowancesType: '(Commute)',
-              account: 'SBI •••• 1209',
-              revisedDate: 'Standard Tier',
-              isVerified: true,
-              isStandardTier: true,
             ),
           ],
         ),
@@ -208,230 +122,250 @@ class PayrollManagementPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterChip(String label, bool isActive) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isActive ? Colors.orange.shade100 : Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 11,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? Colors.black : Colors.grey.shade800)),
-    );
-  }
-
-  Widget _buildEmployeeCard({
-    required String name,
-    required String id,
-    required String role,
-    required int avatarIdx,
-    required String baseSalary,
-    required String varComm,
-    required String varCommLabel,
-    required String allowances,
-    required String allowancesType,
-    required String account,
-    required String revisedDate,
-    required bool isVerified,
-    bool isDirectDeposit = false,
-    bool isStandardTier = false,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200)),
-      child: Column(
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                  radius: 20,
-                  backgroundImage:
-                      NetworkImage('https://i.pravatar.cc/150?img=$avatarIdx')),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(name,
-                            style: const TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 4),
-                        Text(id,
-                            style: const TextStyle(
-                                fontSize: 10, color: Colors.grey)),
-                        const Spacer(),
-                        if (isVerified)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border:
-                                    Border.all(color: Colors.green.shade100)),
-                            child: Row(
-                              children: [
-                                const Icon(Iconsax.verify,
-                                    size: 10, color: Colors.green),
-                                const SizedBox(width: 4),
-                                Text('Verified',
-                                    style: TextStyle(
-                                        fontSize: 9,
-                                        color: Colors.green.shade700,
-                                        fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          )
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(role,
-                        style: TextStyle(
-                            fontSize: 11, color: Colors.grey.shade600)),
-                  ],
-                ),
-              )
-            ],
-          ),
-          const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8)),
-            child: Row(
+            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+            child: IconButton(
+              icon: const Icon(Iconsax.arrow_left, size: 20),
+              onPressed: () => context.pop(),
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              padding: EdgeInsets.zero,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Base Salary',
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold)),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(baseSalary,
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
-                          const Padding(
-                              padding: EdgeInsets.only(bottom: 2),
-                              child: Text('/mo',
-                                  style: TextStyle(
-                                      fontSize: 10, color: Colors.grey))),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      const Text('Fixed Allowances',
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold)),
-                      Row(
-                        children: [
-                          Text(allowances,
-                              style: const TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 4),
-                          Text(allowancesType,
-                              style: const TextStyle(
-                                  fontSize: 10, color: Colors.grey)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(varCommLabel,
-                          style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold)),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(varComm.split('/')[0],
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange.shade800)),
-                          Padding(
-                              padding: const EdgeInsets.only(bottom: 1),
-                              child: Text('/' + varComm.split('/')[1],
-                                  style: const TextStyle(
-                                      fontSize: 10, color: Colors.grey))),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      const Text('Disbursal Account',
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold)),
-                      Row(
-                        children: [
-                          const Icon(Iconsax.bank,
-                              size: 12, color: Colors.grey),
-                          const SizedBox(width: 4),
-                          Text(account,
-                              style: const TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                Text('Payroll Management', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                SizedBox(height: 4),
+                Text('Salary structures & payroll runs', style: TextStyle(fontSize: 10, color: Colors.grey)),
               ],
             ),
           ),
-          const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Divider(height: 1)),
-          Row(
-            children: [
-              Icon(
-                  isDirectDeposit
-                      ? Iconsax.lock
-                      : (isStandardTier ? Iconsax.verify : Iconsax.clock),
-                  size: 12,
-                  color: Colors.grey),
-              const SizedBox(width: 4),
-              Text(revisedDate,
-                  style: const TextStyle(fontSize: 10, color: Colors.grey)),
-              const Spacer(),
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Iconsax.edit, size: 14),
-                label: const Text('Edit Structure',
-                    style:
-                        TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.shade800,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  minimumSize: const Size(0, 32),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-              )
-            ],
-          )
         ],
       ),
     );
   }
+
+  Widget _buildSkeleton() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+      itemCount: 4,
+      itemBuilder: (context, index) => Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
+        child: Row(
+          children: [
+            Shimmer.fromColors(
+              baseColor: Colors.grey.shade200,
+              highlightColor: Colors.grey.shade100,
+              child: Container(width: 48, height: 48, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Shimmer.fromColors(baseColor: Colors.grey.shade200, highlightColor: Colors.grey.shade100, child: Container(width: 120, height: 14, color: Colors.white)),
+                  const SizedBox(height: 8),
+                  Shimmer.fromColors(baseColor: Colors.grey.shade200, highlightColor: Colors.grey.shade100, child: Container(width: 80, height: 12, color: Colors.white)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Iconsax.wallet_2, size: 64, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          const Text('No Salary Structures', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('Create standard salary bands to assign to members.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+          const SizedBox(height: 64), // extra space for bottom button
+        ],
+      ),
+    );
+  }
+
+  Widget _buildList() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+      itemCount: _structures.length,
+      itemBuilder: (context, index) {
+        final struct = _structures[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12)),
+                child: Icon(Iconsax.wallet_1, color: Colors.orange.shade700, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(struct['name'] ?? 'Unnamed', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 4),
+                    Text('\u20B9  / month', style: TextStyle(color: Colors.green.shade700, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Iconsax.trash, size: 18, color: Colors.red),
+                onPressed: () async {
+                  await _repo.deleteSalaryStructure(_orgId, struct['id']);
+                  _loadData();
+                },
+              )
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
+
+class _AddStructureSheet extends StatefulWidget {
+  final String orgId;
+  final String? defaultBranchId;
+  final VoidCallback onCreated;
+
+  const _AddStructureSheet({required this.orgId, this.defaultBranchId, required this.onCreated});
+
+  @override
+  State<_AddStructureSheet> createState() => _AddStructureSheetState();
+}
+
+class _AddStructureSheetState extends State<_AddStructureSheet> {
+  final _formKey = GlobalKey<FormState>();
+  String _name = '';
+  int _amount = 0;
+  String? _selectedBranchId;
+  
+  List<Map<String, dynamic>> _branches = [];
+  bool _isLoadingBranches = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedBranchId = widget.defaultBranchId == 'none' ? null : widget.defaultBranchId;
+    _loadBranches();
+  }
+
+  Future<void> _loadBranches() async {
+    try {
+      final repo = context.read<OrganizationRepository>();
+      final branches = await repo.getOrganizationBranches(widget.orgId);
+      if (mounted) {
+        setState(() {
+          _branches = branches;
+          _isLoadingBranches = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingBranches = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    _formKey.currentState!.save();
+
+    if (_selectedBranchId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a branch')));
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final repo = context.read<PayrollRepository>();
+      await repo.createSalaryStructure(widget.orgId, {
+        'name': _name,
+        'branch_id': _selectedBranchId,
+        'amount': _amount,
+      });
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onCreated();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('New Salary Structure', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+            const SizedBox(height: 24),
+            if (!_isLoadingBranches)
+              DropdownButtonFormField<String>(
+                initialValue: _selectedBranchId,
+                decoration: InputDecoration(labelText: 'Branch', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.blue.shade400))),
+                items: _branches.map((b) => DropdownMenuItem<String>(value: b['id'], child: Text(b['name']))).toList(),
+                onChanged: (val) => setState(() => _selectedBranchId = val),
+                validator: (val) => val == null ? 'Required' : null,
+              ),
+            const SizedBox(height: 16),
+            TextFormField(
+              decoration: InputDecoration(labelText: 'Structure Name (e.g. Senior Trainer)', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.blue.shade400))),
+              onSaved: (val) => _name = val ?? '',
+              validator: (val) => (val == null || val.isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              decoration: InputDecoration(labelText: 'Monthly Salary (Base Amount)', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.blue.shade400))),
+              keyboardType: TextInputType.number,
+              onSaved: (val) => _amount = (int.tryParse(val ?? '0') ?? 0) * 100, // store as minor units
+              validator: (val) => (val == null || val.isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _isSaving ? null : _submit,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 56), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
+              child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text('Create Structure', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+

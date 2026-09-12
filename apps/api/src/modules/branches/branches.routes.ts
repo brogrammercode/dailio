@@ -1,5 +1,7 @@
 ﻿import { Router } from 'express';
+
 import { authenticate } from '../../middleware/auth';
+
 import { discoverBranches, createBranch, updateBranch, getBranch, getOrganizationBranches } from './branches.controller';
 
 const router: Router = Router();

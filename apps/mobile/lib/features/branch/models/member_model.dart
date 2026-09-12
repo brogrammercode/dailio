@@ -1,4 +1,4 @@
-import '../../organization/models/role_model.dart';
+﻿import '../../organization/models/role_model.dart';
 
 class MemberModel {
   final String id;
@@ -8,6 +8,10 @@ class MemberModel {
   final String? phone;
   final String status; // ACTIVE | SUSPENDED | INACTIVE
   final RoleModel? role;
+  final String? branchId;
+  final String? subscriptionId;
+  final String? shiftId;
+  final String? salaryStructureId;
   final String? joinedAt;
 
   MemberModel(
@@ -18,6 +22,10 @@ class MemberModel {
       this.phone,
       required this.status,
       this.role,
+      this.branchId,
+      this.subscriptionId,
+      this.shiftId,
+      this.salaryStructureId,
       this.joinedAt});
 
   factory MemberModel.fromJson(Map<String, dynamic> j) {
@@ -32,9 +40,14 @@ class MemberModel {
       phone: user['phone'],
       status: j['status'] ?? 'ACTIVE',
       role: roleJson != null ? RoleModel.fromJson(roleJson) : null,
+      branchId: j['branch_id'],
+      subscriptionId: j['subscription_id'],
+      shiftId: j['shift_id'],
+      salaryStructureId: j['salary_structure_id'],
       joinedAt: j['created_at'],
     );
   }
 
   String get fullName => name;
 }
+
