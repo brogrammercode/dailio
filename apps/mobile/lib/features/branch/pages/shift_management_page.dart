@@ -75,7 +75,6 @@ class _ShiftManagementPageState extends State<ShiftManagementPage> {
                 _buildHeader(context),
                 const SizedBox(height: 16),
                 BranchFilterTabs(
-                  contentPadding: EdgeInsets.zero,
                   selectedBranchId: _selectedFilterBranchId,
                   onChanged: (val) {
                     setState(() => _selectedFilterBranchId = val);
@@ -202,56 +201,140 @@ class _ShiftManagementPageState extends State<ShiftManagementPage> {
     );
   }
 
+  Future<void> _confirmDelete(BuildContext context, String title, VoidCallback onConfirm) async {
+    final bool? confirm = await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: const Text('Are you sure you want to delete this? This action cannot be undone.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0),
+            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) onConfirm();
+  }
+
   Widget _buildShiftsList() {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
       itemCount: _shifts.length,
       itemBuilder: (context, index) {
         final shift = _shifts[index];
-        final tIn = shift['time_in'] ?? '00:00';
-        final tOut = shift['time_out'] ?? '00:00';
+        final tIn = shift['start_time'] ?? '00:00';
+        final tOut = shift['end_time'] ?? '00:00';
+        final isOvernight = shift['is_overnight'] ?? false;
+        final breakMins = shift['break_minutes'] ?? 0;
+        final graceIn = shift['grace_in_min'] ?? 0;
+        
+        final iconColor = isOvernight ? Colors.indigo : Colors.orange;
+        final iconData = isOvernight ? Iconsax.moon : Iconsax.sun_1;
+        final bgColor = isOvernight ? Colors.indigo.shade50 : Colors.orange.shade50;
         
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
-                child: Icon(Iconsax.clock, color: Colors.blue.shade700, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                   children: [
-                    Text(shift['name'] ?? 'Unnamed', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    const SizedBox(height: 4),
-                    Text('$tIn - $tOut', style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(16)),
+                      child: Icon(iconData, color: iconColor, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(shift['name'] ?? 'Unnamed Shift', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              if (isOvernight) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(color: Colors.indigo.shade100, borderRadius: BorderRadius.circular(6)),
+                                  child: const Text('OVERNIGHT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.indigo)),
+                                )
+                              ]
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text('$tIn - $tOut', style: TextStyle(color: Colors.grey.shade700, fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 1)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Iconsax.more, color: Colors.grey),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      onSelected: (val) {
+                        if (val == 'edit') {
+                          _showShiftModal(shift: shift);
+                        } else if (val == 'delete') {
+                          _confirmDelete(context, 'Delete Shift', () async {
+                            await _repo.deleteShift(_orgId, shift['id']);
+                            _loadShifts();
+                          });
+                        }
+                      },
+                      itemBuilder: (ctx) => [
+                        const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Iconsax.edit, size: 18, color: Colors.blue), SizedBox(width: 8), Text('Edit Shift')])),
+                        const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Iconsax.trash, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete Shift', style: TextStyle(color: Colors.red))])),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              IconButton(
-                icon: const Icon(Iconsax.edit, size: 18, color: Colors.blue),
-                onPressed: () => _showShiftModal(shift: shift),
-              ),
-              IconButton(
-                icon: const Icon(Iconsax.trash, size: 18, color: Colors.red),
-                onPressed: () async {
-                  await _repo.deleteShift(_orgId, shift['id']);
-                  _loadShifts();
-                },
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildShiftDetail(Iconsax.coffee, '$breakMins min', 'Break Time'),
+                    Container(width: 1, height: 24, color: Colors.grey.shade200),
+                    _buildShiftDetail(Iconsax.timer_1, '$graceIn min', 'Grace In'),
+                    Container(width: 1, height: 24, color: Colors.grey.shade200),
+                    _buildShiftDetail(Iconsax.calendar_1, '7 Days', 'Working Days'),
+                  ],
+                ),
               )
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildShiftDetail(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 14, color: Colors.grey.shade600),
+            const SizedBox(width: 6),
+            Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 10)),
+      ],
     );
   }
 }
@@ -285,8 +368,8 @@ class _ShiftFormSheetState extends State<_ShiftFormSheet> {
     super.initState();
     if (widget.shiftToEdit != null) {
       _name = widget.shiftToEdit!['name'] ?? '';
-      _timeIn = widget.shiftToEdit!['time_in'] ?? '09:00';
-      _timeOut = widget.shiftToEdit!['time_out'] ?? '18:00';
+      _timeIn = widget.shiftToEdit!['start_time'] ?? '09:00';
+      _timeOut = widget.shiftToEdit!['end_time'] ?? '18:00';
       _isOvernight = widget.shiftToEdit!['is_overnight'] ?? false;
       _selectedBranchId = widget.shiftToEdit!['branch_id'];
     } else {
@@ -320,8 +403,8 @@ class _ShiftFormSheetState extends State<_ShiftFormSheet> {
       final data = {
         'name': _name,
         'branch_id': _selectedBranchId,
-        'time_in': _timeIn,
-        'time_out': _timeOut,
+        'start_time': _timeIn,
+        'end_time': _timeOut,
         'is_overnight': _isOvernight,
       };
       
@@ -414,3 +497,7 @@ class _ShiftFormSheetState extends State<_ShiftFormSheet> {
     );
   }
 }
+
+
+
+

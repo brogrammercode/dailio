@@ -414,7 +414,7 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
   }
 
   Widget _buildRoleConfigCard() {
-    if (_selectedRole == null || _isOwner) return const SizedBox.shrink();
+    if (_selectedRole == null || _selectedRole!.isSystem) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
@@ -1011,5 +1011,8 @@ class _EditRoleConfigSheetState extends State<_EditRoleConfigSheet> {
     );
   }
 }
+
+
+
 
 

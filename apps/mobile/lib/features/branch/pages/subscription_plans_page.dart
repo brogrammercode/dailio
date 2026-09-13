@@ -17,7 +17,7 @@ class SubscriptionPlansPage extends StatefulWidget {
 class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _allPlans = [];
-  final List<Map<String, dynamic>> _branches = [];
+  List<Map<String, dynamic>> _branches = [];
   String? _formBranchId;
   String? _error;
 
@@ -71,11 +71,14 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
       final repository = context.read<OrganizationRepository>();
       final prefs = context.read<PreferencesStorage>();
       final orgId = prefs.activeOrganizationId!;
-      final plans = await repository.getOrganizationPlans(orgId);
+      final plans = await repository.getOrganizationPlans(orgId, branchId: _selectedFilterBranchId == 'none' ? null : _selectedFilterBranchId);
+      final branches = await repository.getOrganizationBranches(orgId);
 
       if (mounted) {
         setState(() {
           _allPlans = plans;
+          _branches.clear();
+          _branches.addAll(branches);
           _isLoading = false;
           if (_filteredPlans.isNotEmpty && !_isCreating) {
             _selectPlan(0);
@@ -644,7 +647,10 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                     DropdownButtonFormField<String>(
                       initialValue: _formBranchId,
                       decoration: const InputDecoration(labelText: 'Branch', border: OutlineInputBorder()),
-                      items: _branches.map((b) => DropdownMenuItem<String>(value: b['id'], child: Text(b['name']))).toList(),
+                      items: [
+                        const DropdownMenuItem<String>(value: null, child: Text('No Branch (HQ)')),
+                        ..._branches.map((b) => DropdownMenuItem<String>(value: b['id'], child: Text(b['name'])))
+                      ],
                       onChanged: (val) => setState(() => _formBranchId = val), 
                     ),
                     const SizedBox(height: 16),
@@ -714,6 +720,12 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
     );
   }
 }
+
+
+
+
+
+
 
 
 

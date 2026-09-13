@@ -2,9 +2,9 @@
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../lib/errors';
 
-export async function getOrganizationPlans(organizationId: string) {
+export async function getOrganizationPlans(organizationId: string, branchId?: string) {
   return await prisma.plan.findMany({
-    where: { organization_id: organizationId },
+    where: { organization_id: organizationId, ...(branchId === 'none' ? { branch_id: null } : branchId ? { branch_id: branchId } : {}) },
     orderBy: { created_at: 'asc' },
   });
 }
@@ -31,6 +31,8 @@ export async function updatePlan(organizationId: string, planId: string, data: a
     data,
   });
 }
+
+
 
 
 

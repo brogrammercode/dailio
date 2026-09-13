@@ -6,7 +6,8 @@ import * as PlansService from './plans.service';
 export async function getPlans(req: Request, res: Response, next: NextFunction) {
   try {
     const orgId = req.params.organization_id;
-    const plans = await PlansService.getOrganizationPlans(orgId);
+    const branchId = req.query.branch_id as string | undefined;
+    const plans = await PlansService.getOrganizationPlans(orgId, branchId);
     res.json({ data: plans });
   } catch (err) {
     next(err);
@@ -35,3 +36,4 @@ export async function updatePlan(req: Request, res: Response, next: NextFunction
     next(err);
   }
 }
+

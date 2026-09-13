@@ -97,7 +97,7 @@ class OrganizationRepository {
     return response.data['data'] as Map<String, dynamic>;
   }
 
-  Future<List<Map<String, dynamic>>> getOrganizationPlans(String orgId) async {
+  Future<List<Map<String, dynamic>>> getOrganizationPlans(String orgId, {String? branchId}) async {
     final response = await apiClient.dio.get('/organizations/$orgId/plans');
     return List<Map<String, dynamic>>.from(response.data['data']);
   }
@@ -117,6 +117,8 @@ class OrganizationRepository {
   }
 
 }
+
+
 
 
 
