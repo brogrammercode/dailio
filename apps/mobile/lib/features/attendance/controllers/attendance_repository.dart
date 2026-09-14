@@ -1,4 +1,4 @@
-import '../../../core/network/api_client.dart';
+﻿import '../../../core/network/api_client.dart';
 import '../models/attendance_models.dart';
 
 class AttendanceRepository {
@@ -8,7 +8,7 @@ class AttendanceRepository {
 
   Future<AttendanceSessionModel> clockIn(String locationId) async {
     final response = await apiClient.dio.post(
-      '/locations/$locationId/attendance/clock-in',
+      '/branches/$locationId/attendance/clock-in',
       data: {'timezone': 'Asia/Kolkata'},
     );
     return AttendanceSessionModel.fromJson(response.data['session']);
@@ -17,7 +17,7 @@ class AttendanceRepository {
   Future<AttendanceSessionModel> clockOut(
       String locationId, String sessionId) async {
     final response = await apiClient.dio.post(
-      '/locations/$locationId/attendance/clock-out',
+      '/branches/$locationId/attendance/clock-out',
       data: {'session_id': sessionId, 'timezone': 'Asia/Kolkata'},
     );
     return AttendanceSessionModel.fromJson(response.data['session']);
@@ -25,16 +25,16 @@ class AttendanceRepository {
 
   Future<AttendanceSessionModel?> getActiveSession(String locationId) async {
     final response = await apiClient.dio
-        .get('/locations/$locationId/attendance/active-session');
+        .get('/branches/$locationId/attendance/active-session');
     if (response.data['session'] == null) return null;
     return AttendanceSessionModel.fromJson(response.data['session']);
   }
 
   Future<List<AttendanceSessionModel>> getSessions(
-      String locationId, String period) async {
+      String locationId, String period, {String? roleId}) async {
     final response = await apiClient.dio.get(
-      '/locations/$locationId/attendance',
-      queryParameters: {'period': period},
+      '/branches/$locationId/attendance',
+      queryParameters: {'period': period, if (roleId != null) 'role_id': roleId},
     );
     final data = response.data['data'] as List? ?? [];
     return data
@@ -42,3 +42,5 @@ class AttendanceRepository {
         .toList();
   }
 }
+
+

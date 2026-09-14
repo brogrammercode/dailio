@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ulid } from 'ulid';
 import type { Prisma } from '@prisma/client';
 
@@ -27,7 +27,12 @@ export async function getEffectivePolicy(organization_id: string, branch_id: str
   };
 }
 
-export async function clockIn(actor_id: string, organization_id: string, branch_id: string, data: ClockInInput) {
+export async function clockIn(
+  actor_id: string,
+  organization_id: string,
+  branch_id: string,
+  data: ClockInInput,
+) {
   const membership = await prisma.member.findFirst({
     where: {
       organization_id,
@@ -72,7 +77,13 @@ export async function clockIn(actor_id: string, organization_id: string, branch_
   return session;
 }
 
-export async function clockOut(actor_id: string, organization_id: string, branch_id: string, data: ClockOutInput, permissions: Set<string>) {
+export async function clockOut(
+  actor_id: string,
+  organization_id: string,
+  branch_id: string,
+  data: ClockOutInput,
+  permissions: Set<string>,
+) {
   const session = await prisma.attendanceSession.findUnique({
     where: { id: data.session_id },
     include: { member: { include: { user: true } } },
@@ -113,7 +124,11 @@ export async function clockOut(actor_id: string, organization_id: string, branch
   return updated;
 }
 
-export async function getActiveSession(actor_id: string, organization_id: string, branch_id: string) {
+export async function getActiveSession(
+  actor_id: string,
+  organization_id: string,
+  branch_id: string,
+) {
   const membership = await prisma.member.findFirst({
     where: {
       organization_id,
@@ -132,9 +147,15 @@ export async function getActiveSession(actor_id: string, organization_id: string
   });
 }
 
-export async function listSessions(actor_id: string, organization_id: string, branch_id: string, query: ListSessionsQuery, permissions: Set<string>) {
-  const { period, member_id, status } = query;
-  
+export async function listSessions(
+  actor_id: string,
+  organization_id: string,
+  branch_id: string,
+  query: ListSessionsQuery,
+  permissions: Set<string>,
+) {
+  const { period, member_id, status, role_id } = query;
+
   const startDate = new Date();
   startDate.setUTCHours(0, 0, 0, 0);
 
@@ -160,6 +181,9 @@ export async function listSessions(actor_id: string, organization_id: string, br
     if (member_id) {
       where.member_id = member_id;
     }
+    if (role_id) {
+      where.member = { role_id };
+    }
   } else {
     // Only self
     const membership = await prisma.member.findFirst({
@@ -183,4 +207,3 @@ export async function listSessions(actor_id: string, organization_id: string, br
     orderBy: { clock_in_at: 'desc' },
   });
 }
-

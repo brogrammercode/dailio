@@ -57,7 +57,7 @@ class _AppShellState extends State<AppShell> {
               heroTag: 'self_attendance_fab',
               backgroundColor: const Color(0xFF8D490B),
               foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: const CircleBorder(),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const SelfAttendancePage())
@@ -158,5 +158,6 @@ class _BottomNavButton extends StatelessWidget {
     );
   }
 }
+
 
 
