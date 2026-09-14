@@ -5,6 +5,7 @@ class MemberModel {
   final String membershipNumber;
   final String name;
   final String? email;
+  final String? avatarUrl;
   final String? phone;
   final String status; // ACTIVE | SUSPENDED | INACTIVE
   final RoleModel? role;
@@ -19,6 +20,7 @@ class MemberModel {
       required this.membershipNumber,
       required this.name,
       this.email,
+      this.avatarUrl,
       this.phone,
       required this.status,
       this.role,
@@ -37,6 +39,7 @@ class MemberModel {
       membershipNumber: j['member_number'] ?? '',
       name: user['name'] ?? 'Unknown Member',
       email: user['email'],
+      avatarUrl: user['avatar_url'],
       phone: user['phone'],
       status: j['status'] ?? 'ACTIVE',
       role: roleJson != null ? RoleModel.fromJson(roleJson) : null,
@@ -50,4 +53,5 @@ class MemberModel {
 
   String get fullName => name;
 }
+
 

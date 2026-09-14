@@ -1,4 +1,4 @@
-import 'package:iconsax/iconsax.dart';
+﻿import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/storage/preferences_storage.dart';
@@ -173,3 +173,4 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     );
   }
 }
+

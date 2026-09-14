@@ -502,14 +502,15 @@ class _MembersPageState extends State<MembersPage> {
               Stack(
                 children: [
                   CircleAvatar(
-                    radius: 26,
-                    backgroundColor: Colors.orange.shade100,
-                    child: Text(member.name.substring(0, 1).toUpperCase(),
-                        style: TextStyle(
-                            color: Colors.orange.shade800,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18)),
-                  ),
+                      radius: 26,
+                      backgroundColor: Colors.orange.shade100,
+                      backgroundImage: member.avatarUrl != null ? NetworkImage(member.avatarUrl!) : null,
+                      child: member.avatarUrl == null ? Text(member.name.substring(0, 1).toUpperCase(),
+                          style: TextStyle(
+                              color: Colors.orange.shade800,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18)) : null,
+                    ),
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -640,4 +641,5 @@ class _MembersPageState extends State<MembersPage> {
     );
   }
 }
+
 

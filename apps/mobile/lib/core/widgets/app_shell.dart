@@ -1,5 +1,6 @@
-import 'package:iconsax/iconsax.dart';
+﻿import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
+import '../../features/attendance/pages/self_attendance_page.dart';
 
 import '../../features/attendance/pages/attendance_page.dart';
 import '../../features/fees/pages/fees_page.dart';
@@ -43,9 +44,29 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _currentIndex,
+            children: _pages,
+          ),
+          Positioned(
+            bottom: 90, // Above the custom bottom nav
+            right: 24,
+            child: FloatingActionButton(
+              heroTag: 'self_attendance_fab',
+              backgroundColor: const Color(0xFF8D490B),
+              foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SelfAttendancePage())
+                );
+              },
+              child: const Icon(Iconsax.finger_scan, size: 28),
+            ),
+          )
+        ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: SafeArea(
@@ -137,3 +158,5 @@ class _BottomNavButton extends StatelessWidget {
     );
   }
 }
+
+

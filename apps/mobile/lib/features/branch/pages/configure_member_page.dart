@@ -10,6 +10,7 @@ import '../../organization/models/role_model.dart';
 import '../controllers/members_repository.dart';
 import '../models/member_model.dart';
 import '../controllers/shift_repository.dart';
+import '../controllers/payroll_repository.dart';
 
 class ConfigureMemberPage extends StatefulWidget {
   final String memberId;
@@ -26,6 +27,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
   List<RoleModel> _roles = [];
   List<Map<String, dynamic>> _branches = [];
   List<Map<String, dynamic>> _shifts = [];
+  List<Map<String, dynamic>> _salaryStructures = [];
   List<Map<String, dynamic>> _plans = [];
 
   String? _selectedBranchId;
@@ -79,6 +81,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         _orgRepo.getOrganizationBranches(_orgId),
         _orgRepo.getOrganizationPlans(_orgId),
         context.read<ShiftRepository>().listShifts(_orgId),
+          context.read<PayrollRepository>().listSalaryStructures(_orgId),
       ]);
 
       final memberData = futures[0] as Map<String, dynamic>;
@@ -88,6 +91,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       final branches = (futures[2] as List).cast<Map<String, dynamic>>();
       final plans = (futures[3] as List).cast<Map<String, dynamic>>();
       final shifts = (futures[4] as List).cast<Map<String, dynamic>>();
+        final structures = (futures[5] as List).cast<Map<String, dynamic>>();
 
       final m = MemberModel.fromJson(memberData['data'] ?? memberData);
 
@@ -97,6 +101,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         _branches = branches;
         _plans = plans;
         _shifts = shifts;
+          _salaryStructures = structures;
         _selectedRoleId = m.role?.id;
         _selectedBranchId = m.branchId;
         _selectedShiftId = m.shiftId;
@@ -388,14 +393,15 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
               Stack(
                 children: [
                   CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Colors.orange.shade100,
-                    child: Text(_member!.name.substring(0, 1).toUpperCase(),
-                        style: TextStyle(
-                            color: Colors.orange.shade800,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20)),
-                  ),
+                      radius: 28,
+                      backgroundColor: Colors.orange.shade100,
+                      backgroundImage: _member!.avatarUrl != null ? NetworkImage(_member!.avatarUrl!) : null,
+                      child: _member!.avatarUrl == null ? Text(_member!.name.substring(0, 1).toUpperCase(),
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange.shade800)) : null,
+                    ),
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -726,7 +732,13 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
               isExpanded: true,
               hint: const Text('No Salary Structure'),
               value: _selectedSalaryStructureId,
-              items: const [DropdownMenuItem<String>(value: null, child: Text('No Salary Structure'))], // TODO: bind actual salary structures once backend supports it
+              items: [
+                const DropdownMenuItem<String>(value: null, child: Text('No Salary Structure')),
+                ..._salaryStructures.map((s) => DropdownMenuItem<String>(
+                  value: s['id'],
+                  child: Text(s['name']),
+                )),
+              ],
               onChanged: (val) => setState(() => _selectedSalaryStructureId = val),
             ),
           ),
@@ -882,6 +894,8 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
     );
   }
 }
+
+
 
 
 
