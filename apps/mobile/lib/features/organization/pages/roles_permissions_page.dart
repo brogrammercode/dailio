@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
@@ -869,7 +869,7 @@ class _AddRoleSheetState extends State<_AddRoleSheet> {
             const SizedBox(height: 24),
             if (!_isLoadingBranches)
               DropdownButtonFormField<String>(
-                value: _selectedBranchId,
+                initialValue: _selectedBranchId,
                 decoration: InputDecoration(labelText: 'Branch', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black))),
                 items: [
                   const DropdownMenuItem<String>(value: null, child: Text('No Branch (HQ)')),
@@ -983,7 +983,7 @@ class _EditRoleConfigSheetState extends State<_EditRoleConfigSheet> {
             const SizedBox(height: 24),
             if (!_isLoadingBranches)
               DropdownButtonFormField<String>(
-                value: _selectedBranchId,
+                initialValue: _selectedBranchId,
                 decoration: InputDecoration(labelText: 'Branch', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black))),
                 items: [
                   const DropdownMenuItem<String>(value: null, child: Text('No Branch (HQ)')),

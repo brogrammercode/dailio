@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 
 import { GoogleSignInSchema, RefreshTokenSchema } from './auth.schema';
-import { getMe, refreshTokens, signInWithGoogle } from './auth.service';
+import { getMe, refreshTokens, revokeRefreshToken, signInWithGoogle } from './auth.service';
 
 export async function googleSignIn(req: Request, res: Response, next: NextFunction) {
   try {
@@ -40,18 +40,27 @@ export async function me(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export async function logout(_req: Request, res: Response) {
-  // Client is responsible for discarding tokens.
-  // Server-side revocation can be added later via a token blacklist in Redis.
+export async function logout(req: Request, res: Response) {
+  // Revoke the refresh token if provided in the request body
+  const refreshToken = req.body?.refreshToken as string | undefined;
+  if (refreshToken) {
+    await revokeRefreshToken(refreshToken).catch(() => null);
+  }
   res.status(200).json({ message: 'Logged out successfully' });
 }
 
-function sanitizeUser(user: { id: string; name: string; email: string | null; avatar_url: string | null; status: string }) {
+function sanitizeUser(user: any) {
   return {
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone,
     avatar_url: user.avatar_url,
     status: user.status,
+    emergency_contact_name: user.emergency_contact_name ?? null,
+    emergency_contact_phone: user.emergency_contact_phone ?? null,
+    date_of_birth: user.date_of_birth
+      ? (user.date_of_birth as Date).toISOString().split('T')[0]
+      : null,
   };
 }

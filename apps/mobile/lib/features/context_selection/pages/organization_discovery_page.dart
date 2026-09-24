@@ -1,7 +1,8 @@
-﻿import 'package:iconsax/iconsax.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/router/route_names.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/branch_repository.dart';
 import '../models/branch_discovery_model.dart';
@@ -98,11 +99,18 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
         leading: Padding(
           padding: const EdgeInsets.only(left: 16, top: 10, bottom: 10),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.asset('assets/logo.png'),
+            borderRadius: BorderRadius.circular(8),
+            child: ColoredBox(
+              color: Colors.orange.shade100,
+              child: const Icon(Iconsax.radar5, color: Colors.orange),
+            ),
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Iconsax.scan_barcode),
+            onPressed: () => context.push(AppRoutes.qrScanner),
+          ),
           IconButton(
               icon: const Icon(Icons.help_outline, color: Color(0xFF4B5563)),
               onPressed: () {}),
@@ -132,12 +140,12 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Detected Location',
+                      Text('Showing all organizations',
                           style: TextStyle(
                               fontSize: 11,
                               color: Color(0xFF6B7280),
                               fontWeight: FontWeight.w500)),
-                      Text('Indiranagar, Bengaluru',
+                      Text('Browse and search below',
                           style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -516,4 +524,3 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
     );
   }
 }
-

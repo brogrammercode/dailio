@@ -44,6 +44,7 @@ Thumbs.db
 
 # Prisma
 **/prisma/migrations/*/migration.sql
+!apps/api/prisma/migrations/20260924120000_track_a_financial_foundation/migration.sql
 
 # Docker volumes
 .postgres-data/

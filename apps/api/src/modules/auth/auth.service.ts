@@ -5,6 +5,7 @@ import { env } from '../../config/env';
 import { ConflictError, UnauthorizedError } from '../../lib/errors';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../lib/jwt';
 import { prisma } from '../../lib/prisma';
+import { redis } from '../../lib/redis';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
@@ -68,14 +69,33 @@ export async function refreshTokens(refreshToken: string) {
     throw new UnauthorizedError('Invalid or expired refresh token');
   });
 
+  // Check if this JTI has been revoked (i.e., user already logged out)
+  const isRevoked = await redis.get(`revoked_jti:${payload.jti}`).catch(() => null);
+  if (isRevoked) throw new UnauthorizedError('Token has been revoked');
+
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
   if (!user || user.status !== 'ACTIVE') throw new UnauthorizedError('User not found or disabled');
+
+  // Rotate: revoke the old JTI before issuing a new one
+  const ttlSeconds = 60 * 60 * 24 * 30; // 30 days max
+  await redis.setex(`revoked_jti:${payload.jti}`, ttlSeconds, '1').catch(() => null);
 
   const accessToken = await signAccessToken(user.id);
   const jti = ulid();
   const newRefreshToken = await signRefreshToken(user.id, jti);
 
   return { accessToken, refreshToken: newRefreshToken, user };
+}
+
+/** Revoke a refresh token JTI so it can no longer be used. */
+export async function revokeRefreshToken(refreshToken: string): Promise<void> {
+  try {
+    const payload = await verifyRefreshToken(refreshToken);
+    const ttlSeconds = 60 * 60 * 24 * 30;
+    await redis.setex(`revoked_jti:${payload.jti}`, ttlSeconds, '1');
+  } catch (_) {
+    // Token already invalid — nothing to do
+  }
 }
 
 export async function getMe(user_id: string) {

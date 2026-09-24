@@ -6,6 +6,7 @@ class AttendanceSessionModel {
   final DateTime? clockOutServerTime;
   final int? workedMinutes;
   final String? memberName; // populated from includes
+  final String? memberAvatar; // populated from includes
 
   AttendanceSessionModel(
       {required this.id,
@@ -14,21 +15,23 @@ class AttendanceSessionModel {
       required this.clockInServerTime,
       this.clockOutServerTime,
       this.workedMinutes,
-      this.memberName});
+      this.memberName,
+      this.memberAvatar});
 
   factory AttendanceSessionModel.fromJson(Map<String, dynamic> j) {
-    final lm = j['location_membership'] as Map<String, dynamic>?;
-    final om = lm?['organization_membership'] as Map<String, dynamic>?;
+    final member = j['member'] as Map<String, dynamic>?;
+    final user = member?['user'] as Map<String, dynamic>?;
     return AttendanceSessionModel(
-      id: j['id'],
+      id: j['id'] ?? '',
       state: j['state'] ?? 'OPEN',
       derivedStatus: j['derived_status'],
-      clockInServerTime: DateTime.parse(j['clock_in_server_time']),
-      clockOutServerTime: j['clock_out_server_time'] != null
-          ? DateTime.parse(j['clock_out_server_time'])
-          : null,
+      clockInServerTime:
+          DateTime.parse(j['clock_in_at'] ?? DateTime.now().toIso8601String()),
+      clockOutServerTime:
+          j['clock_out_at'] != null ? DateTime.parse(j['clock_out_at']) : null,
       workedMinutes: j['worked_minutes'],
-      memberName: om?['first_name'],
+      memberName: user?['name'],
+      memberAvatar: user?['avatar_url'],
     );
   }
 

@@ -1,15 +1,25 @@
-﻿import { prisma } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
-import type { DiscoverBranchesQuery, CreateBranchInput, UpdateBranchInput } from './branches.schema';
+import type {
+  DiscoverBranchesQuery,
+  CreateBranchInput,
+  UpdateBranchInput,
+} from './branches.schema';
 
-export async function discoverBranches({ query, limit, cursor }: DiscoverBranchesQuery) {
+export async function discoverBranches({ query, limit, cursor, org_id }: DiscoverBranchesQuery) {
   const branches = await prisma.branch.findMany({
     take: limit + 1,
     cursor: cursor ? { id: cursor } : undefined,
     where: {
       organization: { status: 'ACTIVE' },
+      ...(org_id ? { organization_id: org_id } : {}),
       ...(query
-        ? { OR: [{ name: { contains: query, mode: 'insensitive' } }, { organization: { name: { contains: query, mode: 'insensitive' } } }] }
+        ? {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { organization: { name: { contains: query, mode: 'insensitive' } } },
+            ],
+          }
         : {}),
     },
     include: { organization: { select: { id: true, name: true, logo_url: true } } },
@@ -30,7 +40,11 @@ export async function createBranch(organizationId: string, data: CreateBranchInp
   });
 }
 
-export async function updateBranch(branchId: string, organizationId: string, data: UpdateBranchInput) {
+export async function updateBranch(
+  branchId: string,
+  organizationId: string,
+  data: UpdateBranchInput,
+) {
   return await prisma.branch.update({
     where: { id: branchId, organization_id: organizationId },
     data,
@@ -47,4 +61,3 @@ export async function getOrganizationBranches(organizationId: string) {
     orderBy: { created_at: 'asc' },
   });
 }
-

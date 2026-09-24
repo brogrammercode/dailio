@@ -1,4 +1,4 @@
-﻿import 'package:iconsax/iconsax.dart';
+import 'package:iconsax/iconsax.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:dio/dio.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../controllers/organization_repository.dart';
 import '../../../core/storage/preferences_storage.dart';
@@ -51,6 +52,8 @@ class _EditBranchPageState extends State<EditBranchPage> {
   bool _isDetectingLocation = false;
   bool _isMapDragging = false;
 
+  String _timezone = 'Asia/Kolkata';
+
   // Cached original values for dirty tracking
   Map<String, dynamic>? _branch;
   String _originalName = '';
@@ -59,6 +62,7 @@ class _EditBranchPageState extends State<EditBranchPage> {
   String _originalState = '';
   String _originalCountry = '';
   String _originalPostal = '';
+  String _originalTimezone = 'Asia/Kolkata';
   double _originalLat = 0;
   double _originalLng = 0;
 
@@ -110,6 +114,7 @@ class _EditBranchPageState extends State<EditBranchPage> {
         _stateController.text != _originalState ||
         _countryController.text != _originalCountry ||
         _postalController.text != _originalPostal ||
+        _timezone != _originalTimezone ||
         lat != _originalLat ||
         lng != _originalLng;
   }
@@ -142,6 +147,7 @@ class _EditBranchPageState extends State<EditBranchPage> {
     _originalState = branch['state'] ?? '';
     _originalPostal = branch['postal_code'] ?? '';
     _originalCountry = branch['country'] ?? 'India';
+    _originalTimezone = branch['timezone'] ?? 'Asia/Kolkata';
 
     final lat = double.tryParse(branch['latitude']?.toString() ?? '0') ?? 0;
     final lng = double.tryParse(branch['longitude']?.toString() ?? '0') ?? 0;
@@ -154,12 +160,15 @@ class _EditBranchPageState extends State<EditBranchPage> {
     _stateController.text = _originalState;
     _postalController.text = _originalPostal;
     _countryController.text = _originalCountry;
+    _timezone = _originalTimezone;
 
     if (lat != 0 && lng != 0) {
       _currentLocation = LatLng(lat, lng);
       _latController.text = lat.toString();
       _lngController.text = lng.toString();
-      try { _mapController.move(_currentLocation, 15.0); } catch (_) {}
+      try {
+        _mapController.move(_currentLocation, 15.0);
+      } catch (_) {}
     }
   }
 
@@ -385,6 +394,7 @@ class _EditBranchPageState extends State<EditBranchPage> {
             'country': _countryController.text,
           if (_postalController.text != _originalPostal)
             'postal_code': _postalController.text,
+          if (_timezone != _originalTimezone) 'timezone': _timezone,
           if (lat != _originalLat) 'latitude': lat,
           if (lng != _originalLng) 'longitude': lng,
         },
@@ -494,6 +504,10 @@ class _EditBranchPageState extends State<EditBranchPage> {
                             _buildBasicInfo(),
                             const SizedBox(height: 24),
                             _buildLocationSection(),
+                            const SizedBox(height: 24),
+                            _buildQRSection(),
+                            const SizedBox(height: 24),
+                            _buildSetupWizardSection(),
                           ],
                         ),
                       ),
@@ -642,6 +656,41 @@ class _EditBranchPageState extends State<EditBranchPage> {
                     ? const Icon(Iconsax.tick_circle,
                         color: Colors.green, size: 18)
                     : null)),
+        const SizedBox(height: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Timezone',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87)),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              initialValue: _timezone,
+              items: const ['Asia/Kolkata', 'UTC', 'America/New_York']
+                  .map((e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(e, style: const TextStyle(fontSize: 14))))
+                  .toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _timezone = val);
+              },
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200)),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -805,6 +854,128 @@ class _EditBranchPageState extends State<EditBranchPage> {
     );
   }
 
+  Widget _buildQRSection() {
+    if (_branch == null) return const SizedBox();
+
+    final orgId = _branch!['organization_id'] ?? '';
+    final branchId = widget.branchId;
+    final joinData = 'dailio://join?orgId=$orgId&branchId=$branchId';
+
+    return _buildSection(
+      title: 'Branch Invite QR',
+      icon: Iconsax.scan_barcode,
+      children: [
+        const Text(
+          'Members and staff can scan this QR code using their Dailio app to quickly send a join request to this branch.',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 24),
+        Center(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: QrImageView(
+              data: joinData,
+              version: QrVersions.auto,
+              size: 200.0,
+              backgroundColor: Colors.white,
+              eyeStyle: const QrEyeStyle(
+                eyeShape: QrEyeShape.square,
+                color: Colors.black87,
+              ),
+              dataModuleStyle: const QrDataModuleStyle(
+                dataModuleShape: QrDataModuleShape.square,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Center(
+          child: TextButton.icon(
+            onPressed: () {},
+            icon: const Icon(Iconsax.share, size: 16),
+            label: const Text('Share Invite Link'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSetupWizardSection() {
+    return _buildSection(
+      title: 'Setup Checklist',
+      icon: Iconsax.magic_star,
+      children: [
+        const Text(
+          'Follow these steps to get your facility fully running securely.',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 24),
+        _buildWizardStep(
+          icon: Iconsax.clock,
+          title: '1. Create a Shift',
+          description:
+              'Head to Settings > Shift Management to define working hours for your staff.',
+          isComplete: false,
+        ),
+        const SizedBox(height: 16),
+        _buildWizardStep(
+          icon: Iconsax.receipt,
+          title: '2. Setup Memberships',
+          description:
+              'Go to Settings > Subscription Plans to define your fee structures.',
+          isComplete: false,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWizardStep(
+      {required IconData icon,
+      required String title,
+      required String description,
+      required bool isComplete}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isComplete ? Colors.green.shade50 : Colors.orange.shade50,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon,
+              color: isComplete ? Colors.green : Colors.orange, size: 24),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(description,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
+          ),
+        )
+      ],
+    );
+  }
+
   Widget _buildSection(
       {required String title,
       required IconData icon,
@@ -887,5 +1058,4 @@ class _EditBranchPageState extends State<EditBranchPage> {
     );
   }
 }
-
 

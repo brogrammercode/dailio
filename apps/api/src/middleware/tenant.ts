@@ -27,8 +27,16 @@ export async function resolveTenantContext(
       throw new ForbiddenError('X-Organization-Id and X-Branch-Id headers are required');
     }
 
+    if (req.params.organization_id && req.params.organization_id !== organization_id) {
+      throw new ForbiddenError('Organization route does not match the active organization');
+    }
+    if (req.params.branch_id && req.params.branch_id !== branch_id) {
+      throw new ForbiddenError('Branch route does not match the active branch');
+    }
+
     const organization = await prisma.organization.findUnique({ where: { id: organization_id } });
-    if (!organization || organization.status === 'ARCHIVED') throw new NotFoundError('Organization');
+    if (!organization || organization.status === 'ARCHIVED')
+      throw new NotFoundError('Organization');
 
     const branch = await prisma.branch.findUnique({ where: { id: branch_id, organization_id } });
     if (!branch) throw new NotFoundError('Branch');

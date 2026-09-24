@@ -7,6 +7,9 @@ class UserModel {
     this.phone,
     this.avatarUrl,
     required this.status,
+    this.emergencyContactName,
+    this.emergencyContactPhone,
+    this.dateOfBirth,
   });
 
   final String id;
@@ -15,6 +18,9 @@ class UserModel {
   final String? phone;
   final String? avatarUrl;
   final String status;
+  final String? emergencyContactName;
+  final String? emergencyContactPhone;
+  final String? dateOfBirth;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
@@ -24,6 +30,9 @@ class UserModel {
       phone: json['phone'] as String?,
       avatarUrl: json['avatar_url'] as String?,
       status: json['status'] as String,
+      emergencyContactName: json['emergency_contact_name'] as String?,
+      emergencyContactPhone: json['emergency_contact_phone'] as String?,
+      dateOfBirth: json['date_of_birth'] as String?,
     );
   }
 
@@ -33,6 +42,9 @@ class UserModel {
     String? name,
     String? phone,
     String? avatarUrl,
+    String? emergencyContactName,
+    String? emergencyContactPhone,
+    String? dateOfBirth,
   }) {
     return UserModel(
       id: id,
@@ -41,6 +53,10 @@ class UserModel {
       phone: phone ?? this.phone,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       status: status,
+      emergencyContactName: emergencyContactName ?? this.emergencyContactName,
+      emergencyContactPhone:
+          emergencyContactPhone ?? this.emergencyContactPhone,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
     );
   }
 }

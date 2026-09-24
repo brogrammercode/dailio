@@ -56,19 +56,47 @@ class AuthRepository {
     String? name,
     String? phone,
     String? avatarBase64,
+    String? fcmToken,
+    String? emergencyContactName,
+    String? emergencyContactPhone,
+    String? dateOfBirth,
   }) async {
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (phone != null) data['phone'] = phone;
     if (avatarBase64 != null) data['avatar_base64'] = avatarBase64;
+    if (fcmToken != null) data['fcm_token'] = fcmToken;
+    if (emergencyContactName != null) {
+      data['emergency_contact_name'] = emergencyContactName;
+    }
+    if (emergencyContactPhone != null) {
+      data['emergency_contact_phone'] = emergencyContactPhone;
+    }
+    if (dateOfBirth != null) {
+      data['date_of_birth'] = dateOfBirth;
+    }
 
     final response = await _apiClient.dio.patch('/users/me', data: data);
     return UserModel.fromJson(response.data['user'] as Map<String, dynamic>);
   }
 
+  Future<void> deleteAccount() async {
+    try {
+      await _apiClient.dio.delete('/users/me');
+    } catch (_) {
+      // Best-effort or handle error if needed
+    } finally {
+      await _secureStorage.clearTokens();
+    }
+  }
+
   Future<void> signOut() async {
     try {
-      await _apiClient.dio.post('/auth/logout');
+      final refreshToken = await _secureStorage.getRefreshToken();
+      await _apiClient.dio.post(
+        '/auth/logout',
+        data: refreshToken != null ? {'refreshToken': refreshToken} : null,
+      );
     } catch (_) {
       // Best-effort
     } finally {

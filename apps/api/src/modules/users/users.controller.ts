@@ -21,3 +21,14 @@ export async function getMyContexts(req: Request, res: Response, next: NextFunct
     next(err);
   }
 }
+
+export async function deleteMyAccount(req: Request, res: Response, next: NextFunction) {
+  try {
+    // We import deleteAccount here to avoid circular imports if any, or just import it at top
+    const { deleteAccount } = await import('./users.service');
+    await deleteAccount(req.user!.id);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}

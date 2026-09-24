@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ulid } from 'ulid';
 import type { Prisma } from '@prisma/client';
 
@@ -49,6 +49,12 @@ export async function listMembers(
       include: {
         user: true,
         role: true,
+        subscriptions: {
+          where: { status: { in: ['ACTIVE', 'UPCOMING', 'EXPIRED', 'PAUSED'] } },
+          orderBy: { end_date: 'desc' },
+          take: 1,
+          include: { plan: true },
+        },
       },
       skip,
       take: limit,
@@ -70,6 +76,11 @@ export async function getMemberDetail(
     include: {
       user: true,
       role: true,
+      subscriptions: {
+        orderBy: { end_date: 'desc' },
+        take: 5,
+        include: { plan: true },
+      },
     },
   });
 
@@ -249,9 +260,10 @@ export async function updateMember(
       where: { id: member_id },
       data: {
         role_id: data.role_id !== undefined ? data.role_id : undefined,
-          subscription_id: data.subscription_id !== undefined ? data.subscription_id : undefined,
-          shift_id: data.shift_id !== undefined ? data.shift_id : undefined,
-          salary_structure_id: data.salary_structure_id !== undefined ? data.salary_structure_id : undefined,
+        subscription_id: data.subscription_id !== undefined ? data.subscription_id : undefined,
+        shift_id: data.shift_id !== undefined ? data.shift_id : undefined,
+        salary_structure_id:
+          data.salary_structure_id !== undefined ? data.salary_structure_id : undefined,
         // other configuration fields can be added here if they exist in DB
         updated_at: new Date(),
       },
@@ -282,32 +294,35 @@ export async function listOrganizationMembers(organizationId: string, branchId?:
   if (branchId && branchId !== 'none') {
     where.branch_id = branchId;
   }
-  
+
   const members = await prisma.member.findMany({
     where,
     include: {
       user: true,
       role: true,
       branch: true,
+      subscriptions: {
+        where: { status: { in: ['ACTIVE', 'UPCOMING', 'EXPIRED', 'PAUSED'] } },
+        orderBy: { end_date: 'desc' },
+        take: 1,
+        include: { plan: true },
+      },
     },
-    orderBy: { created_at: 'desc' }
+    orderBy: { created_at: 'desc' },
   });
-  
+
   // If user requested 'none', we could theoretically filter here, but we made branch_id required.
   // We'll just return an empty array or filter manually if we changed schema.
   if (branchId === 'none') {
-    return { data: members.filter(m => !m.branch_id) };
+    return { data: members.filter((m) => !m.branch_id) };
   }
-  
+
   return {
     data: members,
     meta: {
       total: members.length,
       page: 1,
-      limit: members.length
-    }
+      limit: members.length,
+    },
   };
 }
-
-
-

@@ -73,8 +73,14 @@ class AuthInterceptor extends QueuedInterceptor {
             }
           }
         } catch (e) {
-          // If refresh token fails (e.g. 401 on refresh, or network error), clear tokens
-          await _secureStorage.clearTokens();
+          // If refresh token fails explicitly with 400/401/403, clear tokens.
+          // Otherwise, it might be a 500 (DB waking up) or network error, so keep tokens.
+          if (e is DioException) {
+            final statusCode = e.response?.statusCode;
+            if (statusCode == 400 || statusCode == 401 || statusCode == 403) {
+              await _secureStorage.clearTokens();
+            }
+          }
         }
       } else {
         // No refresh token available, just clear access token just in case

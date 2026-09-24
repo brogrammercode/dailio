@@ -15,12 +15,18 @@ export { cloudinary };
 /**
  * Generate a signed upload payload for direct-to-Cloudinary client-side uploads.
  */
-export function getUploadSignature(folder: string, publicId?: string) {
+export function getUploadSignature(
+  folder: string,
+  publicId?: string,
+  type: 'upload' | 'authenticated' = 'upload',
+) {
   const timestamp = Math.round(new Date().getTime() / 1000);
   const paramsToSign: Record<string, unknown> = {
     timestamp,
     folder,
   };
+
+  if (type !== 'upload') paramsToSign.type = type;
 
   if (publicId) {
     paramsToSign.public_id = publicId;
@@ -38,13 +44,18 @@ export function getUploadSignature(folder: string, publicId?: string) {
     cloud_name: env.CLOUDINARY_CLOUD_NAME,
     folder,
     public_id: publicId,
+    type,
   };
 }
 
 /**
  * Build a structured folder path for Cloudinary.
  */
-export function buildStorageKey(organization_id: string, category: string, filename: string): string {
+export function buildStorageKey(
+  organization_id: string,
+  category: string,
+  filename: string,
+): string {
   // Strip extension for the public_id as Cloudinary handles extensions via format
   const baseFilename = filename.split('.')[0];
   return `organizations/${organization_id}/${category}/${baseFilename}`;

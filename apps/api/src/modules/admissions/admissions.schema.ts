@@ -6,6 +6,10 @@ extendZodWithOpenApi(z);
 export const CreateJoinRequestSchema = z.object({
   body: z.object({
     message: z.string().optional(),
+    emergency_contact_name: z.string().optional(),
+    emergency_contact_phone: z.string().optional(),
+    date_of_birth: z.string().optional(), // ISO date string
+    avatar_url: z.string().optional(),
   }),
 });
 

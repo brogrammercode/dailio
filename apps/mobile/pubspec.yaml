@@ -59,7 +59,10 @@ dependencies:
   latlong2: ^0.10.1
   iconsax: ^0.0.8
   shimmer: ^3.0.0
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.4.2
 
+  provider: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

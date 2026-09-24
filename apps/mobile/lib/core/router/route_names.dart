@@ -7,6 +7,7 @@ class AppRoutes {
   static const String createOrganization = '/create-gym';
   static const String createBranch = '/create-branch';
   static const String organizationDiscovery = '/discover';
+  static const String qrScanner = '/discover/scan';
   static const String branchSelection = '/branches';
   static const String pendingJoin = '/pending';
   static const String contextSwitcher = '/switch';
@@ -29,11 +30,14 @@ class AppRoutes {
   static const String manageBranches = '/home/settings/manage-branches';
   static const String addBranch = '/home/settings/add-branch';
   static const String editBranch = '/home/settings/edit-branch/:branchId';
+  static const String attendancePolicy = '/home/settings/attendance-policy';
   static const String configureMember =
       '/home/branch/configure-member/:memberId';
   static const String subscriptionPlans = '/home/branch/subscription-plans';
   static const String shiftManagement = '/home/branch/shift-management';
   static const String payrollManagement = '/home/branch/payroll-management';
+
+
 
   // Shared
   static const String profile = '/profile';

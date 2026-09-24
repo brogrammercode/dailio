@@ -1,10 +1,11 @@
-﻿import 'package:iconsax/iconsax.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../models/branch_discovery_model.dart';
-// Note: Replace this with the actual cubit or bloc you use for joining, if any.
-// If not, we'll just show a snackbar.
+import '../controllers/branch_repository.dart';
+import '../widgets/join_request_sheet.dart';
 
 class OrgDetailPage extends StatefulWidget {
   final List<BranchDiscoveryModel> locations;
@@ -19,10 +20,18 @@ class OrgDetailPage extends StatefulWidget {
 }
 
 class _OrgDetailPageState extends State<OrgDetailPage> {
-  void _joinBranch(BranchDiscoveryModel loc) async {
-    // Just a placeholder since the backend integration will be done by another agent
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Join request sent successfully.')),
+  void _joinBranch(BranchDiscoveryModel loc) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => JoinRequestSheet(
+        branch: loc,
+        onSubmit: (msg, emergencyName, emergencyPhone, dob) async {
+          final repo = context.read<BranchRepository>();
+          await repo.joinBranch(loc.id, message: msg);
+        },
+      ),
     );
   }
 
@@ -579,4 +588,3 @@ class _StatBox extends StatelessWidget {
     );
   }
 }
-

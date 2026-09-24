@@ -5,7 +5,13 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { ConflictError, NotFoundError } from '../../lib/errors';
 
-import type { ClockInInput, ClockOutInput, ListSessionsQuery } from './attendance.schema';
+import type {
+  ClockInInput,
+  ClockOutInput,
+  ListSessionsQuery,
+  UpdatePolicyInput,
+  CorrectSessionInput,
+} from './attendance.schema';
 
 export async function getEffectivePolicy(organization_id: string, branch_id: string) {
   const policy = await prisma.attendancePolicy.findFirst({
@@ -205,5 +211,144 @@ export async function listSessions(
       },
     },
     orderBy: { clock_in_at: 'desc' },
+  });
+}
+
+export async function getPolicy(organization_id: string, branch_id: string) {
+  return getEffectivePolicy(organization_id, branch_id);
+}
+
+export async function updatePolicy(
+  actor_id: string,
+  organization_id: string,
+  branch_id: string,
+  data: UpdatePolicyInput,
+) {
+  return prisma.$transaction(async (tx) => {
+    const txClient = tx as typeof prisma;
+    const currentPolicy = await txClient.attendancePolicy.findFirst({
+      where: { organization_id, branch_id },
+      orderBy: { version: 'desc' },
+    });
+
+    const version = currentPolicy ? currentPolicy.version + 1 : 1;
+
+    const newPolicy = await txClient.attendancePolicy.create({
+      data: {
+        id: ulid(),
+        organization_id,
+        branch_id,
+        version,
+        effective_from: new Date(),
+        punch_required: data.punch_required ?? currentPolicy?.punch_required ?? true,
+        selfie_on_clock_in: data.selfie_on_clock_in ?? currentPolicy?.selfie_on_clock_in ?? false,
+        selfie_on_clock_out:
+          data.selfie_on_clock_out ?? currentPolicy?.selfie_on_clock_out ?? false,
+        location_on_clock_in:
+          data.location_on_clock_in ?? currentPolicy?.location_on_clock_in ?? false,
+        location_on_clock_out:
+          data.location_on_clock_out ?? currentPolicy?.location_on_clock_out ?? false,
+        geofence_enabled: data.geofence_enabled ?? currentPolicy?.geofence_enabled ?? false,
+        geofence_lat:
+          data.geofence_lat !== undefined ? data.geofence_lat : currentPolicy?.geofence_lat,
+        geofence_lng:
+          data.geofence_lng !== undefined ? data.geofence_lng : currentPolicy?.geofence_lng,
+        geofence_radius_meters:
+          data.geofence_radius_meters !== undefined
+            ? data.geofence_radius_meters
+            : currentPolicy?.geofence_radius_meters,
+        geofence_accuracy_threshold:
+          data.geofence_accuracy_threshold !== undefined
+            ? data.geofence_accuracy_threshold
+            : currentPolicy?.geofence_accuracy_threshold,
+        shift_enforcement_enabled:
+          data.shift_enforcement_enabled ?? currentPolicy?.shift_enforcement_enabled ?? false,
+        early_arrival_minutes:
+          data.early_arrival_minutes ?? currentPolicy?.early_arrival_minutes ?? 30,
+        late_grace_minutes: data.late_grace_minutes ?? currentPolicy?.late_grace_minutes ?? 15,
+        min_session_minutes: data.min_session_minutes ?? currentPolicy?.min_session_minutes ?? 0,
+        max_open_session_hours:
+          data.max_open_session_hours ?? currentPolicy?.max_open_session_hours ?? 24,
+        allow_manual_entry: data.allow_manual_entry ?? currentPolicy?.allow_manual_entry ?? false,
+        allow_offline_capture:
+          data.allow_offline_capture ?? currentPolicy?.allow_offline_capture ?? false,
+      },
+    });
+
+    await txClient.auditLog.create({
+      data: {
+        id: ulid(),
+        organization_id,
+        branch_id,
+        actor_id,
+        action: 'UPDATE',
+        target_type: 'AttendancePolicy',
+        target_id: newPolicy.id,
+      },
+    });
+
+    return newPolicy;
+  });
+}
+
+export async function correctSession(
+  actor_id: string,
+  organization_id: string,
+  branch_id: string,
+  session_id: string,
+  data: CorrectSessionInput,
+) {
+  return prisma.$transaction(async (tx) => {
+    const txClient = tx as typeof prisma;
+
+    const session = await txClient.attendanceSession.findUnique({
+      where: { id: session_id },
+    });
+
+    if (
+      !session ||
+      session.organization_id !== organization_id ||
+      session.branch_id !== branch_id
+    ) {
+      throw new NotFoundError('Attendance session not found');
+    }
+
+    const updatedSession = await txClient.attendanceSession.update({
+      where: { id: session_id },
+      data: {
+        clock_in_at: data.clock_in_at ? new Date(data.clock_in_at) : undefined,
+        clock_out_at: data.clock_out_at ? new Date(data.clock_out_at) : undefined,
+        derived_status: data.derived_status ?? undefined,
+        state: 'CORRECTED',
+        corrected_at: new Date(),
+        corrected_by: actor_id,
+        correction_reason: data.correction_reason,
+      },
+    });
+
+    await txClient.auditLog.create({
+      data: {
+        id: ulid(),
+        organization_id,
+        branch_id,
+        actor_id,
+        action: 'CORRECT',
+        target_type: 'AttendanceSession',
+        target_id: session.id,
+        reason: data.correction_reason,
+        before_state: {
+          clock_in: session.clock_in_at,
+          clock_out: session.clock_out_at,
+          status: session.derived_status,
+        },
+        after_state: {
+          clock_in: updatedSession.clock_in_at,
+          clock_out: updatedSession.clock_out_at,
+          status: updatedSession.derived_status,
+        },
+      },
+    });
+
+    return updatedSession;
   });
 }

@@ -309,6 +309,8 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
           branchId: result['location']['id'],
           organizationName: result['organization']['name'],
           branchName: result['location']['name'],
+          roleSystemKey: 'OWNER',
+          permissions: const ['ALL'],
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

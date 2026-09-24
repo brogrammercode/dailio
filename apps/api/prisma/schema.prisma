@@ -111,6 +111,14 @@ enum PaymentAttemptStatus {
   CANCELLED
 }
 
+enum PaymentRequestStatus {
+  REQUESTED
+  NEEDS_INFORMATION
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 enum AnnouncementStatus {
   DRAFT
   SCHEDULED
@@ -148,6 +156,9 @@ enum AuditAction {
   CANCEL
   ASSIGN
   UNASSIGN
+  PAUSE
+  RESUME
+  RENEW
   CLOCK_IN
   CLOCK_OUT
   CORRECT
@@ -170,10 +181,13 @@ model User {
   phone      String?    @unique
   google_id  String?    @unique
   avatar_url String?
-  status     UserStatus @default(ACTIVE)
-  fcm_token  String?
-  created_at DateTime   @default(now())
-  updated_at DateTime   @updatedAt
+  status                  UserStatus @default(ACTIVE)
+  fcm_token               String?
+  emergency_contact_name  String?
+  emergency_contact_phone String?
+  date_of_birth           DateTime?
+  created_at              DateTime   @default(now())
+  updated_at              DateTime   @updatedAt
 
   members       Member[]
   audit_logs    AuditLog[]     @relation("AuditActor")
@@ -208,6 +222,8 @@ model Member {
   attendance_sessions AttendanceSession[]
   subscriptions       Subscription[]
   ledger_entries      LedgerEntry[]
+  payment_requests     PaymentRequest[]
+  payment_attempts     PaymentAttempt[]
 
   join_requests           JoinRequest[]
   leave_requests          LeaveRequest[]
@@ -248,6 +264,7 @@ model Organization {
   audit_logs           AuditLog[]
   announcements        Announcement[]
   salaryStructures     SalaryStructure[]
+  payment_requests     PaymentRequest[]
 
   @@map("organizations")
 }
@@ -289,6 +306,7 @@ model Branch {
   members             Member[]
   plans               Plan[]
   salaryStructures    SalaryStructure[]
+  payment_requests    PaymentRequest[]
 
   @@index([organization_id])
   @@map("branches")
@@ -569,6 +587,7 @@ model Subscription {
   member         Member?       @relation(fields: [member_id], references: [id])
   plan           Plan          @relation(fields: [plan_id], references: [id])
   ledger_entries LedgerEntry[]
+  payment_requests PaymentRequest[]
 
   @@index([organization_id, branch_id])
   @@index([member_id])
@@ -609,6 +628,7 @@ model PaymentAttempt {
   id               String               @id @default(cuid())
   organization_id  String
   branch_id        String
+  member_id        String?
   amount           Int
   currency         String               @default("INR")
   method           String // CASH, CARD, UPI, GATEWAY
@@ -622,11 +642,66 @@ model PaymentAttempt {
   updated_at       DateTime             @updatedAt
 
   branch      Branch              @relation(fields: [branch_id], references: [id])
+  member      Member?             @relation(fields: [member_id], references: [id])
   allocations PaymentAllocation[]
   receipt     Receipt?
+  payment_request PaymentRequest?
 
   @@index([organization_id, branch_id])
   @@map("payment_attempts")
+}
+
+model PaymentRequest {
+  id                 String               @id @default(cuid())
+  organization_id    String
+  branch_id          String
+  member_id          String
+  subscription_id    String?
+  amount_minor_unit  Int
+  currency           String               @default("INR")
+  method             String
+  reference          String?
+  note               String?
+  status             PaymentRequestStatus @default(REQUESTED)
+  rejection_reason   String?
+  reviewer_id        String?
+  reviewed_at        DateTime?
+  payment_attempt_id String?              @unique
+  idempotency_key    String               @unique
+  created_at         DateTime             @default(now())
+  updated_at         DateTime             @updatedAt
+
+  organization    Organization     @relation(fields: [organization_id], references: [id])
+  branch          Branch           @relation(fields: [branch_id], references: [id])
+  member          Member           @relation(fields: [member_id], references: [id])
+  subscription    Subscription?   @relation(fields: [subscription_id], references: [id])
+  payment_attempt PaymentAttempt? @relation(fields: [payment_attempt_id], references: [id])
+  evidence        PaymentEvidence[]
+
+  @@index([organization_id, branch_id, status])
+  @@index([member_id, status])
+  @@index([subscription_id])
+  @@map("payment_requests")
+}
+
+model PaymentEvidence {
+  id                 String   @id @default(cuid())
+  payment_request_id String
+  organization_id    String
+  branch_id          String
+  uploaded_by        String
+  storage_key        String
+  content_type       String
+  size_bytes         Int?
+  reference          String?
+  note               String?
+  created_at         DateTime @default(now())
+
+  payment_request PaymentRequest @relation(fields: [payment_request_id], references: [id])
+
+  @@index([organization_id, branch_id])
+  @@index([payment_request_id])
+  @@map("payment_evidence")
 }
 
 model PaymentAllocation {

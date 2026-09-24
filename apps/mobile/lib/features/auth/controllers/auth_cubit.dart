@@ -1,3 +1,5 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -49,6 +51,18 @@ class AuthCubit extends Cubit<AuthState> {
 
       final result = await _repository.signInWithGoogle(idToken);
 
+      // Attempt to register FCM token silently
+      try {
+        if (Firebase.apps.isNotEmpty) {
+          final fcmToken = await FirebaseMessaging.instance.getToken();
+          if (fcmToken != null) {
+            await _repository.updateProfile(fcmToken: fcmToken);
+          }
+        }
+      } catch (_) {
+        // FCM might not be configured, ignore error
+      }
+
       if (result.user.isActive) {
         emit(AuthAuthenticated(result.user));
       } else {
@@ -64,14 +78,30 @@ class AuthCubit extends Cubit<AuthState> {
     String? name,
     String? phone,
     String? avatarBase64,
+    String? emergencyContactName,
+    String? emergencyContactPhone,
+    String? dateOfBirth,
   }) async {
     try {
       final updated = await _repository.updateProfile(
         name: name,
         phone: phone,
         avatarBase64: avatarBase64,
+        emergencyContactName: emergencyContactName,
+        emergencyContactPhone: emergencyContactPhone,
+        dateOfBirth: dateOfBirth,
       );
       emit(AuthAuthenticated(updated));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    emit(const AuthLoading());
+    try {
+      await _repository.deleteAccount();
+      emit(const AuthUnauthenticated());
     } catch (e) {
       emit(AuthError(e.toString()));
     }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
@@ -239,7 +239,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                     boxShadow: _selectedPrimaryTab == 0
                         ? [
                             BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2))
                           ]
@@ -401,7 +401,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
         ),
       );
     }
-    
+
     int displayedCount = avatars.length > 2 ? 2 : avatars.length;
     int remainingCount = totalCount - displayedCount;
     if (avatars.length == 3 && totalCount == 3) {
@@ -422,9 +422,14 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                 backgroundColor: Colors.white,
                 child: CircleAvatar(
                   radius: 16,
-                  backgroundImage: avatars[i] != null && avatars[i].toString().isNotEmpty ? NetworkImage(avatars[i].toString()) : null,
+                  backgroundImage:
+                      avatars[i] != null && avatars[i].toString().isNotEmpty
+                          ? NetworkImage(avatars[i].toString())
+                          : null,
                   backgroundColor: Colors.grey.shade300,
-                  child: avatars[i] == null || avatars[i].toString().isEmpty ? const Icon(Icons.person, size: 16, color: Colors.white) : null,
+                  child: avatars[i] == null || avatars[i].toString().isEmpty
+                      ? const Icon(Icons.person, size: 16, color: Colors.white)
+                      : null,
                 ),
               ),
             ),
@@ -437,7 +442,11 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                 child: CircleAvatar(
                   radius: 16,
                   backgroundColor: const Color(0xFFEEF2FF),
-                  child: Text('+', style: const TextStyle(color: Color(0xFF4F46E5), fontSize: 10, fontWeight: FontWeight.bold)),
+                  child: Text('+',
+                      style: const TextStyle(
+                          color: Color(0xFF4F46E5),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold)),
                 ),
               ),
             ),
@@ -481,7 +490,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
             border: Border.all(color: Colors.grey.shade200),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: 0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 4))
             ],
@@ -494,7 +503,8 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildStackedAvatars(struct['avatars'] ?? [], struct['membersCount'] ?? 0),
+                    _buildStackedAvatars(
+                        struct['avatars'] ?? [], struct['membersCount'] ?? 0),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -971,7 +981,7 @@ class _StructureFormSheetState extends State<_StructureFormSheet> {
                     children: [
                       if (!_isLoadingBranches)
                         DropdownButtonFormField<String>(
-                          value: _selectedBranchId,
+                          initialValue: _selectedBranchId,
                           decoration: InputDecoration(
                               labelText: 'Branch',
                               filled: true,
@@ -1086,4 +1096,3 @@ class _StructureFormSheetState extends State<_StructureFormSheet> {
     );
   }
 }
-

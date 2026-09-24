@@ -1,4 +1,4 @@
-﻿import '../../../core/network/api_client.dart';
+import '../../../core/network/api_client.dart';
 import '../models/create_organization_models.dart';
 
 class OrganizationRepository {
@@ -37,7 +37,8 @@ class OrganizationRepository {
     return response.data['organization'] as Map<String, dynamic>;
   }
 
-  Future<List<Map<String, dynamic>>> getRoles(String orgId, {String? branchId}) async {
+  Future<List<Map<String, dynamic>>> getRoles(String orgId,
+      {String? branchId}) async {
     final query = <String, dynamic>{'organization_id': orgId};
     if (branchId != null) query['branch_id'] = branchId;
     final response = await apiClient.dio.get('/roles', queryParameters: query);
@@ -45,19 +46,24 @@ class OrganizationRepository {
   }
 
   Future<Map<String, dynamic>> createRole(
-      String orgId, String name, List<String> permissions, {String? branchId}) async {
+      String orgId, String name, List<String> permissions,
+      {String? branchId}) async {
     final payload = <String, dynamic>{
       'organization_id': orgId,
       'name': name,
       'permissions': permissions,
     };
     if (branchId != null && branchId != 'none') payload['branch_id'] = branchId;
-    
+
     final response = await apiClient.dio.post('/roles', data: payload);
     return response.data['role'] as Map<String, dynamic>;
   }
 
-  Future<Map<String, dynamic>> updateRole(String roleId, {String? name, List<String>? permissions, String? branchId, bool clearBranch = false}) async {
+  Future<Map<String, dynamic>> updateRole(String roleId,
+      {String? name,
+      List<String>? permissions,
+      String? branchId,
+      bool clearBranch = false}) async {
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (permissions != null) data['permissions'] = permissions;
@@ -97,15 +103,19 @@ class OrganizationRepository {
     return response.data['data'] as Map<String, dynamic>;
   }
 
-  Future<List<Map<String, dynamic>>> getOrganizationPlans(String orgId, {String? branchId}) async {
-    final response = await apiClient.dio.get('/organizations/$orgId/plans');
+  Future<List<Map<String, dynamic>>> getOrganizationPlans(String orgId,
+      {String? branchId}) async {
+    final response = await apiClient.dio.get(
+      '/organizations/$orgId/plans',
+      queryParameters: {if (branchId != null) 'branch_id': branchId},
+    );
     return List<Map<String, dynamic>>.from(response.data['data']);
   }
 
   Future<Map<String, dynamic>> createPlan(
       String orgId, Map<String, dynamic> data) async {
-    final response = await apiClient.dio
-        .post('/organizations/$orgId/plans', data: data);
+    final response =
+        await apiClient.dio.post('/organizations/$orgId/plans', data: data);
     return response.data['data'] as Map<String, dynamic>;
   }
 
@@ -115,11 +125,4 @@ class OrganizationRepository {
         .patch('/organizations/$orgId/plans/$planId', data: data);
     return response.data['data'] as Map<String, dynamic>;
   }
-
 }
-
-
-
-
-
-

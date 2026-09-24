@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
@@ -17,7 +17,7 @@ class SubscriptionPlansPage extends StatefulWidget {
 class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _allPlans = [];
-  List<Map<String, dynamic>> _branches = [];
+  final List<Map<String, dynamic>> _branches = [];
   String? _formBranchId;
   String? _error;
 
@@ -58,7 +58,8 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
       return _allPlans.where((p) => p['branch_id'] == null).toList();
     }
     return _allPlans
-        .where((p) => p['branch_id'] == _selectedFilterBranchId)
+        .where((p) =>
+            p['branch_id'] == _selectedFilterBranchId || p['branch_id'] == null)
         .toList();
   }
 
@@ -71,7 +72,8 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
       final repository = context.read<OrganizationRepository>();
       final prefs = context.read<PreferencesStorage>();
       final orgId = prefs.activeOrganizationId!;
-      final plans = await repository.getOrganizationPlans(orgId, branchId: _selectedFilterBranchId == 'none' ? null : _selectedFilterBranchId);
+      final plans = await repository.getOrganizationPlans(orgId,
+          branchId: _selectedFilterBranchId);
       final branches = await repository.getOrganizationBranches(orgId);
 
       if (mounted) {
@@ -109,7 +111,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
         _durationCtrl.text = (plan['duration_days'] ?? 0).toString();
         _graceDaysCtrl.text = (plan['grace_days'] ?? 0).toString();
         _isActive = plan['is_active'] ?? true;
-          _formBranchId = plan['branch_id'];
+        _formBranchId = plan['branch_id'];
       }
     });
   }
@@ -124,19 +126,15 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
       _durationCtrl.clear();
       _graceDaysCtrl.clear();
       _isActive = true;
-        _formBranchId = (_selectedFilterBranchId != null && _selectedFilterBranchId != 'none') ? _selectedFilterBranchId : null;
+      _formBranchId =
+          (_selectedFilterBranchId != null && _selectedFilterBranchId != 'none')
+              ? _selectedFilterBranchId
+              : null;
     });
   }
 
   Future<void> _savePlan() async {
     if (!_formKey.currentState!.validate()) return;
-
-    if (_formBranchId == null || _formBranchId == 'none') {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Please select a specific branch for this plan'),
-            backgroundColor: Colors.red));
-        return;
-      }
 
     setState(() => _isSaving = true);
     try {
@@ -212,7 +210,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                   }
                 });
               },
-              ),
+            ),
             const SizedBox(height: 16),
             Expanded(
               child: _isLoading
@@ -644,18 +642,22 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Divider(height: 1)),
                 if (_branches.isNotEmpty) ...[
-                    DropdownButtonFormField<String>(
-                      initialValue: _formBranchId,
-                      decoration: const InputDecoration(labelText: 'Branch', border: OutlineInputBorder()),
-                      items: [
-                        const DropdownMenuItem<String>(value: null, child: Text('No Branch (HQ)')),
-                        ..._branches.map((b) => DropdownMenuItem<String>(value: b['id'], child: Text(b['name'])))
-                      ],
-                      onChanged: (val) => setState(() => _formBranchId = val), 
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  _buildTextField('Plan Name', _nameCtrl, 'e.g. Annual Elite', TextInputType.text),
+                  DropdownButtonFormField<String>(
+                    initialValue: _formBranchId,
+                    decoration: const InputDecoration(
+                        labelText: 'Branch', border: OutlineInputBorder()),
+                    items: [
+                      const DropdownMenuItem<String>(
+                          value: null, child: Text('No Branch (HQ)')),
+                      ..._branches.map((b) => DropdownMenuItem<String>(
+                          value: b['id'], child: Text(b['name'])))
+                    ],
+                    onChanged: (val) => setState(() => _formBranchId = val),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                _buildTextField('Plan Name', _nameCtrl, 'e.g. Annual Elite',
+                    TextInputType.text),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -720,19 +722,3 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

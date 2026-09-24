@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
@@ -96,19 +96,19 @@ class _SettingsPageState extends State<SettingsPage> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
                 children: [
-                  //  Context Pill 
+                  //  Context Pill
                   _buildContextPill(orgName, branchName),
                   const SizedBox(height: 16),
 
-                  //  Profile Card 
+                  //  Profile Card
                   _buildProfileCard(context, user),
                   const SizedBox(height: 16),
 
-                  //  Organization Card 
+                  //  Organization Card
                   _buildOrgCard(context, orgMap, orgName),
                   const SizedBox(height: 24),
 
-                  //  Management Modules 
+                  //  Management Modules
                   _sectionHeader('MANAGEMENT & OPERATIONS', '6 Modules'),
                   const SizedBox(height: 12),
 
@@ -188,14 +188,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
                   const SizedBox(height: 24),
 
-                  //  Workspace Settings 
+                  //  Workspace Settings
                   _sectionHeader('WORKSPACE SETTINGS', null),
                   const SizedBox(height: 12),
                   _buildWorkspaceCard(),
 
                   const SizedBox(height: 24),
 
-                  //  Sign Out 
+                  //  Sign Out
                   OutlinedButton.icon(
                     onPressed: _confirmSignOut,
                     icon:
@@ -229,7 +229,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  //  Context Pill 
+  //  Context Pill
   Widget _buildContextPill(String? orgName, String? branchName) {
     if (orgName == null) {
       return Container(
@@ -318,7 +318,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  //  Profile Card 
+  //  Profile Card
   Widget _buildProfileCard(BuildContext context, UserModel? user) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -480,7 +480,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  //  Organization Card 
+  //  Organization Card
   Widget _buildOrgCard(
       BuildContext context, Map<String, dynamic>? orgMap, String? orgName) {
     return Container(
@@ -630,7 +630,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  //  Module Card 
+  //  Module Card
   Widget _buildModuleCard({
     required IconData icon,
     Color iconColor = Colors.black54,
@@ -766,7 +766,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  //  Workspace Settings Card 
+  //  Workspace Settings Card
   Widget _buildWorkspaceCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -849,7 +849,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  //  Section Header 
+  //  Section Header
   Widget _sectionHeader(String label, String? badge) {
     return Row(
       children: [
@@ -878,4 +878,3 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
-

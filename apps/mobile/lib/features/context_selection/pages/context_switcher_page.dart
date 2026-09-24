@@ -42,14 +42,17 @@ class _ContextSwitcherPageState extends State<ContextSwitcherPage> {
     }
   }
 
-  Future<void> _selectContext(
-      Map<String, dynamic> organization, Map<String, dynamic> branch) async {
+  Future<void> _selectContext(Map<String, dynamic> organization, Map<String, dynamic> membership) async {
     final prefs = context.read<PreferencesStorage>();
+    final branch = membership['location'] as Map<String, dynamic>;
+    final role = (membership['role'] as Map?)?.cast<String, dynamic>();
     await prefs.setActiveContext(
       organizationId: organization['id'],
       branchId: branch['id'],
       organizationName: organization['name'],
       branchName: branch['name'],
+      roleSystemKey: role?['system_key']?.toString(),
+      permissions: (role?['permissions'] as List?)?.cast<String>(),
     );
     if (mounted) {
       context.go(AppRoutes.home);
@@ -190,7 +193,7 @@ class _ContextSwitcherPageState extends State<ContextSwitcherPage> {
                               fontSize: 12, color: Color(0xFF6B7280))),
                       trailing: const Icon(Iconsax.arrow_right_3,
                           color: Color(0xFFD1D5DB)),
-                      onTap: () => _selectContext(organization, branch),
+                      onTap: () => _selectContext(organization, locMemberships[branchIndex]),
                     );
                   },
                 ),

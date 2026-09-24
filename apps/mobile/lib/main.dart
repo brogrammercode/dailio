@@ -22,6 +22,7 @@ import 'features/branch/controllers/shift_repository.dart';
 import 'features/branch/controllers/payroll_repository.dart';
 import 'features/organization/controllers/organization_repository.dart';
 import 'features/attendance/controllers/attendance_repository.dart';
+import 'features/fees/controllers/fees_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,6 +54,7 @@ void main() async {
   final shiftRepository = ShiftRepository(apiClient);
   final payrollRepository = PayrollRepository(apiClient);
   final attendanceRepository = AttendanceRepository(apiClient: apiClient);
+  final feesRepository = FeesRepository(apiClient: apiClient);
 
   String initialRoute = AppRoutes.onboarding;
 
@@ -101,6 +103,7 @@ void main() async {
       shiftRepository: shiftRepository,
       payrollRepository: payrollRepository,
       attendanceRepository: attendanceRepository,
+      feesRepository: feesRepository,
       initialRoute: initialRoute,
     ),
   );

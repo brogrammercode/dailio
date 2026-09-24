@@ -77,3 +77,52 @@ export async function listSessionsHandler(req: Request, res: Response, next: Nex
     next(error);
   }
 }
+
+export async function getPolicyHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const policy = await attendanceService.getPolicy(req.organization!.id, req.branch!.id);
+    res.status(200).json({ data: policy });
+  } catch (error) {
+    next(error);
+  }
+}
+
+import { UpdatePolicySchema } from './attendance.schema';
+
+export async function updatePolicyHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = UpdatePolicySchema.parse({ body: req.body }).body;
+    const policy = await attendanceService.updatePolicy(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      body
+    );
+    res.status(200).json({ data: policy });
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+import { CorrectSessionSchema } from './attendance.schema';
+
+export async function correctSessionHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const session_id = req.params.session_id;
+    const body = CorrectSessionSchema.parse({ body: req.body }).body;
+    
+    const session = await attendanceService.correctSession(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      session_id,
+      body
+    );
+
+    res.status(200).json({ data: session });
+  } catch (error) {
+    next(error);
+  }
+}
+

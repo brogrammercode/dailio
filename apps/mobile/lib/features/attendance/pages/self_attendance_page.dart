@@ -1,7 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/shimmer_loader.dart';
+import '../controllers/attendance_repository.dart';
+import '../models/attendance_models.dart';
 
 class SelfAttendancePage extends StatefulWidget {
   const SelfAttendancePage({super.key});
@@ -12,10 +20,19 @@ class SelfAttendancePage extends StatefulWidget {
 
 class _SelfAttendancePageState extends State<SelfAttendancePage>
     with SingleTickerProviderStateMixin {
-  int _selectedTab = 0; // 0 = Today, 1 = Attendance Record
+  late final AttendanceRepository _repository;
+  late final String _locationId;
+
+  late TabController _tabController;
+  int _selectedTab = 0;
   late Timer _timer;
   DateTime _currentTime = DateTime.now();
-  late TabController _tabController;
+
+  bool _isLoading = true;
+  bool _isActionLoading = false;
+  AttendanceSessionModel? _activeSession;
+  Map<String, dynamic>? _policy;
+  String? _error;
 
   @override
   void initState() {
@@ -23,14 +40,16 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
-      setState(() => _selectedTab = _tabController.index);
+      if (mounted) setState(() => _selectedTab = _tabController.index);
+    });
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) setState(() => _currentTime = DateTime.now());
     });
 
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _currentTime = DateTime.now();
-      });
-    });
+    _repository = context.read<AttendanceRepository>();
+    final prefs = context.read<PreferencesStorage>();
+    _locationId = prefs.activeBranchId!;
+    _loadData();
   }
 
   @override
@@ -45,23 +64,177 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          _buildTabBar(),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildTodayTab(),
-                _buildHistoryTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar:
-          _selectedTab == 0 ? _buildTodayBottomActions() : null,
+      body: _isLoading
+          ? ShimmerLoader.list()
+          : _error != null
+              ? Center(child: Text(_error!))
+              : Column(
+                  children: [
+                    _buildTabBar(),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildTodayTab(),
+                          _buildHistoryTab(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+      bottomNavigationBar: _selectedTab == 0 && !_isLoading && _error == null
+          ? _buildTodayBottomActions()
+          : null,
     );
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final policy = await _repository
+          .getAttendancePolicy(_locationId)
+          .catchError((_) => <String, dynamic>{});
+      final active = await _repository.getActiveSession(_locationId);
+      if (mounted) {
+        setState(() {
+          _policy = policy;
+          _activeSession = active;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<Map<String, dynamic>?> _collectEvidence(
+      {required bool isClockIn}) async {
+    if (_policy == null) return {};
+
+    final locationReq = isClockIn
+        ? (_policy!['location_on_clock_in'] == true)
+        : (_policy!['location_on_clock_out'] == true);
+
+    final selfieReq = isClockIn
+        ? (_policy!['selfie_on_clock_in'] == true)
+        : (_policy!['selfie_on_clock_out'] == true);
+
+    double? lat, lng, acc;
+    if (locationReq) {
+      try {
+        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) throw Exception('Location services disabled.');
+
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+          if (permission == LocationPermission.denied) {
+            throw Exception('Location denied');
+          }
+        }
+        if (permission == LocationPermission.deniedForever) {
+          throw Exception('Location permanently denied');
+        }
+
+        final pos = await Geolocator.getCurrentPosition();
+        lat = pos.latitude;
+        lng = pos.longitude;
+        acc = pos.accuracy;
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Location error: $e')));
+        }
+        return null;
+      }
+    }
+
+    if (selfieReq) {
+      try {
+        final picker = ImagePicker();
+        final xfile = await picker.pickImage(
+            source: ImageSource.camera,
+            preferredCameraDevice: CameraDevice.front);
+        if (xfile == null) throw Exception('Selfie required');
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('$e')));
+        }
+        return null;
+      }
+    }
+
+    return {
+      if (lat != null) 'latitude': lat,
+      if (lng != null) 'longitude': lng,
+      if (acc != null) 'accuracy': acc,
+    };
+  }
+
+  Future<void> _clockIn() async {
+    if (_isActionLoading) return;
+    setState(() => _isActionLoading = true);
+    try {
+      final evidence = await _collectEvidence(isClockIn: true);
+      if (evidence == null) {
+        setState(() => _isActionLoading = false);
+        return;
+      }
+      await _repository.clockIn(
+        _locationId,
+        latitude: evidence['latitude'],
+        longitude: evidence['longitude'],
+        accuracy: evidence['accuracy'],
+      );
+      await _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Clocked in successfully')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    } finally {
+      if (mounted) setState(() => _isActionLoading = false);
+    }
+  }
+
+  Future<void> _clockOut() async {
+    if (_activeSession == null || _isActionLoading) return;
+    setState(() => _isActionLoading = true);
+    try {
+      final evidence = await _collectEvidence(isClockIn: false);
+      if (evidence == null) {
+        setState(() => _isActionLoading = false);
+        return;
+      }
+      await _repository.clockOut(
+        _locationId,
+        _activeSession!.id,
+        latitude: evidence['latitude'],
+        longitude: evidence['longitude'],
+        accuracy: evidence['accuracy'],
+      );
+      await _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Clocked out successfully')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    } finally {
+      if (mounted) setState(() => _isActionLoading = false);
+    }
   }
 
   PreferredSizeWidget _buildAppBar() {
@@ -590,39 +763,46 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
       ),
       child: Row(
         children: [
+          if (_activeSession != null)
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Iconsax.cup, size: 16),
+                label: const Text('Record Break',
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.black87,
+                  backgroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          if (_activeSession != null) const SizedBox(width: 12),
           Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Iconsax.cup, size: 16),
-              label: const Text('Record Break',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.black87,
-                backgroundColor: Colors.white,
+            child: ElevatedButton.icon(
+              onPressed: _isActionLoading
+                  ? null
+                  : (_activeSession == null ? _clockIn : _clockOut),
+              icon: Icon(
+                  _activeSession == null ? Iconsax.login_1 : Iconsax.logout,
+                  size: 16),
+              label: Text(_activeSession == null ? 'Clock In' : 'Clock Out',
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF8D490B),
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: Colors.grey.shade300),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Iconsax.logout, size: 16),
-              label: const Text('Clock Out',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade50,
-                foregroundColor: Colors.red.shade700,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          )
         ],
       ),
     );

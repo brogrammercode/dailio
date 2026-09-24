@@ -1,4 +1,4 @@
-﻿/* eslint-disable import/order */
+/* eslint-disable import/order */
 import { type Router, Router as ExpressRouter } from 'express';
 
 import { authRouter } from '../modules/auth/auth.routes';
@@ -37,10 +37,13 @@ router.use(attendanceRouter);
 import plansRouter from '../modules/plans/plans.routes';
 import shiftsRouter from '../modules/shifts/shifts.routes';
 import payrollRouter from '../modules/payroll/payroll.routes';
+import subscriptionsRouter from '../modules/subscriptions/subscriptions.routes';
+import paymentsRouter from '../modules/payments/payments.routes';
 router.use('/organizations', plansRouter);
 router.use('/organizations', shiftsRouter);
 router.use('/organizations', payrollRouter);
-// router.use('/subscriptions', subscriptionsRouter);
+router.use(subscriptionsRouter);
+router.use(paymentsRouter);
 // router.use('/payments', paymentsRouter);
 // router.use('/announcements', announcementsRouter);
 // router.use('/notifications', notificationsRouter);
@@ -48,9 +51,3 @@ router.use('/organizations', payrollRouter);
 // router.use('/audit', auditRouter);
 
 export { router as apiRouter };
-
-
-
-
-
-
