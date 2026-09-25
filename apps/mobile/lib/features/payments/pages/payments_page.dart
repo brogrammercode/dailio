@@ -88,6 +88,10 @@ class _PaymentsPageState extends State<PaymentsPage> {
   }
 
   Widget _requestCard(PaymentRequestModel request) {
+    final canReview = context.read<PreferencesStorage>().canReviewPayments;
+    final canAct = canReview &&
+        (request.status == 'REQUESTED' ||
+            request.status == 'NEEDS_INFORMATION');
     final color = switch (request.status) {
       'APPROVED' => Colors.green.shade700,
       'REJECTED' => Colors.red.shade700,
@@ -99,19 +103,109 @@ class _PaymentsPageState extends State<PaymentsPage> {
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
           side: BorderSide(color: Colors.grey.shade200)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(14),
-        title: Text('${request.method} • ${_money(request.amountMinorUnit)}',
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(
-            '${request.status.replaceAll('_', ' ')}${request.reference == null ? '' : '\nRef: ${request.reference}'}${request.createdAt == null ? '' : '\n${DateFormat('dd MMM yyyy').format(request.createdAt!.toLocal())}'}'),
-        isThreeLine: request.reference != null || request.createdAt != null,
-        trailing: Chip(
-            label: Text(request.status.replaceAll('_', ' '),
-                style: TextStyle(fontSize: 10, color: color)),
-            backgroundColor: color.withValues(alpha: .1)),
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.all(14),
+            title: Text(
+                '${request.method} • ${_money(request.amountMinorUnit)}',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(
+                '${request.status.replaceAll('_', ' ')}${request.reference == null ? '' : '\nRef: ${request.reference}'}${request.createdAt == null ? '' : '\n${DateFormat('dd MMM yyyy').format(request.createdAt!.toLocal())}'}'),
+            isThreeLine: request.reference != null || request.createdAt != null,
+            trailing: Chip(
+                label: Text(request.status.replaceAll('_', ' '),
+                    style: TextStyle(fontSize: 10, color: color)),
+                backgroundColor: color.withValues(alpha: .1)),
+          ),
+          if (canAct) ...[
+            const Divider(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton(
+                  onPressed: () => _review(request.id, 'approve'),
+                  child: const Text('Approve'),
+                ),
+                OutlinedButton(
+                  onPressed: () => _review(request.id, 'needs_information'),
+                  child: const Text('Need info'),
+                ),
+                TextButton(
+                  onPressed: () => _review(request.id, 'reject'),
+                  child: const Text('Reject'),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
+  }
+
+  Future<void> _review(String requestId, String action) async {
+    final preferences = context.read<PreferencesStorage>();
+    final repository = context.read<FeesRepository>();
+    String? reason;
+    if (action != 'approve') {
+      reason = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) {
+          final controller = TextEditingController();
+          return AlertDialog(
+            title: Text(
+                action == 'reject' ? 'Reject payment' : 'Request information'),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Reason',
+                hintText: 'Explain what is needed',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final value = controller.text.trim();
+                  if (value.isNotEmpty) Navigator.pop(dialogContext, value);
+                },
+                child: const Text('Submit'),
+              ),
+            ],
+          );
+        },
+      );
+      if (reason == null) return;
+    }
+
+    if (!mounted) return;
+    final branchId = preferences.activeBranchId;
+    if (branchId == null) return;
+    try {
+      await repository.reviewPaymentRequest(
+        branchId,
+        requestId,
+        action,
+        reason: reason,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Payment request ${action.replaceAll('_', ' ')}.')),
+      );
+      await _load();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update payment: $error')),
+      );
+    }
   }
 
   String _money(int minor) =>

@@ -1,5 +1,6 @@
 ﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from '../../lib/prisma';
+import { ulid } from 'ulid';
 import type { Prisma } from '@prisma/client';
 import { AppError, ForbiddenError, NotFoundError } from '../../lib/errors';
 import type { CreatePlanInput, UpdatePlanInput } from './plans.schema';
@@ -53,6 +54,7 @@ export async function createPlan(
   contextBranchId: string,
   permissions: Set<string>,
   data: CreatePlanInput,
+  actorId: string,
 ) {
   const branchId = await assertBranchAccess(
     organizationId,
@@ -60,7 +62,7 @@ export async function createPlan(
     data.branch_id,
     permissions,
   );
-  return await prisma.plan.create({
+  const plan = await prisma.plan.create({
     data: {
       ...data,
       branch_id: branchId === 'none' ? null : branchId,
@@ -68,6 +70,23 @@ export async function createPlan(
       metadata: data.metadata as Prisma.InputJsonValue | undefined,
     },
   });
+  await prisma.auditLog.create({
+    data: {
+      id: ulid(),
+      organization_id: organizationId,
+      branch_id: branchId === 'none' ? contextBranchId : branchId,
+      actor_id: actorId,
+      action: 'CREATE',
+      target_type: 'Plan',
+      target_id: plan.id,
+      after_state: {
+        name: plan.name,
+        amount_minor_unit: plan.amount_minor_unit,
+        is_active: plan.is_active,
+      },
+    },
+  });
+  return plan;
 }
 
 export async function updatePlan(
@@ -76,6 +95,7 @@ export async function updatePlan(
   permissions: Set<string>,
   planId: string,
   data: UpdatePlanInput,
+  actorId: string,
 ) {
   const existing = await prisma.plan.findFirst({
     where: { id: planId, organization_id: organizationId },
@@ -91,8 +111,25 @@ export async function updatePlan(
     branch_id: data.branch_id === undefined ? undefined : data.branch_id,
     metadata: data.metadata as Prisma.InputJsonValue | undefined,
   };
-  return await prisma.plan.update({
+  const plan = await prisma.plan.update({
     where: { id: planId },
     data: updateData,
   });
+  await prisma.auditLog.create({
+    data: {
+      id: ulid(),
+      organization_id: organizationId,
+      branch_id: plan.branch_id ?? contextBranchId,
+      actor_id: actorId,
+      action: 'UPDATE',
+      target_type: 'Plan',
+      target_id: plan.id,
+      after_state: {
+        name: plan.name,
+        amount_minor_unit: plan.amount_minor_unit,
+        is_active: plan.is_active,
+      },
+    },
+  });
+  return plan;
 }

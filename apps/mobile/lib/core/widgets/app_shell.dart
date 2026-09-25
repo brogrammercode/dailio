@@ -1,5 +1,7 @@
-﻿import 'package:iconsax/iconsax.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../storage/preferences_storage.dart';
 import '../../features/attendance/pages/self_attendance_page.dart';
 
 import '../../features/attendance/pages/attendance_page.dart';
@@ -16,13 +18,6 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
-
-  final _pages = const [
-    AttendancePage(),
-    FeesPage(),
-    PaymentsPage(),
-    SettingsPage(),
-  ];
 
   final _labels = const ['Attendance', 'Fees', 'Payments', 'Settings'];
 
@@ -42,13 +37,22 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final preferences = context.watch<PreferencesStorage>();
+    final contextKey =
+        '${preferences.activeOrganizationId}:${preferences.activeBranchId}';
+    final pages = [
+      AttendancePage(key: ValueKey('attendance-$contextKey')),
+      FeesPage(key: ValueKey('fees-$contextKey')),
+      PaymentsPage(key: ValueKey('payments-$contextKey')),
+      SettingsPage(key: ValueKey('settings-$contextKey')),
+    ];
     return Scaffold(
       extendBody: true,
       body: Stack(
         children: [
           IndexedStack(
             index: _currentIndex,
-            children: _pages,
+            children: pages,
           ),
           Positioned(
             bottom: 90, // Above the custom bottom nav
@@ -57,11 +61,10 @@ class _AppShellState extends State<AppShell> {
               heroTag: 'self_attendance_fab',
               backgroundColor: const Color(0xFF8D490B),
               foregroundColor: Colors.white,
-                            shape: const CircleBorder(),
+              shape: const CircleBorder(),
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SelfAttendancePage())
-                );
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const SelfAttendancePage()));
               },
               child: const Icon(Iconsax.finger_scan, size: 28),
             ),
@@ -158,6 +161,3 @@ class _BottomNavButton extends StatelessWidget {
     );
   }
 }
-
-
-

@@ -7,6 +7,7 @@ import {
   UpdateMemberSchema,
 } from './members.schema';
 import * as membersService from './members.service';
+import { ForbiddenError } from '../../lib/errors';
 
 export async function listMembers(req: Request, res: Response, next: NextFunction) {
   try {
@@ -99,8 +100,12 @@ export async function update(req: Request, res: Response, next: NextFunction) {
 export async function getOrganizationMembers(req: Request, res: Response, next: NextFunction) {
   try {
     const orgId = req.params.organization_id;
+    if (orgId !== req.organization!.id) {
+      throw new ForbiddenError('Organization scope is invalid');
+    }
     const branchId = req.query.branch_id as string | undefined;
-    const result = await membersService.listOrganizationMembers(orgId, branchId);
+    const scopedBranchId = req.permissions?.has('ALL') ? branchId : req.branch!.id;
+    const result = await membersService.listOrganizationMembers(orgId, scopedBranchId);
     res.json(result);
   } catch (error) {
     next(error);

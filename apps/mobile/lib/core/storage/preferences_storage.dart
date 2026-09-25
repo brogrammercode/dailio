@@ -1,8 +1,9 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
-class PreferencesStorage {
+class PreferencesStorage extends ChangeNotifier {
   final SharedPreferences _prefs;
 
   PreferencesStorage(this._prefs);
@@ -27,7 +28,14 @@ class PreferencesStorage {
       return const [];
     }
   }
-  bool get canReviewPayments => activePermissions.contains('ALL') || activePermissions.contains('PAYMENT_REQUEST_REVIEW');
+
+  bool get canReviewPayments =>
+      activePermissions.contains('ALL') ||
+      activePermissions.contains('PAYMENT_REQUEST_REVIEW');
+
+  bool hasPermission(String permission) =>
+      activePermissions.contains('ALL') ||
+      activePermissions.contains(permission);
 
   Future<void> setActiveContext({
     required String organizationId,
@@ -42,9 +50,16 @@ class PreferencesStorage {
     if (organizationName != null) {
       await _prefs.setString(_organizationNameKey, organizationName);
     }
-    if (branchName != null) await _prefs.setString(_branchNameKey, branchName);
-    if (roleSystemKey != null) await _prefs.setString(_roleSystemKey, roleSystemKey);
-    if (permissions != null) await _prefs.setString(_permissionsKey, jsonEncode(permissions));
+    if (branchName != null) {
+      await _prefs.setString(_branchNameKey, branchName);
+    }
+    if (roleSystemKey != null) {
+      await _prefs.setString(_roleSystemKey, roleSystemKey);
+    }
+    if (permissions != null) {
+      await _prefs.setString(_permissionsKey, jsonEncode(permissions));
+    }
+    notifyListeners();
   }
 
   Future<void> clearContext() async {
@@ -54,6 +69,7 @@ class PreferencesStorage {
     await _prefs.remove(_branchNameKey);
     await _prefs.remove(_roleSystemKey);
     await _prefs.remove(_permissionsKey);
+    notifyListeners();
   }
 
   // --- Hardware Settings ---

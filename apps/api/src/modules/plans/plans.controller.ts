@@ -28,6 +28,7 @@ export async function createPlan(req: Request, res: Response, next: NextFunction
       req.branch!.id,
       req.permissions ?? new Set<string>(),
       data,
+      req.user!.id,
     );
     res.status(201).json({ data: plan });
   } catch (err) {
@@ -46,6 +47,7 @@ export async function updatePlan(req: Request, res: Response, next: NextFunction
       req.permissions ?? new Set<string>(),
       planId,
       data,
+      req.user!.id,
     );
     res.json({ data: plan });
   } catch (err) {

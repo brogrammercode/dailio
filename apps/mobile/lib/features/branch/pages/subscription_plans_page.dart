@@ -36,6 +36,9 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   final _graceDaysCtrl = TextEditingController();
   bool _isActive = true;
 
+  bool get _canManage =>
+      context.read<PreferencesStorage>().hasPermission('PLAN_MANAGE');
+
   @override
   void initState() {
     super.initState();
@@ -119,6 +122,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   }
 
   void _startCreating() {
+    if (!_canManage) return;
     setState(() {
       _isCreating = true;
       _selectedIndex = -1;
@@ -136,6 +140,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   }
 
   Future<void> _savePlan() async {
+    if (!_canManage) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
@@ -191,6 +196,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   }
 
   Future<void> _showPlanQr() async {
+    if (!_canManage) return;
     if (_isCreating ||
         _selectedIndex < 0 ||
         _selectedIndex >= _filteredPlans.length) {
@@ -348,7 +354,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
               _buildEditor(),
           ],
         ),
-        if (_filteredPlans.isNotEmpty || _isCreating)
+        if ((_filteredPlans.isNotEmpty || _isCreating) && _canManage)
           Positioned(
             bottom: 0,
             left: 0,
@@ -636,40 +642,41 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                   ),
                 );
               }),
-              GestureDetector(
-                onTap: _startCreating,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: _isCreating
-                        ? Colors.blue.shade600
-                        : Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: _isCreating
-                            ? Colors.blue.shade600
-                            : Colors.blue.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Iconsax.add,
-                          size: 14,
+              if (_canManage)
+                GestureDetector(
+                  onTap: _startCreating,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _isCreating
+                          ? Colors.blue.shade600
+                          : Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
                           color: _isCreating
-                              ? Colors.white
-                              : Colors.blue.shade700),
-                      const SizedBox(width: 4),
-                      Text('New Plan',
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: _isCreating
-                                  ? Colors.white
-                                  : Colors.blue.shade700)),
-                    ],
+                              ? Colors.blue.shade600
+                              : Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Iconsax.add,
+                            size: 14,
+                            color: _isCreating
+                                ? Colors.white
+                                : Colors.blue.shade700),
+                        const SizedBox(width: 4),
+                        Text('New Plan',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _isCreating
+                                    ? Colors.white
+                                    : Colors.blue.shade700)),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -705,7 +712,9 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                     ),
                     Switch(
                       value: _isActive,
-                      onChanged: (v) => setState(() => _isActive = v),
+                      onChanged: _canManage
+                          ? (v) => setState(() => _isActive = v)
+                          : null,
                       activeThumbColor: Colors.orange.shade800,
                     ),
                     if (!_isCreating)
@@ -730,7 +739,9 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                       ..._branches.map((b) => DropdownMenuItem<String>(
                           value: b['id'], child: Text(b['name'])))
                     ],
-                    onChanged: (val) => setState(() => _formBranchId = val),
+                    onChanged: _canManage
+                        ? (val) => setState(() => _formBranchId = val)
+                        : null,
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -778,6 +789,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
+          enabled: _canManage,
           keyboardType: type,
           validator: (v) => v == null || v.isEmpty ? 'Required' : null,
           decoration: InputDecoration(

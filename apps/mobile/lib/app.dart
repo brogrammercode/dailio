@@ -63,7 +63,7 @@ class _MainAppState extends State<MainApp> {
   void initState() {
     super.initState();
     // Cache the router so hot reload doesn't reset the navigation stack
-    _router = buildRouter(widget.initialRoute);
+    _router = buildRouter(widget.initialRoute, widget.preferencesStorage);
   }
 
   @override

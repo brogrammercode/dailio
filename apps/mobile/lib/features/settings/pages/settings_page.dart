@@ -86,6 +86,16 @@ class _SettingsPageState extends State<SettingsPage> {
         final orgName = prefs.activeOrganizationName;
         final branchName = prefs.activeBranchName;
         final orgMap = _orgData?['organization'] as Map<String, dynamic>?;
+        final canReadRoles = prefs.hasPermission('ROLE_READ');
+        final canReadMembers = prefs.hasPermission('MEMBER_READ_ALL');
+        final canManageBranches = prefs.hasPermission('BRANCH_CREATE') ||
+            prefs.hasPermission('BRANCH_UPDATE');
+        final canReadPlans = prefs.hasPermission('PLAN_READ');
+        final canManagePlans = prefs.hasPermission('PLAN_MANAGE');
+        final canManageShifts = prefs.hasPermission('SHIFT_MANAGE') ||
+            prefs.hasPermission('SHIFT_READ_ALL');
+        final canManagePayroll = prefs.hasPermission('PAYROLL_GENERATE') ||
+            prefs.hasPermission('PAYROLL_READ_BRANCH');
 
         return Scaffold(
           backgroundColor: const Color(0xFFF9FAFB),
@@ -101,90 +111,97 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 16),
 
                   //  Profile Card
-                  _buildProfileCard(context, user),
+                  _buildProfileCard(context, user, prefs),
                   const SizedBox(height: 16),
 
                   //  Organization Card
-                  _buildOrgCard(context, orgMap, orgName),
+                  _buildOrgCard(context, orgMap, orgName,
+                      canEdit: prefs.hasPermission('GYM_UPDATE')),
                   const SizedBox(height: 24),
 
                   //  Management Modules
                   _sectionHeader('MANAGEMENT & OPERATIONS', '6 Modules'),
                   const SizedBox(height: 12),
 
-                  _buildModuleCard(
-                    icon: Iconsax.lock,
-                    title: 'Roles & Permissions',
-                    subtitle: 'Configure RBAC roles & access levels',
-                    actionLabel: 'Configure',
-                    onTap: () => context.push(AppRoutes.roles),
-                    chips: const ['Owner', 'Branch Mgr', 'Trainer'],
-                    primaryChipIndex: 0,
-                  ),
+                  if (canReadRoles)
+                    _buildModuleCard(
+                      icon: Iconsax.lock,
+                      title: 'Roles & Permissions',
+                      subtitle: 'Configure RBAC roles & access levels',
+                      actionLabel: 'Configure',
+                      onTap: () => context.push(AppRoutes.roles),
+                      chips: const ['Owner', 'Branch Mgr', 'Trainer'],
+                      primaryChipIndex: 0,
+                    ),
 
-                  _buildModuleCard(
-                    icon: Iconsax.personalcard,
-                    iconColor: Colors.orange,
-                    iconBg: Colors.orange.shade50,
-                    title: 'Members & Admissions',
-                    subtitle: 'Manage enrolled members & join requests',
-                    actionLabel: 'Manage',
-                    isPrimaryAction: true,
-                    onTap: () => context.push(AppRoutes.members),
-                    chips: const ['Active', 'Pending Requests', 'Suspended'],
-                    primaryChipIndex: 0,
-                  ),
+                  if (canReadMembers)
+                    _buildModuleCard(
+                      icon: Iconsax.personalcard,
+                      iconColor: Colors.orange,
+                      iconBg: Colors.orange.shade50,
+                      title: 'Members & Admissions',
+                      subtitle: 'Manage enrolled members & join requests',
+                      actionLabel: 'Manage',
+                      isPrimaryAction: true,
+                      onTap: () => context.push(AppRoutes.members),
+                      chips: const ['Active', 'Pending Requests', 'Suspended'],
+                      primaryChipIndex: 0,
+                    ),
 
-                  _buildModuleCard(
-                    icon: Iconsax.hierarchy,
-                    title: 'Branch Locations',
-                    subtitle: 'Manage your gym branches & facilities',
-                    actionLabel: 'Manage',
-                    onTap: () => context.push(AppRoutes.manageBranches),
-                    chips: const ['Primary Branch', 'Add Branch'],
-                    primaryChipIndex: 0,
-                  ),
+                  if (canManageBranches)
+                    _buildModuleCard(
+                      icon: Iconsax.hierarchy,
+                      title: 'Branch Locations',
+                      subtitle: 'Manage your gym branches & facilities',
+                      actionLabel: 'Manage',
+                      onTap: () => context.push(AppRoutes.manageBranches),
+                      chips: const ['Primary Branch', 'Add Branch'],
+                      primaryChipIndex: 0,
+                    ),
 
-                  _buildModuleCard(
-                    icon: Iconsax.card,
-                    title: 'Subscription Plans',
-                    subtitle: 'Membership tiers, pricing & billing',
-                    actionLabel: 'Configure',
-                    onTap: () => context.push(AppRoutes.subscriptionPlans),
-                    chips: const [
-                      'Annual Elite',
-                      'Quarterly Pro',
-                      'Monthly Flex'
-                    ],
-                    primaryChipIndex: 0,
-                  ),
+                  if (canReadPlans)
+                    _buildModuleCard(
+                      icon: Iconsax.card,
+                      title: 'Subscription Plans',
+                      subtitle: 'Membership tiers, pricing & billing',
+                      actionLabel: canManagePlans ? 'Configure' : 'View',
+                      onTap: () => context.push(AppRoutes.subscriptionPlans),
+                      chips: const [
+                        'Annual Elite',
+                        'Quarterly Pro',
+                        'Monthly Flex'
+                      ],
+                      primaryChipIndex: 0,
+                    ),
 
-                  _buildModuleCard(
-                    icon: Iconsax.clock,
-                    title: 'Shift Configuration',
-                    subtitle: 'Rosters, grace periods & duty cycles',
-                    actionLabel: 'Configure',
-                    onTap: () => context.push(AppRoutes.shiftManagement),
-                    chips: const ['Morning', 'Evening', 'General Duty'],
-                    primaryChipIndex: 0,
-                  ),
+                  if (canManageShifts)
+                    _buildModuleCard(
+                      icon: Iconsax.clock,
+                      title: 'Shift Configuration',
+                      subtitle: 'Rosters, grace periods & duty cycles',
+                      actionLabel: 'Configure',
+                      onTap: () => context.push(AppRoutes.shiftManagement),
+                      chips: const ['Morning', 'Evening', 'General Duty'],
+                      primaryChipIndex: 0,
+                    ),
 
-                  _buildModuleCard(
-                    icon: Iconsax.wallet_2,
-                    iconColor: Colors.orange,
-                    iconBg: Colors.orange.shade50,
-                    title: 'Payroll & Compensation',
-                    subtitle: 'Staff salary structures & disbursals',
-                    actionLabel: 'Manage',
-                    isPrimaryAction: true,
-                    onTap: () => context.push(AppRoutes.payrollManagement),
-                    chips: const [
-                      'Monthly Payouts',
-                      'Base + Incentive',
-                      'Tax & Deductions'
-                    ],
-                    primaryChipIndex: 0,
-                  ),
+                  if (canManagePayroll)
+                    _buildModuleCard(
+                      icon: Iconsax.wallet_2,
+                      iconColor: Colors.orange,
+                      iconBg: Colors.orange.shade50,
+                      title: 'Payroll & Compensation',
+                      subtitle: 'Staff salary structures & disbursals',
+                      actionLabel: 'Manage',
+                      isPrimaryAction: true,
+                      onTap: () => context.push(AppRoutes.payrollManagement),
+                      chips: const [
+                        'Monthly Payouts',
+                        'Base + Incentive',
+                        'Tax & Deductions'
+                      ],
+                      primaryChipIndex: 0,
+                    ),
 
                   const SizedBox(height: 24),
 
@@ -319,7 +336,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   //  Profile Card
-  Widget _buildProfileCard(BuildContext context, UserModel? user) {
+  Widget _buildProfileCard(
+      BuildContext context, UserModel? user, PreferencesStorage prefs) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -392,13 +410,13 @@ class _SettingsPageState extends State<SettingsPage> {
                         color: Colors.orange.shade50,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Iconsax.shield_tick,
                               size: 10, color: Colors.orange),
                           SizedBox(width: 4),
-                          Text('Owner',
+                          Text(prefs.activeRoleSystemKey ?? 'Member',
                               style: TextStyle(
                                   fontSize: 10,
                                   color: Colors.orange,
@@ -440,13 +458,16 @@ class _SettingsPageState extends State<SettingsPage> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text('ACCESS',
                           style: TextStyle(
                               fontSize: 9,
                               color: Colors.grey,
                               fontWeight: FontWeight.bold)),
-                      Text('Organization Owner',
+                      Text(
+                          prefs.activeRoleSystemKey == 'OWNER'
+                              ? 'Organization Owner'
+                              : 'Branch ${prefs.activeRoleSystemKey ?? 'Member'}',
                           style: TextStyle(
                               fontSize: 11, fontWeight: FontWeight.bold)),
                     ],
@@ -482,7 +503,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   //  Organization Card
   Widget _buildOrgCard(
-      BuildContext context, Map<String, dynamic>? orgMap, String? orgName) {
+      BuildContext context, Map<String, dynamic>? orgMap, String? orgName,
+      {required bool canEdit}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -548,18 +570,19 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.editOrganization),
-                icon: const Icon(Iconsax.setting_4, size: 12),
-                label: const Text('Edit', style: TextStyle(fontSize: 11)),
-                style: OutlinedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                  minimumSize: const Size(0, 28),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
+              if (canEdit)
+                OutlinedButton.icon(
+                  onPressed: () => context.push(AppRoutes.editOrganization),
+                  icon: const Icon(Iconsax.setting_4, size: 12),
+                  label: const Text('Edit', style: TextStyle(fontSize: 11)),
+                  style: OutlinedButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                    minimumSize: const Size(0, 28),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                  ),
                 ),
-              ),
             ],
           ),
           if (_isLoadingOrg) ...[

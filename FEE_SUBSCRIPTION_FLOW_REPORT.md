@@ -1,6 +1,6 @@
 # Fee, Subscription, Branch Join, and QR Purchase Flow
 
-Status: Track A and Track B implemented; Track C remains  
+Status: Tracks A-C implemented; live environment validation remains
 Owner: Harsh  
 Last updated: 2026-09-25  
 Source: Product flow described by Harsh, aligned with `CONTEXT.md`
@@ -23,10 +23,11 @@ This document is the implementation tracker for completing the current fee/subsc
 10. An authorized reviewer confirms or rejects the evidence.
 11. After 20Ã¢â‚¬â€œ25 days, the Fees page shows each customerÃ¢â‚¬â„¢s real subscription/payment state, expiry date, outstanding amount, and urgency.
 
-This file separates the work into two delivery tracks:
+This file separates the work into three delivery tracks:
 
 - **Track A:** finish the fee, payment, subscription, and plan foundation.
 - **Track B:** add the QR-driven branch admission and plan purchase journey.
+- **Track C:** enforce permission-aware settings, context behavior, reviewer actions, and operational hardening.
 
 No task is complete until its checklist, acceptance criteria, and verification evidence are recorded here.
 
@@ -507,19 +508,21 @@ Track B implementation note: invite tokens are 32-byte opaque values represented
 
 ## 9. Track C Ã¢â‚¬â€ settings and operational controls
 
-Status: `TODO`
+Status: `DONE WITH FOLLOW-UP`
 
-- [ ] Make Settings cards permission-aware.
-- [ ] Show Subscription Plans only with `PLAN_READ`/`PLAN_MANAGE` as applicable.
-- [ ] Show fee review actions only with payment-review permission.
-- [ ] Show member self-service fee pages to regular members.
-- [ ] Add branch context switch behavior that clears/refetches fee and plan data.
-- [ ] Add plan QR entry point to the plan editor/detail page.
-- [ ] Add branch QR entry point to branch detail/join settings.
-- [ ] Remove the placeholder Payments tab or replace it with the real permission-aware payment surface.
-- [ ] Ensure all settings mutations create audit records.
+- [x] Make Settings cards permission-aware.
+- [x] Show Subscription Plans only with `PLAN_READ`/`PLAN_MANAGE` as applicable.
+- [x] Show fee review actions only with payment-review permission.
+- [x] Show member self-service fee pages to regular members.
+- [x] Add branch context switch behavior that clears/refetches fee and plan data.
+- [x] Add plan QR entry point to the plan editor/detail page.
+- [x] Add branch QR entry point to branch detail/join settings.
+- [x] Replace the placeholder Payments tab with the permission-aware payment request/review surface.
+- [x] Ensure organization, branch, role, plan, payroll, shift, attendance-policy, and member settings mutations are permission-protected and audited.
 
-Done when a normal member cannot access owner/admin configuration through direct navigation or API calls.
+Done for the implementation when a normal member cannot access owner/admin configuration through direct navigation or API calls. The mobile router now redirects unauthorized configuration routes, and the API independently enforces tenant context and permissions. Live two-account and device-camera execution is still a deployment verification task.
+
+Track C implementation note: `PreferencesStorage` now notifies on context changes; the shell keys/refetches attendance, fees, payments, and settings by active organization/branch; settings cards and plan editing are permission-aware; payment reviewers can approve, reject, or request information with required reasons; branch/organization/role/plan/payroll/shift/member settings routes are tenant-scoped; and settings mutations write audit records. The router protects direct configuration navigation, while API middleware remains the authoritative control.
 
 ## 10. Proposed API surface
 
@@ -584,6 +587,16 @@ Every mutation that can be retried must accept an idempotency key and return the
 - All sensitive actions are audited.
 
 ## 12. End-to-end acceptance scenarios
+
+Execution tracking: the scenario checkboxes below are intentionally reserved for a live PostgreSQL/device run. The implementation paths are complete and covered by the Track A-C tracker; these runtime checks are not falsely marked complete because this workspace has no running database/Redis fixture or physical camera device.
+
+| Scenario | Implementation status | Runtime status |
+| -------- | --------------------- | -------------- |
+| 1. Owner setup | Implemented | Pending live account run |
+| 2. Customer branch join | Implemented | Pending two-account DB/device run |
+| 3. Customer plan QR | Implemented | Pending camera/device run |
+| 4. Evidence and confirmation | Implemented | Pending DB/Cloudinary transaction run |
+| 5. Fee monitoring | Implemented | Pending time-shifted DB/E2E run |
 
 ### Scenario 1 Ã¢â‚¬â€ Owner setup
 
@@ -667,7 +680,7 @@ Use this table after every implementation session. Change the task status only w
 | B6 Evidence submission          | DONE                    | 2026-09-25     | Method/reference/note/evidence upload, requested idempotency   | Cloudinary/database integration remains                      |
 | B7 Review/activation            | DONE                    | 2026-09-25     | Existing transaction-safe review, ledger, receipt, activation | DB-backed approval remains                                   |
 | B8 Expiry monitoring            | DONE WITH FOLLOW-UP     | 2026-09-25     | Branch-local remaining days, urgency, fee status/card fields   | Time simulation/E2E remains                                  |
-| C Settings/permissions          | TODO                    |                |                                                             |                                                              |
+| C Settings/permissions          | DONE WITH FOLLOW-UP     | 2026-09-25     | Flutter analyze; API type-check/build; 17 API tests; permission/router/API audit hardening | Live DB/device E2E, concurrency, and camera verification remain |
 
 Allowed statuses: `TODO`, `IN PROGRESS`, `PARTIAL`, `BLOCKED`, `DONE`, `DONE WITH SAFE DEFAULTS`, `DONE WITH FOLLOW-UP`.
 
@@ -679,7 +692,8 @@ Allowed statuses: `TODO`, `IN PROGRESS`, `PARTIAL`, `BLOCKED`, `DONE`, `DONE WIT
 | 2026-09-25 | Track A implementation | Added schema, migration, scoped plans/subscriptions, payments, fee API, mobile fee screens, review/correction paths | Prisma validate; API type-check/build; 4 API unit tests; Flutter analyze has only two pre-existing attendance style infos | Track B QR journey |
 
 | 2026-09-25 | Track A completion audit | Added lifecycle commands, typed financial models, authenticated evidence upload/download, scoped receipts, live Payments tab, fee/status tests, and tenant-idempotency tests | 14 API tests; 2 Flutter model tests; API build/type-check; Prisma validate; Flutter analyze clean | Apply migration and run DB-backed transaction/E2E suite |
-| 2026-09-25 | Track B implementation | Added hashed branch/plan invites, QR scanner preview/fast join, idempotent admission, transactional approval hardening, server-priced purchase drafts, evidence-backed payment submission, and branch-local fee urgency | API type-check/build; 17 API tests; 2 Flutter model tests; migration added; database/device E2E not available locally | Track C settings/permissions |
+| 2026-09-25 | Track B implementation | Added hashed branch/plan invites, QR scanner preview/fast join, idempotent admission, transactional approval hardening, server-priced purchase drafts, evidence-backed payment submission, and branch-local fee urgency | API type-check/build; 17 API tests; 2 Flutter model tests; migration added; database/device E2E not available locally | Apply migration and run DB/device E2E |
+| 2026-09-25 | Track C implementation | Added permission-aware Settings and plan editing, router guards, context-keyed data refresh, reviewer actions, protected member/role/branch/organization/payroll/shift routes, and audit coverage for settings mutations | API type-check/build; 17 API tests; Prisma validate; Flutter analyze; 2 Flutter model tests | Apply migration and run two-account DB/device E2E |
 
 ## 15. Definition of complete
 
@@ -697,3 +711,5 @@ This flow is complete only when:
 - Cross-organization and cross-branch identifiers cannot leak data or mutate records.
 - Retry, duplicate approval, overlap, partial payment, rejection, refund, and expired QR cases are tested.
 - Migrations, API contracts, UI states, audits, notifications, and documentation are complete.
+
+Implementation completion note: the application and documentation requirements above are implemented in this workspace. The remaining follow-up is environment verification: apply the additive migrations, run PostgreSQL-backed transaction/concurrency tests, exercise Cloudinary/private evidence URLs, and verify the physical QR camera flow on Android/iOS with Harsh, Adarsh, and Vikram test accounts.

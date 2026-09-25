@@ -76,6 +76,14 @@ const SYSTEM_PERMISSIONS = [
   'ANNOUNCEMENT_DELETE',
   'REPORT_READ',
   'REPORT_EXPORT',
+  'PAYROLL_READ_SELF',
+  'PAYROLL_READ_TEAM',
+  'PAYROLL_READ_BRANCH',
+  'PAYROLL_GENERATE',
+  'PAYROLL_APPROVE',
+  'PAYROLL_FINALIZE',
+  'PAYROLL_MARK_PAID',
+  'PAYROLL_EXPORT',
   'AUDIT_READ',
 ];
 
@@ -97,6 +105,7 @@ const MEMBER_PERMISSIONS = [
   'FINE_READ_SELF',
   'REMINDER_READ_SELF',
   'ANNOUNCEMENT_READ',
+  'PAYROLL_READ_SELF',
 ];
 
 const ADMIN_PERMISSIONS = [
@@ -134,6 +143,12 @@ const ADMIN_PERMISSIONS = [
   'ANNOUNCEMENT_UPDATE',
   'ANNOUNCEMENT_DELETE',
   'REPORT_READ',
+  'PAYROLL_READ_BRANCH',
+  'PAYROLL_GENERATE',
+  'PAYROLL_APPROVE',
+  'PAYROLL_FINALIZE',
+  'PAYROLL_MARK_PAID',
+  'PAYROLL_EXPORT',
 ];
 
 async function seedRoles(tx: any, organization_id: string) {
@@ -288,5 +303,27 @@ export async function updateOrganization(
     where: { organization_id, user_id, status: 'ACTIVE' },
   });
   if (!membership) throw new NotFoundError('Organization');
-  return prisma.organization.update({ where: { id: organization_id }, data });
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.organization.findUnique({ where: { id: organization_id } });
+    if (!before) throw new NotFoundError('Organization');
+    const organization = await tx.organization.update({ where: { id: organization_id }, data });
+    await tx.auditLog.create({
+      data: {
+        id: ulid(),
+        organization_id,
+        branch_id: membership.branch_id,
+        actor_id: user_id,
+        action: 'UPDATE',
+        target_type: 'Organization',
+        target_id: organization_id,
+        before_state: { name: before.name, timezone: before.timezone, currency: before.currency },
+        after_state: {
+          name: organization.name,
+          timezone: organization.timezone,
+          currency: organization.currency,
+        },
+      },
+    });
+    return organization;
+  });
 }

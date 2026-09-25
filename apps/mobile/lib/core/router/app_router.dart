@@ -29,14 +29,23 @@ import '../../features/fees/pages/subscription_purchase_page.dart';
 
 import '../../features/profile/pages/profile_page.dart';
 import '../widgets/app_shell.dart';
+import '../storage/preferences_storage.dart';
 import 'route_names.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-GoRouter buildRouter(String initialLocation) {
+GoRouter buildRouter(
+  String initialLocation,
+  PreferencesStorage preferencesStorage,
+) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: initialLocation,
+    refreshListenable: preferencesStorage,
+    redirect: (_, state) => _guardConfigurationRoute(
+      preferencesStorage,
+      state.matchedLocation,
+    ),
     debugLogDiagnostics: true,
     routes: [
       // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Auth & Onboarding ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
@@ -160,4 +169,44 @@ GoRouter buildRouter(String initialLocation) {
       ),
     ],
   );
+}
+
+String? _guardConfigurationRoute(
+  PreferencesStorage preferences,
+  String path,
+) {
+  bool any(List<String> permissions) =>
+      permissions.any(preferences.hasPermission);
+
+  if (path.startsWith('/home/settings/edit-branch/') &&
+      !any(['BRANCH_READ', 'BRANCH_UPDATE'])) {
+    return AppRoutes.home;
+  }
+  if (path.startsWith('/home/branch/members/') &&
+      !preferences.hasPermission('MEMBER_READ_ALL')) {
+    return AppRoutes.home;
+  }
+  if (path.startsWith('/home/branch/configure-member/') &&
+      !any(['MEMBER_READ_ALL', 'MEMBER_UPDATE'])) {
+    return AppRoutes.home;
+  }
+
+  final allowed = switch (path) {
+    AppRoutes.editOrganization => preferences.hasPermission('GYM_UPDATE'),
+    AppRoutes.manageBranches => any(['BRANCH_READ', 'BRANCH_UPDATE']),
+    AppRoutes.addBranch => preferences.hasPermission('BRANCH_CREATE'),
+    AppRoutes.attendancePolicy =>
+      preferences.hasPermission('BRANCH_SETTINGS_UPDATE'),
+    AppRoutes.roles => preferences.hasPermission('ROLE_READ'),
+    AppRoutes.subscriptionPlans => preferences.hasPermission('PLAN_READ'),
+    AppRoutes.shiftManagement => any(['SHIFT_READ_ALL', 'SHIFT_MANAGE']),
+    AppRoutes.payrollManagement =>
+      any(['PAYROLL_READ_BRANCH', 'PAYROLL_GENERATE']),
+    AppRoutes.members => preferences.hasPermission('MEMBER_READ_ALL'),
+    AppRoutes.configureMember => any(['MEMBER_READ_ALL', 'MEMBER_UPDATE']),
+    AppRoutes.joinRequests => preferences.hasPermission('JOIN_REQUEST_READ'),
+    _ => true,
+  };
+
+  return allowed ? null : AppRoutes.home;
 }

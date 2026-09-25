@@ -27,7 +27,7 @@ router.patch(
   '/branches/:branch_id/attendance/policy',
   authenticate,
   resolveTenantContext,
-  requirePermission('SETTINGS_UPDATE'),
+  requirePermission('BRANCH_SETTINGS_UPDATE'),
   updatePolicyHandler,
 );
 
