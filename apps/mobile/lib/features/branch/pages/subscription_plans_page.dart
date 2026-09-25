@@ -6,6 +6,8 @@ import 'package:iconsax/iconsax.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/widgets/branch_filter_tabs.dart';
 import '../../organization/controllers/organization_repository.dart';
+import '../../context_selection/controllers/branch_repository.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class SubscriptionPlansPage extends StatefulWidget {
   const SubscriptionPlansPage({super.key});
@@ -185,6 +187,76 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _showPlanQr() async {
+    if (_isCreating ||
+        _selectedIndex < 0 ||
+        _selectedIndex >= _filteredPlans.length) {
+      return;
+    }
+    final plan = _filteredPlans[_selectedIndex];
+    if (plan['is_active'] != true) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Only active plans can have a purchase QR.')));
+      return;
+    }
+    final branchId =
+        (plan['branch_id'] ?? context.read<PreferencesStorage>().activeBranchId)
+            ?.toString();
+    final planId = plan['id']?.toString();
+    if (branchId == null || planId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Select an active branch before creating a plan QR.')));
+      return;
+    }
+    try {
+      final invite = await context
+          .read<BranchRepository>()
+          .createPlanInvite(branchId, planId);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text('Plan QR • ${plan['name'] ?? 'Plan'}'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            QrImageView(data: invite['qr_payload'].toString(), size: 220),
+            const SizedBox(height: 12),
+            Text(
+                '${plan['duration_days'] ?? 0} days • ${plan['currency'] ?? 'INR'} ${(plan['amount_minor_unit'] as num? ?? 0) / 100}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+                'Admission fee: ${plan['currency'] ?? 'INR'} ${((plan['joining_fee_minor'] as num? ?? 0) / 100).toStringAsFixed(2)}',
+                style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            const SizedBox(height: 6),
+            Text('Expires ${invite['expires_at'] ?? 'soon'}',
+                style: const TextStyle(color: Colors.grey)),
+            const SizedBox(height: 8),
+            const Text('Regenerating revokes the previous QR.',
+                textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+          ]),
+          actions: [
+            TextButton(
+                onPressed: () async {
+                  await context.read<BranchRepository>().revokeInvite(
+                      branchId, invite['id'].toString(),
+                      planId: planId);
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                },
+                child: const Text('Revoke')),
+            TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Done'))
+          ],
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not create plan QR: $error')));
+      }
     }
   }
 
@@ -636,6 +708,12 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                       onChanged: (v) => setState(() => _isActive = v),
                       activeThumbColor: Colors.orange.shade800,
                     ),
+                    if (!_isCreating)
+                      IconButton(
+                        tooltip: 'Show plan purchase QR',
+                        onPressed: _showPlanQr,
+                        icon: const Icon(Iconsax.scan_barcode),
+                      ),
                   ],
                 ),
                 const Padding(

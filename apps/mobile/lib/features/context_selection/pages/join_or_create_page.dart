@@ -190,6 +190,12 @@ class JoinOrCreatePage extends StatelessWidget {
                 iconBg: const Color(0xFFF0FDF4),
                 onTap: () => context.push(AppRoutes.organizationDiscovery),
               ),
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: () => context.push(AppRoutes.qrScanner),
+                icon: const Icon(Iconsax.scan_barcode),
+                label: const Text('Scan and Fast Join'),
+              ),
               const Spacer(),
             ],
           ),

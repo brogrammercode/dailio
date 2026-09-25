@@ -10,6 +10,7 @@ import 'package:dio/dio.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../controllers/organization_repository.dart';
+import '../../context_selection/controllers/branch_repository.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 
@@ -857,59 +858,75 @@ class _EditBranchPageState extends State<EditBranchPage> {
   Widget _buildQRSection() {
     if (_branch == null) return const SizedBox();
 
-    final orgId = _branch!['organization_id'] ?? '';
-    final branchId = widget.branchId;
-    final joinData = 'dailio://join?orgId=$orgId&branchId=$branchId';
-
     return _buildSection(
       title: 'Branch Invite QR',
       icon: Iconsax.scan_barcode,
       children: [
         const Text(
-          'Members and staff can scan this QR code using their Dailio app to quickly send a join request to this branch.',
+          'Create a short-lived invite QR. Members scan it to preview this branch and send a fast join request.',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 24),
         Center(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ],
-            ),
-            child: QrImageView(
-              data: joinData,
-              version: QrVersions.auto,
-              size: 200.0,
-              backgroundColor: Colors.white,
-              eyeStyle: const QrEyeStyle(
-                eyeShape: QrEyeShape.square,
-                color: Colors.black87,
-              ),
-              dataModuleStyle: const QrDataModuleStyle(
-                dataModuleShape: QrDataModuleShape.square,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Center(
-          child: TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Iconsax.share, size: 16),
-            label: const Text('Share Invite Link'),
+          child: FilledButton.icon(
+            onPressed: _showJoinQr,
+            icon: const Icon(Iconsax.scan_barcode),
+            label: const Text('Show Join QR'),
           ),
         ),
       ],
     );
+  }
+
+  Future<void> _showJoinQr() async {
+    try {
+      final invite = await context
+          .read<BranchRepository>()
+          .createBranchInvite(widget.branchId);
+      if (!mounted) return;
+      final payload = invite['qr_payload']?.toString();
+      if (payload == null || payload.isEmpty) {
+        throw Exception('Invite QR was not created');
+      }
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text('Join QR • ${_branch?['name'] ?? 'Branch'}'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            QrImageView(data: payload, size: 220),
+            const SizedBox(height: 12),
+            Text(
+                '${invite['organization']?['name'] ?? 'Organization'} • ${_branch?['name'] ?? 'Branch'}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            Text('Expires ${invite['expires_at'] ?? 'soon'}',
+                style: const TextStyle(color: Colors.grey)),
+            const SizedBox(height: 8),
+            const Text('Regenerate this QR to revoke the previous one.',
+                textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+          ]),
+          actions: [
+            TextButton(
+                onPressed: () async {
+                  await context
+                      .read<BranchRepository>()
+                      .revokeInvite(widget.branchId, invite['id'].toString());
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                },
+                child: const Text('Revoke')),
+            TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Done'))
+          ],
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not create invite: $error')));
+      }
+    }
   }
 
   Widget _buildSetupWizardSection() {
@@ -1058,4 +1075,3 @@ class _EditBranchPageState extends State<EditBranchPage> {
     );
   }
 }
-

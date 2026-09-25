@@ -83,33 +83,56 @@ export async function approveJoinRequest(
         throw new ConflictError('Request is not pending');
       }
 
-      // 1. Mark request as APPROVED
+      // 1. Fetch the configured default MEMBER role. It may be organization-wide
+      // or scoped to this branch, but it must belong to this tenant.
+      const memberRole = await txClient.role.findFirst({
+        where: {
+          organization_id,
+          system_key: 'MEMBER',
+          OR: [{ branch_id }, { branch_id: null }],
+        },
+        orderBy: { branch_id: 'desc' },
+      });
+
+      // 2. Reuse an existing membership if a retry/concurrent approval already
+      // created it. Serializable isolation prevents two approvals from both
+      // creating a membership for the same request.
+      const existingMember = await txClient.member.findUnique({
+        where: {
+          organization_id_branch_id_user_id: {
+            organization_id,
+            branch_id,
+            user_id: request.user_id,
+          },
+        },
+      });
+      const memberId = ulid();
+      const member = existingMember
+        ? await txClient.member.update({
+            where: { id: existingMember.id },
+            data: { role_id: memberRole?.id ?? existingMember.role_id, status: 'ACTIVE' },
+          })
+        : await txClient.member.create({
+            data: {
+              id: memberId,
+              user_id: request.user_id,
+              organization_id,
+              branch_id,
+              role_id: memberRole?.id,
+              // ULID suffix is unique without exposing a sequential member count.
+              member_number: 'MEM-' + ulid().slice(-8),
+              status: 'ACTIVE',
+              is_employee: false,
+            },
+          });
+
+      // 3. Mark request as APPROVED only after the membership exists.
       await txClient.joinRequest.update({
         where: { id: request_id },
         data: {
           status: 'APPROVED',
           reviewed_at: new Date(),
           reviewed_by: actor_id,
-        },
-      });
-
-      // 2. Fetch default MEMBER role
-      const memberRole = await txClient.role.findFirst({
-        where: { organization_id, system_key: 'MEMBER' },
-      });
-
-      // 3. Create Member
-      const memberId = ulid();
-      const member = await txClient.member.create({
-        data: {
-          id: memberId,
-          user_id: request.user_id,
-          organization_id,
-          branch_id,
-          role_id: memberRole?.id,
-          member_number: 'MEM-' + Date.now().toString().slice(-6),
-          status: 'ACTIVE',
-          is_employee: false,
         },
       });
 

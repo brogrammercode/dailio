@@ -2006,6 +2006,14 @@ Every implemented page must document/encode:
 13. Optional shift/subscription may be assigned.
 14. User receives notification and enters branch context.
 
+### 26.1a QR-first branch admission
+
+1. Owner/admin creates a branch join invite with a short expiry.
+2. The server stores only a SHA-256 hash of the opaque invite token; regeneration revokes the prior active invite for that purpose.
+3. A signed-in user scans the Dailio invite QR and receives a server-resolved organization/branch preview.
+4. After explicit confirmation, the server derives the organization, branch, and user identity from the invite/session and creates one idempotent `PENDING` join request.
+5. Owner/admin approves the request transactionally; the server reuses or creates the branch membership, assigns the protected default `MEMBER` role, and emits audit/notification records.
+
 ### 26.2 New owner creates organization
 
 1. Google auth.
@@ -2042,6 +2050,8 @@ Every implemented page must document/encode:
 10. Self and authorized All Attendance screens update.
 
 ### 26.5 Subscription purchase with evidence
+
+QR plan purchase is also supported: the owner/admin creates a purpose-bound plan invite, the member scans it, and the server rejects revoked, expired, inactive, or incompatible invites. The server confirms active branch membership, creates an idempotent `DRAFT` subscription using snapshotted authoritative plan terms and server-calculated dates, and pre-fills the purchase form. The member submits evidence/reference as `REQUESTED`; only authorized review can create the confirmed payment, immutable ledger allocation, receipt, and active subscription.
 
 1. Member opens Buy Subscription.
 2. Select plan card.
@@ -2091,6 +2101,7 @@ Every implemented page must document/encode:
 | Currency | INR, paise for first release. |
 | Subscription overlap | Only non-overlapping future renewal by default. |
 | Partial payment | Supported. |
+| QR invite lifetime/reuse | QR join and plan invites are reusable until expiry, with regeneration/revocation; raw tokens are never persisted. Default expiry is 24 hours and can be configured up to 30 days. |
 | Overpayment | Reject by default unless account-credit behavior is approved. |
 | Payment evidence | Supported; manual evidence creates Requested state until reviewed. |
 | Pending fee definition | Active/recently attending member without valid renewed subscription coverage for period. |
@@ -2281,6 +2292,7 @@ A feature is complete only when all applicable items are true:
 | 2026-09-09 | Fees period tabs use Paid / Requested / Pending; Requested is evidence-backed unconfirmed payment; Pending includes active/recently attending members without renewed coverage. | Latest Fees direction. |
 | 2026-09-09 | Multiple attendance policies managed in Settings and assigned to employees. | Replaces branch-wide attendance configuration. |
 | 2026-09-09 | Reporting hierarchy is modeled independently from role permissions; team access requires both hierarchy and suitable permission. | Required to support hierarchy safely without implicit admin power. |
+| 2026-09-25 | Branch admission and plan purchase use purpose-bound opaque QR invites, reusable until expiry and revocable/regenerable. | Supports the approved fast-join/customer journey while preserving tenant derivation, server pricing, idempotency, and auditability. |
 
 ---
 

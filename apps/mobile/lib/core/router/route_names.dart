@@ -18,6 +18,7 @@ class AppRoutes {
   static const String attendance = '/home/attendance';
   static const String attendanceDetail = '/home/attendance/:session_id';
   static const String fees = '/home/fees';
+  static const String subscriptionPurchase = '/home/fees/purchase';
   static const String subscriptionDetail = '/home/fees/:subscription_id';
   static const String branch = '/home/branch';
   static const String members = '/home/branch/members';
@@ -36,8 +37,6 @@ class AppRoutes {
   static const String subscriptionPlans = '/home/branch/subscription-plans';
   static const String shiftManagement = '/home/branch/shift-management';
   static const String payrollManagement = '/home/branch/payroll-management';
-
-
 
   // Shared
   static const String profile = '/profile';

@@ -59,6 +59,25 @@ function monthBounds(offset: number) {
   return { start, end };
 }
 
+function branchLocalDate(value: Date, timezone: string) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(value);
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? '00';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+function branchLocalRemainingDays(endDate: Date, timezone: string) {
+  const end = branchLocalDate(endDate, timezone);
+  const today = branchLocalDate(new Date(), timezone);
+  const endUtc = Date.parse(`${end}T00:00:00.000Z`);
+  const todayUtc = Date.parse(`${today}T00:00:00.000Z`);
+  return Math.ceil((endUtc - todayUtc) / 86_400_000);
+}
+
 export function getPeriod(query: FeeQuery) {
   if (query.period === 'custom') {
     if (!query.from || !query.to)
@@ -578,6 +597,11 @@ export async function listFees(
   currentMemberId: string,
 ) {
   const { start, end } = getPeriod(query);
+  const branch = await prisma.branch.findFirst({
+    where: { id: branchId, organization_id: organizationId },
+    select: { timezone: true },
+  });
+  const branchTimezone = branch?.timezone ?? 'UTC';
   const canReadAll =
     permissions.has('ALL') ||
     permissions.has('PAYMENT_READ_ALL') ||
@@ -637,9 +661,7 @@ export async function listFees(
           (!subscription || request.subscription_id === subscription.id),
       );
       const endDate = subscription?.end_date;
-      const remainingDays = endDate
-        ? Math.ceil((endDate.valueOf() - Date.now()) / 86_400_000)
-        : null;
+      const remainingDays = endDate ? branchLocalRemainingDays(endDate, branchTimezone) : null;
       const status = deriveFeeStatus({
         hasPendingRequest: Boolean(pendingRequest),
         hasSubscription: Boolean(subscription),

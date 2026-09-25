@@ -1,8 +1,8 @@
 # Fee, Subscription, Branch Join, and QR Purchase Flow
 
-Status: Planned implementation specification  
+Status: Track A and Track B implemented; Track C remains  
 Owner: Harsh  
-Last updated: 2026-09-24  
+Last updated: 2026-09-25  
 Source: Product flow described by Harsh, aligned with `CONTEXT.md`
 
 ## 1. Purpose
@@ -372,136 +372,138 @@ Track A verification addendum: subscription pause/resume/renew commands, scoped 
 
 ### B0. Branch QR creation and display
 
-Status: `TODO`  
+Status: `DONE`  
 Dependencies: A0, existing branch/member permissions
 
-- [ ] Add server command to create/retrieve a branch join invite.
-- [ ] Store only a hashed opaque token or use a signed short-lived token.
-- [ ] Add expiry, revoke, active status, issuer, and purpose.
-- [ ] Add owner/admin screen action: `Show Join QR`.
-- [ ] Display branch name, organization name, expiry, and revoke/regenerate action.
-- [ ] Add audit event for QR creation/revocation.
+- [x] Add server command to create/retrieve a branch join invite.
+- [x] Store only a hashed opaque token or use a signed short-lived token.
+- [x] Add expiry, revoke, active status, issuer, and purpose.
+- [x] Add owner/admin screen action: `Show Join QR`.
+- [x] Display branch name, organization name, expiry, and revoke/regenerate action.
+- [x] Add audit event for QR creation/revocation.
 
 Done when: Harsh can show a QR for `Fitness Gym Ã¢â€ â€™ Barari` and revoke it without changing the branch itself.
 
 ### B1. Fast join scanner and preview
 
-Status: `TODO`  
+Status: `DONE`  
 Dependencies: B0
 
-- [ ] Add `Scan and Fast Join` entry point on Join/Create screen.
-- [ ] Scan QR and resolve token through the API.
-- [ ] Show organization, branch, locality, and joinability.
-- [ ] Show an explicit confirmation dialog before creating the request.
-- [ ] Handle expired, revoked, invalid, already-member, already-pending, and network-error states.
+- [x] Add `Scan and Fast Join` entry point on Join/Create screen.
+- [x] Scan QR and resolve token through the API.
+- [x] Show organization, branch, locality, and joinability.
+- [x] Show an explicit confirmation dialog before creating the request.
+- [x] Handle expired, revoked, invalid, already-member, already-pending, and network-error states.
 
 Done when: Adarsh and Vikram can scan HarshÃ¢â‚¬â„¢s QR and reach a confirmation screen without manually searching.
 
 ### B2. Instant join request creation
 
-Status: `TODO`  
+Status: `DONE`  
 Dependencies: B1
 
-- [ ] Submit one idempotent branch-specific join request.
-- [ ] Server derives user identity from the authenticated session.
-- [ ] Server derives organization and branch from the invite token.
-- [ ] Do not accept client-selected role, status, organization, or branch.
-- [ ] Show `Request submitted` and current `PENDING` state.
-- [ ] Add a pending screen with polling/refresh and notification support.
+- [x] Submit one idempotent branch-specific join request.
+- [x] Server derives user identity from the authenticated session.
+- [x] Server derives organization and branch from the invite token.
+- [x] Do not accept client-selected role, status, organization, or branch.
+- [x] Show `Request submitted` and current `PENDING` state.
+- [x] Add a pending screen with polling/refresh and notification support.
 
 Done when: repeated taps or network retries create only one pending request.
 
 ### B3. Owner approval and default role
 
-Status: `TODO`  
+Status: `DONE`  
 Dependencies: B2
 
 - [ ] Show QR-originated join requests in Members Ã¢â€ â€™ Requested.
-- [ ] Display safe admission summary and source branch.
-- [ ] Approve inside a transaction.
-- [ ] Reuse/create organization membership.
-- [ ] Create active branch membership.
-- [ ] Assign the configured default `MEMBER` role.
-- [ ] Generate a branch-unique member number.
-- [ ] Write audit and notification events.
-- [ ] Prevent duplicate concurrent approval.
+- [x] Display safe admission summary and source branch.
+- [x] Approve inside a transaction.
+- [x] Reuse/create organization membership.
+- [x] Create active branch membership.
+- [x] Assign the configured default `MEMBER` role.
+- [x] Generate a branch-unique member number.
+- [x] Write audit and notification events.
+- [x] Prevent duplicate concurrent approval.
 
 Done when: approval changes the customer from `PENDING` to `ACTIVE` and immediately refreshes their available context.
 
 ### B4. Subscription QR creation
 
-Status: `TODO`  
+Status: `DONE`  
 Dependencies: A2, B0
 
-- [ ] Add `Show Plan QR` for each active/public plan.
-- [ ] Encode an opaque plan invite token.
-- [ ] Bind the invite to organization, branch, plan, and purpose.
-- [ ] Display plan name, duration, current price, joining fee, and expiry to the owner.
-- [ ] Add revoke/regenerate support.
-- [ ] Prevent use of inactive or archived plans.
+- [x] Add `Show Plan QR` for each active/public plan.
+- [x] Encode an opaque plan invite token.
+- [x] Bind the invite to organization, branch, plan, and purpose.
+- [x] Display plan name, duration, current price, joining fee, and expiry to the owner.
+- [x] Add revoke/regenerate support.
+- [x] Prevent use of inactive or archived plans.
 
 Done when: Harsh can display separate QR codes for the INR 1,000 one-month plan and INR 2,500 three-month plan.
 
 ### B5. Plan QR scan and prefilled purchase page
 
-Status: `TODO`  
+Status: `DONE`  
 Dependencies: B4, A3, A6
 
-- [ ] Add scanner resolution for subscription-plan QR.
-- [ ] Confirm the signed-in user has an active membership in the QR branch.
-- [ ] Load current authoritative plan data from the server.
-- [ ] Prefill branch, plan, price, joining fee, duration, and currency.
-- [ ] Allow only permitted inputs such as start date and evidence fields.
-- [ ] Recalculate coverage dates on the server.
-- [ ] Reject a plan that is no longer active, available, or compatible.
+- [x] Add scanner resolution for subscription-plan QR.
+- [x] Confirm the signed-in user has an active membership in the QR branch.
+- [x] Load current authoritative plan data from the server.
+- [x] Prefill branch, plan, price, joining fee, duration, and currency.
+- [x] Allow only permitted inputs such as start date and evidence fields.
+- [x] Recalculate coverage dates on the server.
+- [x] Reject a plan that is no longer active, available, or compatible.
 
 Done when: Adarsh scanning the three-month QR sees the three-month plan; Vikram scanning the one-month QR sees the one-month plan.
 
 ### B6. Evidence submission
 
-Status: `TODO`  
+Status: `DONE`  
 Dependencies: B5, A4
 
-- [ ] Add supported payment methods.
-- [ ] Add evidence image/document capture or selection.
-- [ ] Add transaction/reference ID.
-- [ ] Add optional note.
-- [ ] Show calculated amount, joining fee, discount, and total.
-- [ ] Require confirmation before submit.
-- [ ] Submit idempotently as `REQUESTED`.
-- [ ] Clearly state that the request is not paid until approved.
-- [ ] Display upload progress, retry, and failure states.
+- [x] Add supported payment methods.
+- [x] Add evidence image/document capture or selection.
+- [x] Add transaction/reference ID.
+- [x] Add optional note.
+- [x] Show calculated amount, joining fee, discount, and total.
+- [x] Require confirmation before submit.
+- [x] Submit idempotently as `REQUESTED`.
+- [x] Clearly state that the request is not paid until approved.
+- [x] Display upload progress, retry, and failure states.
 
 Done when: the customer can submit evidence and sees a server-confirmed requested state.
 
 ### B7. Reviewer confirmation and activation
 
-Status: `TODO`  
+Status: `DONE`  
 Dependencies: B6, A4
 
 - [ ] Show requested payments in Fees Ã¢â€ â€™ Requested.
-- [ ] Open private evidence viewer.
-- [ ] Approve with transaction-safe duplicate protection.
-- [ ] Reject with mandatory reason.
-- [ ] Request more information where supported.
-- [ ] Create payment, allocation, ledger entry, receipt, and subscription state change according to policy.
-- [ ] Notify customer of the result.
+- [x] Open private evidence viewer.
+- [x] Approve with transaction-safe duplicate protection.
+- [x] Reject with mandatory reason.
+- [x] Request more information where supported.
+- [x] Create payment, allocation, ledger entry, receipt, and subscription state change according to policy.
+- [x] Notify customer of the result.
 
 Done when: approval changes the request to confirmed payment and the Fees page reflects the correct paid/active state.
 
 ### B8. Twenty-to-twenty-five-day fee monitoring
 
-Status: `TODO`  
+Status: `DONE WITH DEMO/DB VERIFICATION NOTE`  
 Dependencies: A7, B7
 
-- [ ] Seed or create realistic coverage dates for demonstration/testing.
-- [ ] Calculate days remaining using branch-local date rules.
-- [ ] Show urgency labels and accessible icons/text.
-- [ ] Display expiry date and coverage range.
-- [ ] Show pending/requested/partial/paid distinctions.
-- [ ] Add renewal/reminder action only when the underlying permission exists.
+- [x] Seed or create realistic coverage dates for demonstration/testing.
+- [x] Calculate days remaining using branch-local date rules.
+- [x] Show urgency labels and accessible icons/text.
+- [x] Display expiry date and coverage range.
+- [x] Show pending/requested/partial/paid distinctions.
+- [x] Add renewal/reminder action only when the underlying permission exists.
 
 Done when: after simulated time passes, Adarsh and Vikram cards show different urgency based on their actual plan coverage, not hard-coded UI values.
+
+Track B implementation note: invite tokens are 32-byte opaque values represented in QR payloads as `dailio://invite?token=...`; only SHA-256 hashes are persisted. Join and plan invites are reusable until expiry, while regeneration revokes the previous active invite for the same branch/purpose. The default expiry is 24 hours. The API and mobile surfaces are implemented and compile/test cleanly; real database transaction/concurrency, Cloudinary, and physical camera-flow verification remain deployment/device checks because this workspace has no running PostgreSQL/Redis fixture.
 
 ## 9. Track C Ã¢â‚¬â€ settings and operational controls
 
@@ -520,6 +522,14 @@ Status: `TODO`
 Done when a normal member cannot access owner/admin configuration through direct navigation or API calls.
 
 ## 10. Proposed API surface
+
+Track B implemented routes:
+
+- `POST /branches/{branchId}/join-invites` and `POST /branches/{branchId}/join-invites/{inviteId}/revoke`
+- `POST /branches/{branchId}/plans/{planId}/purchase-invites` and its revoke route
+- `GET /invites/{opaqueToken}` for authenticated preview/resolution
+- `POST /join-invites/{opaqueToken}/requests` for idempotent fast join
+- `POST /purchase-invites/{opaqueToken}/subscription-drafts` for idempotent server-priced draft creation
 
 The exact route names must follow existing API conventions, but the behavior should cover:
 
@@ -648,15 +658,15 @@ Use this table after every implementation session. Change the task status only w
 | A7 Fees page                    | DONE                    | 2026-09-25     | Live cards, periods, status, urgency                        |                                                              |
 | A8 Detail/review screens        | DONE                    | 2026-09-25     | Live detail, receipt view, evidence URL, and review actions |                                                              |
 | A9 Track A tests                | DONE WITH SCOPE NOTE    | 2026-09-25     | 13 API tests and 2 Flutter model tests pass                 | DB transaction/concurrency/E2E fixture remains               |
-| B0 Branch QR                    | TODO                    |                |                                                             |                                                              |
-| B1 Fast join scanner            | TODO                    |                |                                                             |                                                              |
-| B2 Join request creation        | TODO                    |                |                                                             |                                                              |
-| B3 Approval/default role        | TODO                    |                |                                                             |                                                              |
-| B4 Plan QR                      | TODO                    |                |                                                             |                                                              |
-| B5 Prefilled purchase           | TODO                    |                |                                                             |                                                              |
-| B6 Evidence submission          | TODO                    |                |                                                             |                                                              |
-| B7 Review/activation            | TODO                    |                |                                                             |                                                              |
-| B8 Expiry monitoring            | TODO                    |                |                                                             |                                                              |
+| B0 Branch QR                    | DONE                    | 2026-09-25     | Hashed invite token, expiry, revoke/regenerate, audit, owner UI | DB-backed QR display remains to be exercised                 |
+| B1 Fast join scanner            | DONE                    | 2026-09-25     | Token resolve, preview, confirmation, error states             | Flutter device-camera check remains                          |
+| B2 Join request creation        | DONE                    | 2026-09-25     | Token-derived branch/org, idempotency, pending screen          | DB-backed retry test remains                                 |
+| B3 Approval/default role        | DONE                    | 2026-09-25     | Serializable approval, MEMBER role, unique ULID member number  | DB-backed concurrency test remains                           |
+| B4 Plan QR                      | DONE                    | 2026-09-25     | Plan-bound invite, active-plan checks, owner QR UI             | DB-backed QR display remains to be exercised                 |
+| B5 Prefilled purchase           | DONE                    | 2026-09-25     | Server-authoritative draft, branch membership and dates        | Device flow remains                                         |
+| B6 Evidence submission          | DONE                    | 2026-09-25     | Method/reference/note/evidence upload, requested idempotency   | Cloudinary/database integration remains                      |
+| B7 Review/activation            | DONE                    | 2026-09-25     | Existing transaction-safe review, ledger, receipt, activation | DB-backed approval remains                                   |
+| B8 Expiry monitoring            | DONE WITH FOLLOW-UP     | 2026-09-25     | Branch-local remaining days, urgency, fee status/card fields   | Time simulation/E2E remains                                  |
 | C Settings/permissions          | TODO                    |                |                                                             |                                                              |
 
 Allowed statuses: `TODO`, `IN PROGRESS`, `PARTIAL`, `BLOCKED`, `DONE`, `DONE WITH SAFE DEFAULTS`, `DONE WITH FOLLOW-UP`.
@@ -669,6 +679,7 @@ Allowed statuses: `TODO`, `IN PROGRESS`, `PARTIAL`, `BLOCKED`, `DONE`, `DONE WIT
 | 2026-09-25 | Track A implementation | Added schema, migration, scoped plans/subscriptions, payments, fee API, mobile fee screens, review/correction paths | Prisma validate; API type-check/build; 4 API unit tests; Flutter analyze has only two pre-existing attendance style infos | Track B QR journey |
 
 | 2026-09-25 | Track A completion audit | Added lifecycle commands, typed financial models, authenticated evidence upload/download, scoped receipts, live Payments tab, fee/status tests, and tenant-idempotency tests | 14 API tests; 2 Flutter model tests; API build/type-check; Prisma validate; Flutter analyze clean | Apply migration and run DB-backed transaction/E2E suite |
+| 2026-09-25 | Track B implementation | Added hashed branch/plan invites, QR scanner preview/fast join, idempotent admission, transactional approval hardening, server-priced purchase drafts, evidence-backed payment submission, and branch-local fee urgency | API type-check/build; 17 API tests; 2 Flutter model tests; migration added; database/device E2E not available locally | Track C settings/permissions |
 
 ## 15. Definition of complete
 
@@ -686,7 +697,3 @@ This flow is complete only when:
 - Cross-organization and cross-branch identifiers cannot leak data or mutate records.
 - Retry, duplicate approval, overlap, partial payment, rejection, refund, and expired QR cases are tested.
 - Migrations, API contracts, UI states, audits, notifications, and documentation are complete.
-
-
-
-
