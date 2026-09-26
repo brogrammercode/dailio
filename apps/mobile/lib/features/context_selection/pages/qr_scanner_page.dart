@@ -3,9 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../../core/router/route_names.dart';
 import '../controllers/branch_repository.dart';
+import '../../attendance/pages/gate_attendance_page.dart';
 
 String? extractDailioInviteToken(BarcodeCapture? capture) {
   for (final barcode in capture?.barcodes ?? const <Barcode>[]) {
@@ -22,6 +24,31 @@ String? extractDailioInviteToken(BarcodeCapture? capture) {
     if (token != null && token.isNotEmpty) return token;
   }
   return null;
+}
+
+String qrInviteFlowState(Map<String, dynamic> invite) {
+  if (invite['purpose'] == 'PLAN_PURCHASE') return 'PLAN_PURCHASE';
+  switch (invite['joinability']?.toString()) {
+    case 'ALREADY_MEMBER':
+      switch (invite['attendance_action']?.toString()) {
+        case 'CLOCK_OUT':
+          return 'ACTIVE_CLOCK_OUT';
+        case 'CLOCK_IN':
+          return 'ACTIVE_CLOCK_IN';
+        case 'ATTENDANCE_DISABLED':
+          return 'ATTENDANCE_DISABLED';
+        default:
+          return 'UNKNOWN';
+      }
+    case 'ALREADY_PENDING':
+      return 'PENDING';
+    case 'MEMBERSHIP_INACTIVE':
+      return 'INACTIVE';
+    case 'JOINABLE':
+      return 'JOINABLE';
+    default:
+      return 'UNKNOWN';
+  }
 }
 
 class QrScannerPage extends StatefulWidget {
@@ -72,7 +99,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
         return;
       }
 
-      await _resolveAndContinue(token);
+      await _resolveAndContinue(token, fromGallery: true);
     } catch (_) {
       if (mounted) {
         _showMessage(
@@ -99,13 +126,21 @@ class _QrScannerPageState extends State<QrScannerPage> {
     }
   }
 
-  Future<void> _resolveAndContinue(String token) async {
+  Future<void> _resolveAndContinue(String token,
+      {bool fromGallery = false}) async {
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity.contains(ConnectivityResult.none)) {
+      throw Exception(
+          'An internet connection is required to validate this QR.');
+    }
+    if (!mounted) return;
     final repository = context.read<BranchRepository>();
     final invite = await repository.resolveInvite(token);
 
     if (!mounted) return;
 
-    if (invite['purpose'] == 'PLAN_PURCHASE') {
+    final flowState = qrInviteFlowState(invite);
+    if (flowState == 'PLAN_PURCHASE') {
       context.pushReplacement(
         AppRoutes.subscriptionPurchase,
         extra: {...invite, 'token': token},
@@ -113,13 +148,36 @@ class _QrScannerPageState extends State<QrScannerPage> {
       return;
     }
 
-    final joinability = invite['joinability']?.toString();
-    if (joinability == 'ALREADY_MEMBER') {
-      _showMessage('You are already an active member of this branch.');
+    if (flowState == 'ACTIVE_CLOCK_IN' || flowState == 'ACTIVE_CLOCK_OUT') {
+      final branch = (invite['branch'] as Map?)?.cast<String, dynamic>() ?? {};
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => GateAttendancePage(
+          token: token,
+          invite: {
+            ...invite,
+            'branch': branch,
+            'scan_from_gallery': fromGallery,
+          },
+        ),
+      ));
       return;
     }
-    if (joinability == 'ALREADY_PENDING') {
+    if (flowState == 'PENDING') {
       context.go(AppRoutes.pendingJoin);
+      return;
+    }
+    if (flowState == 'INACTIVE') {
+      _showMessage(
+          'This branch membership is inactive. Contact the branch owner before trying again.');
+      return;
+    }
+    if (flowState == 'ATTENDANCE_DISABLED') {
+      _showMessage(
+          'Attendance punching is not required for your current policy at this branch.');
+      return;
+    }
+    if (flowState == 'UNKNOWN') {
+      _showMessage('This invite is unavailable or cannot be used right now.');
       return;
     }
 

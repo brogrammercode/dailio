@@ -190,17 +190,21 @@ Flag a change when any of the following is true:
 
 ## Repository Commands
 
-The repository has not yet established verified commands in this context. Once the project is initialized, replace this paragraph with confirmed commands for:
+Verified commands:
 
-- development startup;
-- formatting;
-- linting;
-- type checking;
-- unit/integration/end-to-end tests;
-- database migration and seed;
-- production build.
+- API development: `npm run dev` from `apps/api`.
+- API formatting: `npm run format` from `apps/api`; targeted formatting checks may use Prettier directly.
+- API linting: `npm run lint` from `apps/api`; attendance/notification release lint can target `src/modules/attendance`, `src/modules/notifications`, and related routes.
+- API type checking: `npm run type-check` from `apps/api`.
+- API unit tests: `npm test -- --run` from `apps/api`.
+- Mobile formatting: `dart format lib` from `apps/mobile`.
+- Mobile analysis/tests: `flutter analyze` and `flutter test` from `apps/mobile`.
+- Database migration/generation: `npx prisma generate`, `npx prisma migrate deploy`, and `npx prisma migrate status` from `apps/api`.
+- API production build: `npm run build` from `apps/api`.
 
-Never guess or leave a command in this section after discovering that it is incorrect.
+Guarded API staging-flow and PostgreSQL concurrency harnesses are available in
+`apps/api/scripts`; physical-device release verification is tracked in
+`ATTENDANCE_RELEASE_VERIFICATION.md`.
 
 ## Completion Standard
 

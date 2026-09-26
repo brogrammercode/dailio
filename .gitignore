@@ -48,6 +48,15 @@ Thumbs.db
 !apps/api/prisma/migrations/20260924120000_track_a_financial_foundation/migration.sql
 !apps/api/prisma/migrations/20260925100000_track_b_invite_tokens/migration.sql
 !apps/api/prisma/migrations/20260925130000_permanent_qr_invites/migration.sql
+!apps/api/prisma/migrations/20260926150000_attendance_policy_scopes/migration.sql
+!apps/api/prisma/migrations/20260926153000_attendance_policy_permissions/migration.sql
+!apps/api/prisma/migrations/20260926160000_attendance_policy_effective_ranges/migration.sql
+!apps/api/prisma/migrations/20260926170000_attendance_correction_history/migration.sql
+!apps/api/prisma/migrations/20260926180000_attendance_geofence_distance/migration.sql
+!apps/api/prisma/migrations/20260926190000_attendance_evidence_asset_relation/migration.sql
+!apps/api/prisma/migrations/20260926200000_admin_attendance_export_permission/migration.sql
+!apps/api/prisma/migrations/20260926210000_member_reporting_hierarchy/migration.sql
+!apps/api/prisma/migrations/20260926220000_member_role_assignments/migration.sql
 
 # Docker volumes
 .postgres-data/

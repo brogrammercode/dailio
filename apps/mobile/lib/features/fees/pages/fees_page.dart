@@ -69,6 +69,16 @@ class _FeesPageState extends State<FeesPage> {
       ? _cards
       : _cards.where((card) => card.status == _status).toList();
 
+  bool get _hasCurrentCoverage => _cards.any((card) {
+        final status = card.subscriptionStatus?.toUpperCase();
+        final endDate = card.endDate;
+        return card.subscriptionId != null &&
+            endDate != null &&
+            endDate.isAfter(DateTime.now()) &&
+            status != 'CANCELLED' &&
+            status != 'EXPIRED';
+      });
+
   @override
   Widget build(BuildContext context) {
     final preferences = context.watch<PreferencesStorage>();
@@ -113,8 +123,10 @@ class _FeesPageState extends State<FeesPage> {
                           const _EmptyState()
                         else
                           _buildCard(_cards.first),
-                        const SizedBox(height: 4),
-                        _buildBuyPlanButton(),
+                        if (!_hasCurrentCoverage) ...[
+                          const SizedBox(height: 4),
+                          _buildBuyPlanButton(),
+                        ],
                       ],
                     ],
                   ),
@@ -265,9 +277,13 @@ class _FeesPageState extends State<FeesPage> {
     final endDate = card.endDate == null
         ? 'No coverage'
         : DateFormat('dd MMM yyyy').format(card.endDate!.toLocal());
+    final showingPaidAmount = card.paidAmountMinorUnit > 0;
     final amount = NumberFormat.currency(
             locale: 'en_IN', symbol: '\u20B9', decimalDigits: 0)
-        .format(card.balanceMinorUnit / 100);
+        .format((showingPaidAmount
+                ? card.paidAmountMinorUnit
+                : card.balanceMinorUnit) /
+            100);
     final urgency = card.remainingDays == null
         ? 'No active coverage'
         : card.remainingDays! < 0
@@ -311,12 +327,14 @@ class _FeesPageState extends State<FeesPage> {
                           fontSize: 12,
                           color: color,
                           fontWeight: FontWeight.w600))),
-              Text(amount,
+              Text('${showingPaidAmount ? 'Paid' : 'Due'}: $amount',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: card.balanceMinorUnit > 0
-                          ? Colors.red.shade700
-                          : Colors.green.shade700)),
+                      color: showingPaidAmount
+                          ? Colors.green.shade700
+                          : card.balanceMinorUnit > 0
+                              ? Colors.red.shade700
+                              : Colors.green.shade700)),
             ]),
             const SizedBox(height: 4),
             Text(urgency,

@@ -17,17 +17,37 @@ export async function resolveEffectivePermissions(
     },
     include: {
       role: true,
+      role_assignments: {
+        where: {
+          organization_id,
+          branch_id,
+          effective_from: { lte: new Date() },
+          OR: [{ effective_to: null }, { effective_to: { gt: new Date() } }],
+        },
+        orderBy: [{ priority: 'asc' }, { effective_from: 'desc' }, { id: 'asc' }],
+        include: { role: true },
+      },
     },
   });
 
-  if (!member || !member.role) return permissions;
+  if (!member) return permissions;
 
-  // Owner role grants ALL
-  if (member.role.system_key === 'OWNER') {
+  const roles =
+    member.role_assignments.length > 0
+      ? member.role_assignments.map((assignment) => assignment.role)
+      : member.role
+        ? [member.role]
+        : [];
+
+  // Owner role grants ALL. Check every effective assignment so a legacy member
+  // with a null primary role cannot lose owner privileges or bypass scoping.
+  if (roles.some((role) => role.system_key === 'OWNER')) {
     permissions.add('ALL');
   } else {
-    for (const perm of member.role.permissions) {
-      permissions.add(perm);
+    for (const role of roles) {
+      for (const perm of role.permissions) {
+        permissions.add(perm);
+      }
     }
   }
 

@@ -11,6 +11,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { requestIdMiddleware } from './middleware/requestId';
 import { defaultRateLimiter } from './middleware/rateLimiter';
 import { apiRouter } from './routes';
+import { redactSensitiveRequestUrl } from './lib/requestLog';
 
 export function createApp(): Express {
   const app = express();
@@ -33,9 +34,25 @@ export function createApp(): Express {
   // HTTP logging (skip in test)
   if (env.NODE_ENV !== 'test') {
     app.use(
-      morgan('combined', {
-        stream: { write: (msg) => logger.http(msg.trim()) },
-      }),
+      morgan(
+        (tokens, req, res) => {
+          const url = redactSensitiveRequestUrl(req.originalUrl ?? req.url ?? '-');
+          return [
+            tokens['remote-addr'](req, res),
+            '-',
+            tokens['remote-user'](req, res),
+            `[${tokens.date(req, res, 'iso')}]`,
+            `"${tokens.method(req, res)} ${url} HTTP/${tokens['http-version'](req, res)}"`,
+            tokens.status(req, res),
+            tokens.res(req, res, 'content-length'),
+            `"${redactSensitiveRequestUrl(tokens.referrer(req, res) ?? '-')}"`,
+            `"${tokens['user-agent'](req, res)}"`,
+          ].join(' ');
+        },
+        {
+          stream: { write: (msg) => logger.http(msg.trim()) },
+        },
+      ),
     );
   }
 

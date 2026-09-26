@@ -1,12 +1,16 @@
 import { z } from 'zod';
 
+import { isValidIanaTimezone } from '../../lib/timezone';
+
+const timezone = z.string().refine(isValidIanaTimezone, 'Timezone must be a valid IANA identifier');
+
 export const CreateOrganizationSchema = z.object({
   name: z.string().min(2).max(100),
   email: z.string().email().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
   type: z.enum(['GYM', 'COACHING', 'CLINIC', 'OTHER']).optional(),
-  timezone: z.string().default('Asia/Kolkata'),
+  timezone: timezone.default('Asia/Kolkata'),
   currency: z.string().length(3).default('INR'),
   logo_base64: z.string().optional(),
   logo_url: z.string().url().optional(),
@@ -25,7 +29,7 @@ export const CreateLocationSchema = z.object({
   longitude: z.number().optional(),
   phone: z.string().optional(),
   email: z.string().email().optional(),
-  timezone: z.string().default('Asia/Kolkata'),
+  timezone: timezone.default('Asia/Kolkata'),
 });
 
 export type CreateOrganizationInput = z.infer<typeof CreateOrganizationSchema>;

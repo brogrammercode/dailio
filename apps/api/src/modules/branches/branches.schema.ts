@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+import { isValidIanaTimezone } from '../../lib/timezone';
+
+const timezone = z.string().refine(isValidIanaTimezone, 'Timezone must be a valid IANA identifier');
+
 export const DiscoverBranchesQuerySchema = z.object({
   query: z.string().optional(),
   limit: z.coerce.number().min(1).max(50).default(20),
@@ -20,7 +24,7 @@ export const CreateBranchSchema = z.object({
   longitude: z.number().optional(),
   phone: z.string().optional(),
   email: z.string().email().optional(),
-  timezone: z.string().default('Asia/Kolkata'),
+  timezone: timezone.default('Asia/Kolkata'),
 });
 
 export const UpdateBranchSchema = CreateBranchSchema.partial().extend({

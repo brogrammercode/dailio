@@ -2,7 +2,7 @@
 
 import { authenticate } from '../../middleware/auth';
 import { resolveTenantContext } from '../../middleware/tenant';
-import { requirePermission } from '../../middleware/permission';
+import { requireAnyPermission, requirePermission } from '../../middleware/permission';
 
 import {
   listMembers,
@@ -64,7 +64,7 @@ router.patch(
   '/branches/:branch_id/members/:member_id',
   authenticate,
   resolveTenantContext,
-  requirePermission('MEMBER_UPDATE'),
+  requireAnyPermission('MEMBER_UPDATE', 'MEMBER_UPDATE_ALL', 'ROLE_ASSIGN'),
   update,
 );
 

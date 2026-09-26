@@ -1,10 +1,12 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/router/route_names.dart';
 import '../../organization/controllers/organization_repository.dart';
 import '../../organization/models/role_model.dart';
 import '../controllers/members_repository.dart';
@@ -29,11 +31,13 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
   List<Map<String, dynamic>> _shifts = [];
   List<Map<String, dynamic>> _salaryStructures = [];
   List<Map<String, dynamic>> _plans = [];
+  List<Map<String, dynamic>> _branchMembers = [];
 
   String? _selectedBranchId;
   String? _selectedShiftId;
   String? _selectedPlanId;
   String? _selectedSalaryStructureId;
+  String? _selectedManagerId;
 
   late final MembersRepository _repo;
   late final OrganizationRepository _orgRepo;
@@ -43,17 +47,14 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
   bool _isSubmitting = false;
 
   // Editable fields
-  String? _selectedRoleId;
-  bool _isGeofenceExempt = false;
-  bool _isSelfieMandatory = true;
-  bool _isMultiBranch = false;
-
+  Set<String> _selectedRoleIds = <String>{};
   // Original state check
   bool get _isDirty {
     if (_member == null) return false;
-    if (_selectedRoleId != _member!.role?.id) return true;
+    if (!setEquals(_selectedRoleIds, _member!.roleIds.toSet())) return true;
     if (_selectedBranchId != _member!.branchId) return true;
     if (_selectedShiftId != _member!.shiftId) return true;
+    if (_selectedManagerId != _member!.managerMemberId) return true;
     if (_selectedPlanId != _member!.subscriptionId) return true;
     if (_selectedSalaryStructureId != _member!.salaryStructureId) return true;
     return false;
@@ -81,7 +82,8 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         _orgRepo.getOrganizationBranches(_orgId),
         _orgRepo.getOrganizationPlans(_orgId),
         context.read<ShiftRepository>().listShifts(_orgId),
-          context.read<PayrollRepository>().listSalaryStructures(_orgId),
+        context.read<PayrollRepository>().listSalaryStructures(_orgId),
+        _repo.listMembers(_branchId, limit: 100),
       ]);
 
       final memberData = futures[0] as Map<String, dynamic>;
@@ -91,7 +93,12 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       final branches = (futures[2] as List).cast<Map<String, dynamic>>();
       final plans = (futures[3] as List).cast<Map<String, dynamic>>();
       final shifts = (futures[4] as List).cast<Map<String, dynamic>>();
-        final structures = (futures[5] as List).cast<Map<String, dynamic>>();
+      final structures = (futures[5] as List).cast<Map<String, dynamic>>();
+      final memberResponse = futures[6] as Map<String, dynamic>;
+      final branchMembers = ((memberResponse['data'] as List?) ?? const [])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .where((item) => item['id']?.toString() != widget.memberId)
+          .toList();
 
       final m = MemberModel.fromJson(memberData['data'] ?? memberData);
 
@@ -101,12 +108,14 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         _branches = branches;
         _plans = plans;
         _shifts = shifts;
-          _salaryStructures = structures;
-        _selectedRoleId = m.role?.id;
+        _salaryStructures = structures;
+        _branchMembers = branchMembers;
+        _selectedRoleIds = m.roleIds.toSet();
         _selectedBranchId = m.branchId;
         _selectedShiftId = m.shiftId;
         _selectedPlanId = m.subscriptionId;
         _selectedSalaryStructureId = m.salaryStructureId;
+        _selectedManagerId = m.managerMemberId;
       });
     } catch (e) {
       setState(() {
@@ -123,10 +132,12 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
 
     try {
       await _repo.updateMember(_branchId, widget.memberId, {
-        'role_id': _selectedRoleId,
+        'role_id': _selectedRoleIds.isEmpty ? null : _selectedRoleIds.first,
+        'role_ids': _selectedRoleIds.isEmpty ? null : _selectedRoleIds.toList(),
         'branch_id': _selectedBranchId,
         'subscription_id': _selectedPlanId,
         'shift_id': _selectedShiftId,
+        'manager_member_id': _selectedManagerId,
         'salary_structure_id': _selectedSalaryStructureId,
       });
       if (!mounted) return;
@@ -210,6 +221,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                               _buildProfileInfo(),
                               const SizedBox(height: 16),
                               _buildRoleAndFacility(),
+                              _buildReportingLine(),
                               _buildAssignedWork(),
                               _buildSubscription(),
                               _buildPolicyOverrides(),
@@ -393,15 +405,19 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
               Stack(
                 children: [
                   CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Colors.orange.shade100,
-                      backgroundImage: _member!.avatarUrl != null ? NetworkImage(_member!.avatarUrl!) : null,
-                      child: _member!.avatarUrl == null ? Text(_member!.name.substring(0, 1).toUpperCase(),
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange.shade800)) : null,
-                    ),
+                    radius: 28,
+                    backgroundColor: Colors.orange.shade100,
+                    backgroundImage: _member!.avatarUrl != null
+                        ? NetworkImage(_member!.avatarUrl!)
+                        : null,
+                    child: _member!.avatarUrl == null
+                        ? Text(_member!.name.substring(0, 1).toUpperCase(),
+                            style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade800))
+                        : null,
+                  ),
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -552,33 +568,95 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       title: 'Role & Facility Access',
       icon: Iconsax.building_4,
       children: [
-        _buildLabel('Primary Role'),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: _selectedRoleId,
-              items: _roles.map((r) => DropdownMenuItem<String>(value: r.id, child: Text(r.name))).toList(),
-              onChanged: (val) => setState(() => _selectedRoleId = val),
-            ),
-          ),
+        _buildLabel('Assigned roles (first is primary)'),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _roles
+              .map((role) => FilterChip(
+                    label: Text(role.name),
+                    selected: _selectedRoleIds.contains(role.id),
+                    onSelected: (selected) => setState(() {
+                      if (selected) {
+                        _selectedRoleIds.add(role.id);
+                      } else {
+                        _selectedRoleIds.remove(role.id);
+                      }
+                    }),
+                  ))
+              .toList(),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Attendance policy resolution checks a direct member policy first, then the selected roles in this order, then the branch default.',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
         ),
         const SizedBox(height: 16),
         _buildLabel('Assigned Branch'),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200)),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               isExpanded: true,
               hint: const Text('No Branch Assigned'),
               value: _selectedBranchId,
-              items: [const DropdownMenuItem<String>(value: null, child: Text('No Branch (HQ)')), ..._branches.map((b) => DropdownMenuItem<String>(value: b['id'], child: Text(b['name'])))],
+              items: [
+                const DropdownMenuItem<String>(
+                    value: null, child: Text('No Branch (HQ)')),
+                ..._branches.map((b) => DropdownMenuItem<String>(
+                    value: b['id'], child: Text(b['name'])))
+              ],
               onChanged: (val) => setState(() => _selectedBranchId = val),
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReportingLine() {
+    return _buildSectionCard(
+      title: 'Reporting line',
+      icon: Iconsax.hierarchy,
+      children: [
+        _buildLabel('Direct manager'),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200)),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              hint: const Text('No manager assigned'),
+              value: _selectedManagerId,
+              items: [
+                const DropdownMenuItem<String>(
+                    value: null, child: Text('No manager assigned')),
+                ..._branchMembers.map((member) => DropdownMenuItem<String>(
+                      value: member['id']?.toString(),
+                      child: Text(
+                        (member['user'] is Map
+                                    ? member['user']['name']
+                                    : member['name'])
+                                ?.toString() ??
+                            'Member',
+                      ),
+                    )),
+              ],
+              onChanged: (value) => setState(() => _selectedManagerId = value),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Team-scoped attendance access follows this branch reporting tree; it does not come from the member role name.',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
         ),
       ],
     );
@@ -592,13 +670,21 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         _buildLabel('Primary Shift'),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200)),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               isExpanded: true,
               hint: const Text('No Shift Assigned'),
               value: _selectedShiftId,
-              items: [const DropdownMenuItem<String>(value: null, child: Text('No Shift Assigned')), ..._shifts.map((s) => DropdownMenuItem<String>(value: s['id'], child: Text(s['name'])))],
+              items: [
+                const DropdownMenuItem<String>(
+                    value: null, child: Text('No Shift Assigned')),
+                ..._shifts.map((s) => DropdownMenuItem<String>(
+                    value: s['id'], child: Text(s['name'])))
+              ],
               onChanged: (val) => setState(() => _selectedShiftId = val),
             ),
           ),
@@ -615,13 +701,21 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         _buildLabel('Allotted Plan'),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200)),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               isExpanded: true,
               hint: const Text('No Plan Assigned'),
               value: _selectedPlanId,
-              items: [const DropdownMenuItem<String>(value: null, child: Text('No Plan Assigned')), ..._plans.map((p) => DropdownMenuItem<String>(value: p['id'], child: Text(p['name'])))],
+              items: [
+                const DropdownMenuItem<String>(
+                    value: null, child: Text('No Plan Assigned')),
+                ..._plans.map((p) => DropdownMenuItem<String>(
+                    value: p['id'], child: Text(p['name'])))
+              ],
               onChanged: (val) => setState(() => _selectedPlanId = val),
             ),
           ),
@@ -634,29 +728,18 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
     return _buildSectionCard(
       title: 'Policy Overrides',
       icon: Iconsax.shield_tick,
-      badge: 'Audit-Enforced',
+      badge: 'Managed in Attendance Policy',
       children: [
-        _buildToggleRow(
-            'Exempt from Geofence',
-            'Allow clock-in outside the radius',
-            _isGeofenceExempt,
-            (v) => setState(() => _isGeofenceExempt = v)),
-        const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Divider(height: 1)),
-        _buildToggleRow(
-            'Selfie Clock-in Mandatory',
-            'Require facial capture at gate kiosk or mobile',
-            _isSelfieMandatory,
-            (v) => setState(() => _isSelfieMandatory = v)),
-        const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Divider(height: 1)),
-        _buildToggleRow(
-            'Multi-Branch Clock-in',
-            'Permit cross-attendance at sister clubs',
-            _isMultiBranch,
-            (v) => setState(() => _isMultiBranch = v)),
+        const Text(
+          'Attendance rules are assigned by branch, role, or directly to this member. Use the policy assignment screen to create a real versioned override.',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () => context.push(AppRoutes.attendancePolicy),
+          icon: const Icon(Iconsax.setting_2, size: 17),
+          label: const Text('Manage attendance policies'),
+        ),
       ],
     );
   }
@@ -726,20 +809,25 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         _buildLabel('Salary Structure'),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200)),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               isExpanded: true,
               hint: const Text('No Salary Structure'),
               value: _selectedSalaryStructureId,
               items: [
-                const DropdownMenuItem<String>(value: null, child: Text('No Salary Structure')),
+                const DropdownMenuItem<String>(
+                    value: null, child: Text('No Salary Structure')),
                 ..._salaryStructures.map((s) => DropdownMenuItem<String>(
-                  value: s['id'],
-                  child: Text(s['name']),
-                )),
+                      value: s['id'],
+                      child: Text(s['name']),
+                    )),
               ],
-              onChanged: (val) => setState(() => _selectedSalaryStructureId = val),
+              onChanged: (val) =>
+                  setState(() => _selectedSalaryStructureId = val),
             ),
           ),
         ),
@@ -840,17 +928,19 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                   child: Text(title,
                       style: const TextStyle(
                           fontSize: 12, fontWeight: FontWeight.bold))),
-              if (badge != null) Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                    color: badgeColor ?? Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(16)),
-                child: Text(badge,
-                    style: TextStyle(
-                        fontSize: 9,
-                        color: badgeTextColor ?? Colors.grey.shade600,
-                        fontWeight: FontWeight.bold)),
-              )
+              if (badge != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: badgeColor ?? Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(16)),
+                  child: Text(badge,
+                      style: TextStyle(
+                          fontSize: 9,
+                          color: badgeTextColor ?? Colors.grey.shade600,
+                          fontWeight: FontWeight.bold)),
+                )
             ],
           ),
           const SizedBox(height: 16),
@@ -867,41 +957,4 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
-
-  Widget _buildToggleRow(String title, String subtitle, bool value,
-      ValueChanged<bool>? onChanged) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(subtitle,
-                  style: const TextStyle(fontSize: 10, color: Colors.grey)),
-            ],
-          ),
-        ),
-        Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbImage: null,
-            activeThumbColor: Colors.orange.shade600),
-      ],
-    );
-  }
 }
-
-
-
-
-
-
-
-
-
-
-

@@ -13,7 +13,12 @@ const router: Router = ExpressRouter();
 
 // Health check
 router.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  const attendanceMaintenance = getAttendanceMaintenanceStatus();
+  res.status(attendanceMaintenance.status === 'degraded' ? 503 : 200).json({
+    status: attendanceMaintenance.status,
+    timestamp: new Date().toISOString(),
+    attendance_maintenance: attendanceMaintenance,
+  });
 });
 
 // Auth
@@ -40,12 +45,15 @@ import payrollRouter from '../modules/payroll/payroll.routes';
 import subscriptionsRouter from '../modules/subscriptions/subscriptions.routes';
 import paymentsRouter from '../modules/payments/payments.routes';
 import invitesRouter from '../modules/invites/invites.routes';
+import notificationsRouter from '../modules/notifications/notifications.routes';
+import { getAttendanceMaintenanceStatus } from '../modules/attendance/attendance.maintenance';
 router.use('/organizations', plansRouter);
 router.use('/organizations', shiftsRouter);
 router.use('/organizations', payrollRouter);
 router.use(subscriptionsRouter);
 router.use(paymentsRouter);
 router.use(invitesRouter);
+router.use(notificationsRouter);
 // router.use('/payments', paymentsRouter);
 // router.use('/announcements', announcementsRouter);
 // router.use('/notifications', notificationsRouter);

@@ -1,8 +1,9 @@
 ﻿import type { Request, Response, NextFunction } from 'express';
 
+import { ForbiddenError } from '../../lib/errors';
+
 import * as shiftsService from './shifts.service';
 import { CreateShiftSchema, UpdateShiftSchema } from './shifts.schema';
-import { ForbiddenError } from '../../lib/errors';
 
 export async function listShifts(req: Request, res: Response, next: NextFunction) {
   try {

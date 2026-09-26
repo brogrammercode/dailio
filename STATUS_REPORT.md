@@ -1,6 +1,6 @@
 # Codebase Investigation: End-to-End Status
 
-Based on `CONTEXT.md` and a deep scan of `apps/api` and `apps/mobile`. Last audited: 2026-09-19.
+Based on `CONTEXT.md` and a deep scan of `apps/api` and `apps/mobile`. Last audited: 2026-09-26.
 
 ---
 
@@ -51,7 +51,7 @@ Core flows are fully wired and end-to-end verified. No integration bugs remain.
 
 ## 3. ⚙️ SETTINGS
 
-**Status: 🟠 50% Complete**
+**Status: 🟢 80% Complete; final release hardening tracked**
 
 High-level UI and operational screens exist but system preference APIs are missing.
 
@@ -64,7 +64,6 @@ High-level UI and operational screens exist but system preference APIs are missi
 
 ### ❌ Remaining
 
-- Attendance Policy Config (Selfie required, Geofence radius, Late grace period) — no API controller or UI
 - Hardware toggles (Push Alerts, Biometric) — static stubs, not wired to SharedPreferences or backend
 - Branch Timezone & Currency — not configurable in UI despite being on the schema
 
@@ -72,20 +71,31 @@ High-level UI and operational screens exist but system preference APIs are missi
 
 ## 4. 📅 ATTENDANCE
 
-**Status: ✅ 100% Complete**
+**Status: Core flow and domain hardening implemented; production completion tracked in [ATTENDANCE_POLICY_AND_GATE_QR_PLAN.md](ATTENDANCE_POLICY_AND_GATE_QR_PLAN.md)**
 
-Core mechanics, evidence collection, and manager corrections are fully implemented.
+The core self/admin surfaces, scoped policy assignment, private selfie evidence, and permanent gate QR flow are implemented. The remaining production hardening is tracked in [ATTENDANCE_POLICY_AND_GATE_QR_PLAN.md](ATTENDANCE_POLICY_AND_GATE_QR_PLAN.md).
 
 ### 🏗️ Built
 
-- Idempotent Clock-In / Clock-Out state machine (race-condition proof)
-- Period filtering (Today / Yesterday / This Week / This Month)
+- Clock-In / Clock-Out state machine with idempotency-key support, serializable transitions, and database open-session guard
+- Period filtering (Today / Yesterday / This Week / This Month / This Year / Custom)
 - Attendance cards with real data, cycle performance stats, role-based filtering
 - Pull-to-refresh on all tab views
-- Evidence Collection (selfie camera + GPS capture based on branch policy)
-- Attendance corrections API (`PATCH /attendance/:id/correct`) with transaction audit trails
+- Evidence Collection (GPS persistence + private selfie upload/asset association)
+- Scoped attendance detail endpoint/page with server-built timeline and sanitized evidence metadata
+- Attendance corrections API (`PATCH /attendance/:id/correct`) with immutable correction history and transaction audit trails
 - Manager Correction UI inside the attendance timeline (bottom sheet for adjusting time/status)
+- Authorized branch-scoped attendance CSV export with role filtering
+- Configurable evidence retention (90-day default) that purges precise location/device data and deletes private selfie assets in batches
+- Stable cursor pagination, one-minute live activity refresh, server-authoritative branch timezone snapshots, and policy-impact previews
+- Deduplicated attendance exception alerts with an authenticated in-app notification inbox and push delivery when configured
+- Policy-controlled manager manual attendance records with mandatory reasons, audited `ADMIN`/`MANUAL` state, idempotency, and one-open-session protection
+- Offline attendance capture remains disabled at the API boundary until tamper-evident synchronization is implemented
+- Attendance displays, manager manual-entry pickers, and corrections use the active branch's validated IANA timezone and convert submitted wall times to UTC
 
 ### 🔴 Remaining
 
-- None (Moved to complete)
+- Physical-device UI/permission verification, device attestation assessment, production retention scheduling/monitoring review, and independent privacy/security review
+- Final product-owner sign-off; server E2E, cross-tenant isolation, and database punch concurrency have passed through guarded staging harnesses
+- Final staging/device/cross-tenant/privacy sign-off is documented in [ATTENDANCE_RELEASE_VERIFICATION.md](ATTENDANCE_RELEASE_VERIFICATION.md) and [ATTENDANCE_SECURITY_REVIEW.md](ATTENDANCE_SECURITY_REVIEW.md), and is intentionally not marked complete without execution evidence.
+- Latest automated verification: 92 API tests across 27 files, API startup/health smoke with maintenance status, all 16 Flutter tests and analyzer, an Android emulator startup smoke pass, a guarded attendance acceptance matrix, and a real configured-private-storage retention check; the guarded PostgreSQL flow, concurrency, cross-tenant isolation, and concurrent-correction checks also passed again against `dailio_test`.

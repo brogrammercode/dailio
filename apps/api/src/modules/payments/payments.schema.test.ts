@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { CreatePaymentRequestSchema, FeeQuerySchema } from './payments.schema';
+import {
+  CreatePaymentRequestSchema,
+  FeeQuerySchema,
+  PaymentRequestQuerySchema,
+} from './payments.schema';
 
 describe('payment request contracts', () => {
   it('normalizes currency and defaults evidence', () => {
@@ -34,5 +38,12 @@ describe('payment request contracts', () => {
     });
     expect(parsed.page).toBe(2);
     expect(parsed.limit).toBe(25);
+  });
+
+  it('accepts payment history periods for server-side date filtering', () => {
+    expect(PaymentRequestQuerySchema.parse({ period: 'this_year' })).toEqual({
+      period: 'this_year',
+    });
+    expect(() => PaymentRequestQuerySchema.parse({ period: 'last_month' })).toThrow();
   });
 });

@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { ulid } from 'ulid';
 
 import { prisma } from '../../lib/prisma';
@@ -99,7 +100,7 @@ export async function assignSubscription(
           branch_id,
           member_id,
           plan_id: plan.id,
-          plan_snapshot: plan as any,
+          plan_snapshot: plan as unknown as Prisma.InputJsonValue,
           status: 'ACTIVE',
           start_date: startDate,
           end_date: endDate,
@@ -181,7 +182,7 @@ export async function assignSubscription(
           action: 'ASSIGN',
           target_type: 'Subscription',
           target_id: subscriptionId,
-          after_state: subscription as any,
+          after_state: subscription as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -282,8 +283,8 @@ export async function updateSubscription(
         action: 'UPDATE',
         target_type: 'Subscription',
         target_id: subscription_id,
-        before_state: subscription as any,
-        after_state: updated as any,
+        before_state: subscription as unknown as Prisma.InputJsonValue,
+        after_state: updated as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -324,8 +325,8 @@ export async function cancelSubscription(
         target_type: 'Subscription',
         target_id: subscription.id,
         reason: data.reason,
-        before_state: subscription as any,
-        after_state: updated as any,
+        before_state: subscription as unknown as Prisma.InputJsonValue,
+        after_state: updated as unknown as Prisma.InputJsonValue,
       },
     });
     return updated;
@@ -370,8 +371,8 @@ async function transitionSubscription(
         target_type: 'Subscription',
         target_id: subscription.id,
         reason: data.reason,
-        before_state: subscription as any,
-        after_state: updated as any,
+        before_state: subscription as unknown as Prisma.InputJsonValue,
+        after_state: updated as unknown as Prisma.InputJsonValue,
       },
     });
     return updated;
@@ -452,7 +453,7 @@ export async function renewSubscription(
         action: 'RENEW',
         target_type: 'Subscription',
         target_id: renewed.id,
-        after_state: updated as any,
+        after_state: updated as unknown as Prisma.InputJsonValue,
         reason: `Renewed from ${source.id}`,
       },
     });

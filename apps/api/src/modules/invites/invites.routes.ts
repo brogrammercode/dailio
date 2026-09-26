@@ -1,7 +1,10 @@
 import { Router } from 'express';
+
 import { authenticate } from '../../middleware/auth';
-import { resolveTenantContext } from '../../middleware/tenant';
+import { qrPunchRateLimiter, qrResolutionRateLimiter } from '../../middleware/rateLimiter';
 import { requireAnyPermission, requirePermission } from '../../middleware/permission';
+import { resolveTenantContext } from '../../middleware/tenant';
+
 import * as controller from './invites.controller';
 
 const router: Router = Router();
@@ -32,8 +35,14 @@ router.post(
   controller.revokeInvite,
 );
 
-router.get('/invites/:token', authenticate, controller.resolveInvite);
+router.get('/invites/:token', authenticate, qrResolutionRateLimiter, controller.resolveInvite);
 router.post('/join-invites/:token/requests', authenticate, controller.submitJoinRequest);
+router.post(
+  '/attendance/qr-punch',
+  authenticate,
+  qrPunchRateLimiter,
+  controller.punchAttendanceFromInvite,
+);
 router.post(
   '/purchase-invites/:token/subscription-drafts',
   authenticate,

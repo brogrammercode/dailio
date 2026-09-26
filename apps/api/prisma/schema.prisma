@@ -57,6 +57,7 @@ enum AttendanceSessionState {
 
 enum AttendanceSessionSource {
   SELF
+  QR_GATE
   ADMIN
   IMPORT
   SYSTEM_AUTO_CLOSE
@@ -180,12 +181,12 @@ enum AuditAction {
 // ============================================================
 
 model User {
-  id         String     @id @default(cuid())
-  name       String
-  email      String?    @unique
-  phone      String?    @unique
-  google_id  String?    @unique
-  avatar_url String?
+  id                      String     @id @default(cuid())
+  name                    String
+  email                   String?    @unique
+  phone                   String?    @unique
+  google_id               String?    @unique
+  avatar_url              String?
   status                  UserStatus @default(ACTIVE)
   fcm_token               String?
   emergency_contact_name  String?
@@ -209,6 +210,7 @@ model Member {
   branch_id           String
   is_employee         Boolean      @default(false)
   role_id             String?
+  manager_member_id   String?
   shift_id            String?
   subscription_id     String?
   salary_structure_id String?
@@ -217,18 +219,22 @@ model Member {
   created_at          DateTime     @default(now())
   updated_at          DateTime     @updatedAt
 
-  user             User             @relation(fields: [user_id], references: [id])
-  organization     Organization     @relation(fields: [organization_id], references: [id])
-  branch           Branch?          @relation(fields: [branch_id], references: [id])
-  role             Role?            @relation(fields: [role_id], references: [id])
-  shift            Shift?           @relation(fields: [shift_id], references: [id])
-  salary_structure SalaryStructure? @relation(fields: [salary_structure_id], references: [id])
+  user             User                   @relation(fields: [user_id], references: [id])
+  organization     Organization           @relation(fields: [organization_id], references: [id])
+  branch           Branch?                @relation(fields: [branch_id], references: [id])
+  role             Role?                  @relation(fields: [role_id], references: [id])
+  role_assignments MemberRoleAssignment[]
+  manager_member   Member?                @relation("MemberManager", fields: [manager_member_id], references: [id])
+  managed_members  Member[]               @relation("MemberManager")
+  shift            Shift?                 @relation(fields: [shift_id], references: [id])
+  salary_structure SalaryStructure?       @relation(fields: [salary_structure_id], references: [id])
 
   attendance_sessions AttendanceSession[]
+  attendance_policies AttendancePolicy[]
   subscriptions       Subscription[]
   ledger_entries      LedgerEntry[]
-  payment_requests     PaymentRequest[]
-  payment_attempts     PaymentAttempt[]
+  payment_requests    PaymentRequest[]
+  payment_attempts    PaymentAttempt[]
 
   join_requests           JoinRequest[]
   leave_requests          LeaveRequest[]
@@ -236,6 +242,7 @@ model Member {
 
   @@unique([organization_id, branch_id, user_id])
   @@index([organization_id, branch_id])
+  @@index([organization_id, branch_id, manager_member_id])
   @@index([user_id])
   @@map("members")
 }
@@ -270,7 +277,7 @@ model Organization {
   announcements        Announcement[]
   salaryStructures     SalaryStructure[]
   payment_requests     PaymentRequest[]
-  invite_tokens         InviteToken[]
+  invite_tokens        InviteToken[]
 
   @@map("organizations")
 }
@@ -313,7 +320,7 @@ model Branch {
   plans               Plan[]
   salaryStructures    SalaryStructure[]
   payment_requests    PaymentRequest[]
-  invite_tokens      InviteToken[]
+  invite_tokens       InviteToken[]
 
   @@index([organization_id])
   @@map("branches")
@@ -366,12 +373,35 @@ model Role {
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organization_id], references: [id])
-  role_members Member[]
+  organization        Organization           @relation(fields: [organization_id], references: [id])
+  role_members        Member[]
+  member_assignments  MemberRoleAssignment[]
+  attendance_policies AttendancePolicy[]
 
   @@unique([organization_id, name])
   @@index([organization_id])
   @@map("roles")
+}
+
+model MemberRoleAssignment {
+  id              String    @id @default(cuid())
+  organization_id String
+  branch_id       String
+  member_id       String
+  role_id         String
+  priority        Int       @default(100)
+  effective_from  DateTime  @default(now())
+  effective_to    DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  member Member @relation(fields: [member_id], references: [id])
+  role   Role   @relation(fields: [role_id], references: [id])
+
+  @@unique([member_id, role_id, effective_from])
+  @@index([organization_id, branch_id, member_id, priority])
+  @@index([organization_id, branch_id, role_id])
+  @@map("member_role_assignments")
 }
 
 // ============================================================
@@ -379,35 +409,41 @@ model Role {
 // ============================================================
 
 model AttendancePolicy {
-  id                          String   @id @default(cuid())
+  id                          String    @id @default(cuid())
   organization_id             String
   branch_id                   String
   role_id                     String? // null = location default, set = role override
-  version                     Int      @default(1)
+  member_id                   String? // null unless this is a direct member override
+  version                     Int       @default(1)
   effective_from              DateTime
-  punch_required              Boolean  @default(true)
-  selfie_on_clock_in          Boolean  @default(false)
-  selfie_on_clock_out         Boolean  @default(false)
-  location_on_clock_in        Boolean  @default(false)
-  location_on_clock_out       Boolean  @default(false)
-  geofence_enabled            Boolean  @default(false)
+  effective_to                DateTime?
+  punch_required              Boolean   @default(true)
+  selfie_on_clock_in          Boolean   @default(false)
+  selfie_on_clock_out         Boolean   @default(false)
+  location_on_clock_in        Boolean   @default(false)
+  location_on_clock_out       Boolean   @default(false)
+  geofence_enabled            Boolean   @default(false)
   geofence_lat                Float?
   geofence_lng                Float?
   geofence_radius_meters      Int?
   geofence_accuracy_threshold Float?
-  shift_enforcement_enabled   Boolean  @default(false)
-  early_arrival_minutes       Int      @default(30)
-  late_grace_minutes          Int      @default(15)
-  min_session_minutes         Int      @default(0)
-  max_open_session_hours      Int      @default(24)
-  allow_manual_entry          Boolean  @default(false)
-  allow_offline_capture       Boolean  @default(false)
-  created_at                  DateTime @default(now())
-  updated_at                  DateTime @updatedAt
+  shift_enforcement_enabled   Boolean   @default(false)
+  early_arrival_minutes       Int       @default(30)
+  late_grace_minutes          Int       @default(15)
+  min_session_minutes         Int       @default(0)
+  max_open_session_hours      Int       @default(24)
+  allow_manual_entry          Boolean   @default(false)
+  allow_offline_capture       Boolean   @default(false)
+  created_at                  DateTime  @default(now())
+  updated_at                  DateTime  @updatedAt
 
-  branch Branch @relation(fields: [branch_id], references: [id])
+  branch Branch  @relation(fields: [branch_id], references: [id])
+  role   Role?   @relation(fields: [role_id], references: [id])
+  member Member? @relation(fields: [member_id], references: [id])
 
   @@index([organization_id, branch_id])
+  @@index([organization_id, branch_id, role_id])
+  @@index([organization_id, branch_id, member_id])
   @@map("attendance_policies")
 }
 
@@ -417,6 +453,8 @@ model AttendanceSession {
   branch_id           String
   member_id           String
   policy_version      Int
+  policy_snapshot     Json?
+  branch_timezone     String?
   state               AttendanceSessionState   @default(OPEN)
   source              AttendanceSessionSource  @default(SELF)
   derived_status      AttendanceDerivedStatus?
@@ -431,17 +469,20 @@ model AttendanceSession {
   clock_out_at        DateTime?
   clock_out_client_at DateTime?
   clock_out_timezone  String?
+  clock_out_source    String?
   corrected_at        DateTime?
   corrected_by        String?
   correction_reason   String?
+  correction_version  Int                      @default(0)
   idempotency_key_in  String?                  @unique
   idempotency_key_out String?                  @unique
   created_at          DateTime                 @default(now())
   updated_at          DateTime                 @updatedAt
 
-  branch   Branch               @relation(fields: [branch_id], references: [id])
-  member   Member?              @relation(fields: [member_id], references: [id])
-  evidence AttendanceEvidence[]
+  branch      Branch                 @relation(fields: [branch_id], references: [id])
+  member      Member?                @relation(fields: [member_id], references: [id])
+  evidence    AttendanceEvidence[]
+  corrections AttendanceCorrection[]
 
   @@index([organization_id, branch_id])
   @@index([member_id])
@@ -449,23 +490,51 @@ model AttendanceSession {
 }
 
 model AttendanceEvidence {
-  id              String   @id @default(cuid())
-  session_id      String
-  organization_id String
-  type            String // SELFIE_IN, SELFIE_OUT, LOCATION_IN, LOCATION_OUT
-  asset_id        String? // ref to MediaAsset
-  latitude        Float?
-  longitude       Float?
-  accuracy        Float?
-  device_metadata Json?
-  ip_address      String?
-  created_at      DateTime @default(now())
+  id                       String   @id @default(cuid())
+  session_id               String
+  organization_id          String
+  type                     String // SELFIE_IN, SELFIE_OUT, LOCATION_IN, LOCATION_OUT
+  asset_id                 String? // ref to MediaAsset
+  latitude                 Float?
+  longitude                Float?
+  accuracy                 Float?
+  geofence_distance_meters Float?
+  device_metadata          Json?
+  ip_address               String?
+  created_at               DateTime @default(now())
 
   session AttendanceSession @relation(fields: [session_id], references: [id])
+  asset   MediaAsset?       @relation(fields: [asset_id], references: [id])
 
   @@index([session_id])
   @@index([organization_id])
   @@map("attendance_evidence")
+}
+
+model AttendanceCorrection {
+  id                       String                   @id @default(cuid())
+  session_id               String
+  organization_id          String
+  branch_id                String
+  version                  Int
+  actor_id                 String
+  previous_clock_in_at     DateTime
+  previous_clock_out_at    DateTime?
+  previous_state           AttendanceSessionState
+  previous_derived_status  AttendanceDerivedStatus?
+  corrected_clock_in_at    DateTime
+  corrected_clock_out_at   DateTime?
+  corrected_state          AttendanceSessionState
+  corrected_derived_status AttendanceDerivedStatus?
+  reason                   String
+  created_at               DateTime                 @default(now())
+
+  session AttendanceSession @relation(fields: [session_id], references: [id])
+
+  @@unique([session_id, version])
+  @@index([organization_id, branch_id])
+  @@index([session_id, created_at])
+  @@map("attendance_corrections")
 }
 
 // ============================================================
@@ -560,7 +629,7 @@ model Plan {
   organization  Organization   @relation(fields: [organization_id], references: [id])
   branch        Branch?        @relation(fields: [branch_id], references: [id])
   subscriptions Subscription[]
-  invite_tokens  InviteToken[]
+  invite_tokens InviteToken[]
 
   @@index([organization_id])
   @@map("plans")
@@ -613,10 +682,10 @@ model Subscription {
   created_at          DateTime           @default(now())
   updated_at          DateTime           @updatedAt
 
-  branch         Branch        @relation(fields: [branch_id], references: [id])
-  member         Member?       @relation(fields: [member_id], references: [id])
-  plan           Plan          @relation(fields: [plan_id], references: [id])
-  ledger_entries LedgerEntry[]
+  branch           Branch           @relation(fields: [branch_id], references: [id])
+  member           Member?          @relation(fields: [member_id], references: [id])
+  plan             Plan             @relation(fields: [plan_id], references: [id])
+  ledger_entries   LedgerEntry[]
   payment_requests PaymentRequest[]
 
   @@index([organization_id, branch_id])
@@ -671,10 +740,10 @@ model PaymentAttempt {
   created_at       DateTime             @default(now())
   updated_at       DateTime             @updatedAt
 
-  branch      Branch              @relation(fields: [branch_id], references: [id])
-  member      Member?             @relation(fields: [member_id], references: [id])
-  allocations PaymentAllocation[]
-  receipt     Receipt?
+  branch          Branch              @relation(fields: [branch_id], references: [id])
+  member          Member?             @relation(fields: [member_id], references: [id])
+  allocations     PaymentAllocation[]
+  receipt         Receipt?
   payment_request PaymentRequest?
 
   @@index([organization_id, branch_id])
@@ -701,11 +770,11 @@ model PaymentRequest {
   created_at         DateTime             @default(now())
   updated_at         DateTime             @updatedAt
 
-  organization    Organization     @relation(fields: [organization_id], references: [id])
-  branch          Branch           @relation(fields: [branch_id], references: [id])
-  member          Member           @relation(fields: [member_id], references: [id])
-  subscription    Subscription?   @relation(fields: [subscription_id], references: [id])
-  payment_attempt PaymentAttempt? @relation(fields: [payment_attempt_id], references: [id])
+  organization    Organization      @relation(fields: [organization_id], references: [id])
+  branch          Branch            @relation(fields: [branch_id], references: [id])
+  member          Member            @relation(fields: [member_id], references: [id])
+  subscription    Subscription?     @relation(fields: [subscription_id], references: [id])
+  payment_attempt PaymentAttempt?   @relation(fields: [payment_attempt_id], references: [id])
   evidence        PaymentEvidence[]
 
   @@index([organization_id, branch_id, status])
@@ -849,6 +918,8 @@ model MediaAsset {
   uploaded_by     String?
   created_at      DateTime @default(now())
 
+  attendance_evidence AttendanceEvidence[]
+
   @@index([organization_id])
   @@map("media_assets")
 }
@@ -861,6 +932,7 @@ model Notification {
   body            String
   channel         NotificationChannel @default(IN_APP)
   status          NotificationStatus  @default(PENDING)
+  dedupe_key      String?             @unique
   data            Json?
   read_at         DateTime?
   sent_at         DateTime?

@@ -883,7 +883,9 @@ The exact visual implementation may combine role and status without creating an 
 
 ### 10.7 Attendance policy
 
-Multiple attendance policies will be managed centrally in Settings and assigned directly to employees, rather than being a single branch-level configuration.
+Multiple attendance policies will be managed centrally in Settings and assigned to people through a branch default, role assignment, or direct member assignment. Attendance policy applies to every active branch member, whether employee, staff, manager, or customer/member; employee status is not a prerequisite.
+
+**Policy precedence:** a direct member policy override wins over the member's effective role policy, which wins over the branch default. If a person has multiple compatible role assignments, the explicitly selected/effective role policy must be deterministic and shown to the user. Every policy assignment has an effective version/date, and each attendance session snapshots the resolved policy used.
 
 - `punch_required`
 - selfie required on clock-in and/or clock-out
@@ -1364,13 +1366,19 @@ Not every permission requires every scope.
 - `ATTENDANCE_READ_SELF`
 - `ATTENDANCE_READ_TEAM`
 - `ATTENDANCE_READ_BRANCH`
+- `ATTENDANCE_READ_ALL`
 - `ATTENDANCE_CREATE_SELF`
-- `ATTENDANCE_CREATE_OTHER`
+- `ATTENDANCE_CREATE_ALL`
 - `ATTENDANCE_UPDATE`
 - `ATTENDANCE_CORRECT`
 - `ATTENDANCE_VOID`
+- `ATTENDANCE_DELETE`
 - `ATTENDANCE_EXPORT`
-- `ATTENDANCE_EVIDENCE_READ`
+- `ATTENDANCE_POLICY_READ`
+- `ATTENDANCE_POLICY_ASSIGN`
+- `ATTENDANCE_POLICY_MANAGE`
+- `ATTENDANCE_EVIDENCE_READ_SELF`
+- `ATTENDANCE_EVIDENCE_READ_ALL`
 
 #### Workforce
 
@@ -2049,6 +2057,19 @@ Every implemented page must document/encode:
 9. Server closes session and derives duration/status.
 10. Self and authorized All Attendance screens update.
 
+### 26.4a Permanent branch QR attendance
+
+The permanent branch join QR is also the branch gate QR. It remains reusable until the owner/admin explicitly revokes or replaces it; raw tokens are never stored.
+
+1. Owner/admin opens the branch QR display, prints the permanent QR, and posts it at the entrance.
+2. A signed-in person scans the QR with the Dailio camera. Gallery QR selection may resolve the branch for discovery, but a QR punch must follow the configured anti-spoof/evidence policy and may require a live camera scan.
+3. The server resolves the token and branch. If the person is not an active member, the existing fast-join confirmation/request flow is shown. If the person is pending, the pending state is shown.
+4. If the person is an active member, the server determines the next action from server state: no open session means Clock In; an open session means Clock Out. The client cannot choose a different action by changing a payload.
+5. The app loads and displays the resolved member/role policy, shift, evidence requirements, geofence status, and the action that will be performed. The person confirms.
+6. A single idempotent QR-punch command validates the permanent invite, active membership, branch scope, permission, policy version, server time, geofence, required live selfie/location evidence, and open-session transition.
+7. The server creates or closes the attendance session and records the QR gate source plus all evidence. The UI shows the confirmed result and timeline; pending/error states never look confirmed.
+8. Repeated scans are safe: a retry with the same idempotency key returns the original result, while a new scan after a confirmed transition shows the next action.
+
 ### 26.5 Subscription purchase with evidence
 
 QR plan purchase is also supported: the owner/admin creates a permanent purpose-bound plan invite, the member scans it, and the server rejects revoked, inactive, or incompatible invites. The server confirms active branch membership, creates an idempotent `DRAFT` subscription using snapshotted authoritative plan terms and server-calculated dates, and pre-fills the purchase form. The member submits evidence/reference as `REQUESTED`; only authorized review can create the confirmed payment, immutable ledger allocation, receipt, and active subscription.
@@ -2294,6 +2315,10 @@ A feature is complete only when all applicable items are true:
 | 2026-09-09 | Reporting hierarchy is modeled independently from role permissions; team access requires both hierarchy and suitable permission. | Required to support hierarchy safely without implicit admin power. |
 | 2026-09-25 | Branch admission and plan purchase use purpose-bound opaque QR invites, permanent and reusable until explicitly revoked or replaced. | Supports the approved fast-join/customer journey while preserving tenant derivation, server pricing, idempotency, and auditability. |
 | 2026-09-25 | QR codes are lifetime permanent by product decision; expiry inputs and expiry checks are removed. Manual revocation remains available for security/operational control. | QR displays can remain posted for recurring customer use without requiring regeneration every 24 hours. |
+| 2026-09-26 | Attendance policy applies to every active branch member, with precedence direct member override > effective role policy > branch default. | Supports different rules for people and roles without making employee status a prerequisite; sessions snapshot the resolved policy. |
+| 2026-09-26 | The permanent branch join QR is also the reusable physical gate QR. Active members use it to trigger the server-determined next punch (clock-in or clock-out); non-members retain the fast-join flow. | One printed branch QR supports admission and attendance while preserving server-side membership, policy, evidence, geofence, idempotency, and tenant checks. |
+| 2026-09-26 | Attendance operations use branch-local time, stable cursor pagination, live activity refresh, and deduplicated in-app/push alerts for late, incomplete, evidence-failure, and missing-clock-out events. | Keeps reporting consistent across timezones and makes operational exceptions visible without allowing notification delivery to affect attendance state. |
+| 2026-09-26 | Attendance authorization uses explicit self/team/branch/all read scopes, self/all evidence scopes, and dedicated policy read/assign/manage permissions; `ATTENDANCE_CREATE_ALL` is the authorized cross-member clock-out scope. | Aligns the product permission catalog with the server-enforced authorization contract and prevents UI-only policy management or evidence disclosure. |
 
 ---
 

@@ -39,7 +39,7 @@ export async function resolveTenantContext(
       throw new NotFoundError('Organization');
 
     const branch = await prisma.branch.findUnique({ where: { id: branch_id, organization_id } });
-    if (!branch) throw new NotFoundError('Branch');
+    if (!branch || branch.status === 'ARCHIVED') throw new NotFoundError('Branch');
 
     const member = await getMemberForUser(req.user.id, organization_id, branch_id);
     if (!member) throw new ForbiddenError('No active membership in this branch');

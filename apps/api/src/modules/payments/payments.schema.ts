@@ -16,6 +16,14 @@ const PaymentRequestStatusSchema = z.enum([
   'CANCELLED',
 ]);
 
+export const PaymentRequestPeriodSchema = z.enum([
+  'today',
+  'yesterday',
+  'this_week',
+  'this_month',
+  'this_year',
+]);
+
 export const CreatePaymentRequestSchema = z.object({
   subscription_id: z.string().min(1),
   amount_minor_unit: z.number().int().positive(),
@@ -36,6 +44,7 @@ export const ReviewPaymentRequestSchema = z.object({
 
 export const PaymentRequestQuerySchema = z.object({
   status: PaymentRequestStatusSchema.optional(),
+  period: PaymentRequestPeriodSchema.optional(),
 });
 
 export const PaymentEvidenceUploadSchema = z.object({
@@ -62,6 +71,7 @@ export const FeeQuerySchema = z.object({
 export type CreatePaymentRequestInput = z.infer<typeof CreatePaymentRequestSchema>;
 export type ReviewPaymentRequestInput = z.infer<typeof ReviewPaymentRequestSchema>;
 export type PaymentRequestQuery = z.infer<typeof PaymentRequestQuerySchema>;
+export type PaymentRequestPeriod = z.infer<typeof PaymentRequestPeriodSchema>;
 export type PaymentEvidenceUploadInput = z.infer<typeof PaymentEvidenceUploadSchema>;
 export type PaymentCorrectionInput = z.infer<typeof PaymentCorrectionSchema>;
 export type FeeQuery = z.infer<typeof FeeQuerySchema>;

@@ -24,4 +24,37 @@ void main() {
 
     expect(extractDailioInviteToken(capture), isNull);
   });
+
+  test('maps invite membership states to the correct next flow', () {
+    expect(qrInviteFlowState({'joinability': 'JOINABLE'}), 'JOINABLE');
+    expect(qrInviteFlowState({'joinability': 'ALREADY_PENDING'}), 'PENDING');
+    expect(
+        qrInviteFlowState({'joinability': 'MEMBERSHIP_INACTIVE'}), 'INACTIVE');
+    expect(qrInviteFlowState({'joinability': 'UNEXPECTED'}), 'UNKNOWN');
+    expect(
+      qrInviteFlowState({'joinability': 'ALREADY_MEMBER'}),
+      'UNKNOWN',
+    );
+    expect(
+      qrInviteFlowState({
+        'joinability': 'ALREADY_MEMBER',
+        'attendance_action': 'CLOCK_IN',
+      }),
+      'ACTIVE_CLOCK_IN',
+    );
+    expect(
+      qrInviteFlowState({
+        'joinability': 'ALREADY_MEMBER',
+        'attendance_action': 'CLOCK_OUT',
+      }),
+      'ACTIVE_CLOCK_OUT',
+    );
+    expect(
+      qrInviteFlowState({
+        'joinability': 'ALREADY_MEMBER',
+        'attendance_action': 'ATTENDANCE_DISABLED',
+      }),
+      'ATTENDANCE_DISABLED',
+    );
+  });
 }

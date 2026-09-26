@@ -309,6 +309,7 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
           branchId: result['location']['id'],
           organizationName: result['organization']['name'],
           branchName: result['location']['name'],
+          branchTimezone: result['location']['timezone']?.toString(),
           roleSystemKey: 'OWNER',
           permissions: const ['ALL'],
         );

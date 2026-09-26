@@ -1,5 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 
+import { ForbiddenError, ValidationError } from '../../lib/errors';
+
 import {
   CreatePaymentRequestSchema,
   FeeQuerySchema,
@@ -9,7 +11,6 @@ import {
   ReviewPaymentRequestSchema,
 } from './payments.schema';
 import * as paymentsService from './payments.service';
-import { ForbiddenError, ValidationError } from '../../lib/errors';
 
 function idempotencyKey(req: Request) {
   const value = req.header('Idempotency-Key');
@@ -52,13 +53,14 @@ export async function createEvidenceUploadSignature(
 
 export async function listPaymentRequests(req: Request, res: Response, next: NextFunction) {
   try {
-    const { status } = PaymentRequestQuerySchema.parse(req.query);
+    const { status, period } = PaymentRequestQuerySchema.parse(req.query);
     const requests = await paymentsService.listPaymentRequests(
       req.organization!.id,
       req.branch!.id,
       req.permissions ?? new Set<string>(),
       req.member!.id,
       status,
+      period,
     );
     res.json({ data: requests });
   } catch (error) {

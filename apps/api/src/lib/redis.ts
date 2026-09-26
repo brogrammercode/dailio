@@ -1,22 +1,21 @@
-import { env } from '../config/env';
-import { logger } from '../config/logger';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Mock Redis client since Redis is not currently running locally
 class MockRedis {
-  async get(key: string) {
+  async get(_key: string) {
     return null;
   }
-  async setex(key: string, seconds: number, value: string) {
+  async setex(_key: string, _seconds: number, _value: string) {
     return 'OK';
   }
   async quit() {
     return 'OK';
   }
-  on(event: string, callback: any) {}
+  on(_event: string, _callback: (...args: unknown[]) => void) {}
 
   // Minimal BullMQ compat if needed
   public status = 'ready';
-  async eval() {
+  async eval(..._args: unknown[]) {
     return null;
   }
 }

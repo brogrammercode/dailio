@@ -1,3 +1,4 @@
+import type { User } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
 
 import { GoogleSignInSchema, RefreshTokenSchema } from './auth.schema';
@@ -49,7 +50,7 @@ export async function logout(req: Request, res: Response) {
   res.status(200).json({ message: 'Logged out successfully' });
 }
 
-function sanitizeUser(user: any) {
+function sanitizeUser(user: User) {
   return {
     id: user.id,
     name: user.name,

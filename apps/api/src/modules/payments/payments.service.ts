@@ -4,10 +4,12 @@ import { ulid } from 'ulid';
 import { prisma } from '../../lib/prisma';
 import { ConflictError, ForbiddenError, NotFoundError, UnprocessableError } from '../../lib/errors';
 import { cloudinary, getUploadSignature } from '../../lib/cloudinary';
+
 import type {
   CreatePaymentRequestInput,
   FeeQuery,
   PaymentCorrectionInput,
+  PaymentRequestPeriod,
   ReviewPaymentRequestInput,
 } from './payments.schema';
 
@@ -76,6 +78,60 @@ function branchLocalRemainingDays(endDate: Date, timezone: string) {
   const endUtc = Date.parse(`${end}T00:00:00.000Z`);
   const todayUtc = Date.parse(`${today}T00:00:00.000Z`);
   return Math.ceil((endUtc - todayUtc) / 86_400_000);
+}
+
+function shiftLocalDate(value: string, days: number) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function localDateStartUtc(localDate: string, timezone: string) {
+  const naive = new Date(`${localDate}T00:00:00.000Z`);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(naive);
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? 0);
+  const displayedAsUtc = Date.UTC(
+    get('year'),
+    get('month') - 1,
+    get('day'),
+    get('hour'),
+    get('minute'),
+    get('second'),
+  );
+  const offsetMs = displayedAsUtc - naive.getTime();
+  return new Date(naive.getTime() - offsetMs);
+}
+
+function paymentPeriodBounds(period: PaymentRequestPeriod, timezone: string) {
+  const today = branchLocalDate(new Date(), timezone);
+  let start = today;
+  let end = shiftLocalDate(today, 1);
+  if (period === 'yesterday') {
+    start = shiftLocalDate(today, -1);
+  } else if (period === 'this_week') {
+    const weekday = new Date(`${today}T00:00:00.000Z`).getUTCDay();
+    const sinceMonday = (weekday + 6) % 7;
+    start = shiftLocalDate(today, -sinceMonday);
+    end = shiftLocalDate(start, 7);
+  } else if (period === 'this_month') {
+    start = `${today.slice(0, 7)}-01`;
+    const nextMonth = new Date(`${today.slice(0, 7)}-01T00:00:00.000Z`);
+    nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+    end = nextMonth.toISOString().slice(0, 10);
+  } else if (period === 'this_year') {
+    start = `${today.slice(0, 4)}-01-01`;
+    end = `${String(Number(today.slice(0, 4)) + 1)}-01-01`;
+  }
+  return { start: localDateStartUtc(start, timezone), end: localDateStartUtc(end, timezone) };
 }
 
 export function getPeriod(query: FeeQuery) {
@@ -261,18 +317,25 @@ export async function listPaymentRequests(
   permissions: Set<string>,
   memberId?: string,
   status?: PaymentRequestStatus,
+  period?: PaymentRequestPeriod,
 ) {
   const canReadAll =
     permissions.has('ALL') ||
     permissions.has('PAYMENT_READ_ALL') ||
     permissions.has('PAYMENT_REQUEST_REVIEW');
   if (!canReadAll && !memberId) throw new ForbiddenError('Payment request scope is required');
+  const branch = await prisma.branch.findFirst({
+    where: { id: branchId, organization_id: organizationId },
+    select: { timezone: true },
+  });
+  const bounds = period ? paymentPeriodBounds(period, branch?.timezone ?? 'UTC') : null;
   return prisma.paymentRequest.findMany({
     where: {
       organization_id: organizationId,
       branch_id: branchId,
       ...(canReadAll ? {} : { member_id: memberId }),
       ...(status ? { status } : {}),
+      ...(bounds ? { created_at: { gte: bounds.start, lt: bounds.end } } : {}),
     },
     include: {
       member: { include: { user: true } },
@@ -291,8 +354,17 @@ export async function getPaymentRequest(
   permissions: Set<string>,
   memberId?: string,
 ) {
+  const canReadAll =
+    permissions.has('ALL') ||
+    permissions.has('PAYMENT_READ_ALL') ||
+    permissions.has('PAYMENT_REQUEST_REVIEW');
   const request = await prisma.paymentRequest.findFirst({
-    where: { id: requestId, organization_id: organizationId, branch_id: branchId },
+    where: {
+      id: requestId,
+      organization_id: organizationId,
+      branch_id: branchId,
+      ...(canReadAll ? {} : { member_id: memberId }),
+    },
     include: {
       member: { include: { user: true } },
       subscription: { include: { plan: true } },
@@ -301,12 +373,6 @@ export async function getPaymentRequest(
     },
   });
   if (!request) throw new NotFoundError('Payment request');
-  const canReadAll =
-    permissions.has('ALL') ||
-    permissions.has('PAYMENT_READ_ALL') ||
-    permissions.has('PAYMENT_REQUEST_REVIEW');
-  if (!canReadAll && request.member_id !== memberId)
-    throw new ForbiddenError('You cannot access this payment request');
   return request;
 }
 
@@ -675,6 +741,14 @@ export async function listFees(
           request.payment_attempt?.status === 'SUCCESS' &&
           (!subscription || request.subscription_id === subscription.id),
       );
+      const paidAmount = relevantEntries.reduce(
+        (sum, entry) =>
+          sum +
+          entry.allocations
+            .filter((allocation) => allocation.payment_attempt.status === 'SUCCESS')
+            .reduce((entrySum, allocation) => entrySum + allocation.allocated_amount, 0),
+        0,
+      );
       const endDate = subscription?.end_date;
       const remainingDays = endDate ? branchLocalRemainingDays(endDate, branchTimezone) : null;
       const status = deriveFeeStatus({
@@ -707,6 +781,7 @@ export async function listFees(
           : null,
         status,
         balance_minor_unit: balance,
+        paid_amount_minor_unit: paidAmount,
         currency: subscription?.currency ?? 'INR',
         remaining_days: remainingDays,
         pending_request_id: pendingRequest?.id ?? null,

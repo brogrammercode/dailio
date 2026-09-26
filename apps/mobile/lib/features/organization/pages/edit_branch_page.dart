@@ -403,13 +403,15 @@ class _EditBranchPageState extends State<EditBranchPage> {
 
       if (mounted) {
         _initData(result);
-        if (_nameController.text != _originalName &&
+        if ((_nameController.text != _originalName ||
+                _timezone != _originalTimezone) &&
             prefs.activeBranchId == widget.branchId) {
           await prefs.setActiveContext(
             organizationId: prefs.activeOrganizationId!,
             branchId: widget.branchId,
             organizationName: prefs.activeOrganizationName,
             branchName: _nameController.text,
+            branchTimezone: _timezone,
           );
         }
         if (!mounted) return;

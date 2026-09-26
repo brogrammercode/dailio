@@ -1,15 +1,19 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:iconsax/iconsax.dart';
-import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
-import '../../../core/widgets/shimmer_loader.dart';
+import '../../../core/utils/branch_time.dart';
 import '../controllers/attendance_repository.dart';
 import '../models/attendance_models.dart';
+import '../attendance_error.dart';
+import 'attendance_detail_page.dart';
 
 class SelfAttendancePage extends StatefulWidget {
   const SelfAttendancePage({super.key});
@@ -21,1489 +25,581 @@ class SelfAttendancePage extends StatefulWidget {
 class _SelfAttendancePageState extends State<SelfAttendancePage>
     with SingleTickerProviderStateMixin {
   late final AttendanceRepository _repository;
-  late final String _locationId;
-
-  late TabController _tabController;
-  int _selectedTab = 0;
-  late Timer _timer;
-  DateTime _currentTime = DateTime.now();
-
-  bool _isLoading = true;
-  bool _isActionLoading = false;
+  late final TabController _tabs;
+  String? _branchId;
+  String? _branchName;
+  String _branchTimezone = 'Asia/Kolkata';
   AttendanceSessionModel? _activeSession;
-  Map<String, dynamic>? _policy;
+  List<AttendanceSessionModel> _history = [];
+  Map<String, dynamic> _policy = const {};
+  bool _loading = true;
+  bool _actionLoading = false;
   String? _error;
+  Timer? _timer;
+  DateTime _clock = DateTime.now();
+  String? _punchIdempotencyKey;
+  String? _punchStatus;
+  String _historyPeriod = 'this_month';
+  DateTime? _customFrom;
+  DateTime? _customTo;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging) return;
-      if (mounted) setState(() => _selectedTab = _tabController.index);
-    });
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) setState(() => _currentTime = DateTime.now());
-    });
-
     _repository = context.read<AttendanceRepository>();
-    final prefs = context.read<PreferencesStorage>();
-    _locationId = prefs.activeBranchId!;
-    _loadData();
+    final preferences = context.read<PreferencesStorage>();
+    _branchId = preferences.activeBranchId;
+    _branchName = preferences.activeBranchName;
+    _branchTimezone = preferences.activeBranchTimezone ?? _branchTimezone;
+    _tabs = TabController(length: 2, vsync: this);
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _clock = _repository.serverNow);
+    });
+    _load();
   }
 
   @override
   void dispose() {
-    _timer.cancel();
-    _tabController.dispose();
+    _timer?.cancel();
+    _tabs.dispose();
     super.dispose();
+  }
+
+  Future<void> _load() async {
+    final branchId = _branchId;
+    if (branchId == null) {
+      setState(() {
+        _loading = false;
+        _error = 'Select an active branch before using attendance.';
+      });
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final result = await Future.wait<dynamic>([
+        _repository.getAttendancePolicy(branchId),
+        _repository.getActiveSession(branchId),
+        _repository.getSessions(
+          branchId,
+          _historyPeriod,
+          dateFrom: _customFrom == null ? null : _dateOnly(_customFrom!),
+          dateTo: _customTo == null ? null : _dateOnly(_customTo!),
+        ),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _policy = result[0] as Map<String, dynamic>;
+        _branchTimezone =
+            _policy['branch_timezone']?.toString() ?? _branchTimezone;
+        _activeSession = result[1] as AttendanceSessionModel?;
+        _history = result[2] as List<AttendanceSessionModel>;
+        _loading = false;
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = attendanceErrorMessage(error);
+        });
+      }
+    }
+  }
+
+  Future<Map<String, double>?> _collectLocation(
+      {required bool required}) async {
+    if (!required) return {};
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      _show('Location services are disabled.');
+      return null;
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      _show('Location permission is required for this attendance action.');
+      return null;
+    }
+    final position = await Geolocator.getCurrentPosition();
+    return {
+      'latitude': position.latitude,
+      'longitude': position.longitude,
+      'accuracy': position.accuracy,
+    };
+  }
+
+  Future<Map<String, dynamic>?> _collectSelfie({required bool required}) async {
+    if (!required) return {};
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      preferredCameraDevice: CameraDevice.front,
+    );
+    if (file == null) {
+      _show('A selfie is required to continue.');
+      return null;
+    }
+    try {
+      return await _repository.uploadAttendanceSelfie(_branchId!, file);
+    } catch (error) {
+      _show('Selfie upload failed: ${attendanceErrorMessage(error)}');
+      return null;
+    }
+  }
+
+  Future<void> _clockIn() async {
+    if (_actionLoading || _branchId == null) return;
+    setState(() {
+      _actionLoading = true;
+      _punchStatus = 'submitting';
+    });
+    try {
+      final location = await _collectLocation(
+          required: _policy['location_on_clock_in'] == true ||
+              _policy['geofence_enabled'] == true);
+      if (location == null) {
+        if (mounted) setState(() => _punchStatus = 'cancelled');
+        return;
+      }
+      final selfie =
+          await _collectSelfie(required: _policy['selfie_on_clock_in'] == true);
+      if (selfie == null) {
+        if (mounted) setState(() => _punchStatus = 'cancelled');
+        return;
+      }
+      await _repository.clockIn(_branchId!,
+          idempotencyKey: _punchIdempotencyKey ??= _newPunchKey(),
+          policyVersion: (_policy['version'] as num?)?.toInt(),
+          latitude: location['latitude'],
+          longitude: location['longitude'],
+          accuracy: location['accuracy'],
+          selfieStorageKey: selfie['storage_key']?.toString(),
+          selfieUploadToken: selfie['upload_token']?.toString(),
+          selfieContentType: selfie['content_type']?.toString(),
+          selfieSizeBytes: (selfie['size_bytes'] as num?)?.toInt());
+      await _load();
+      _punchIdempotencyKey = null;
+      if (mounted) setState(() => _punchStatus = 'confirmed');
+      _show('Clock-in submitted and confirmed.');
+    } catch (error) {
+      if (mounted) setState(() => _punchStatus = 'error');
+      _show(attendanceErrorMessage(error));
+    } finally {
+      if (mounted) setState(() => _actionLoading = false);
+    }
+  }
+
+  Future<void> _clockOut() async {
+    final session = _activeSession;
+    if (_actionLoading || session == null || _branchId == null) return;
+    setState(() {
+      _actionLoading = true;
+      _punchStatus = 'submitting';
+    });
+    try {
+      final location = await _collectLocation(
+          required: _policy['location_on_clock_out'] == true ||
+              _policy['geofence_enabled'] == true);
+      if (location == null) {
+        if (mounted) setState(() => _punchStatus = 'cancelled');
+        return;
+      }
+      final selfie = await _collectSelfie(
+          required: _policy['selfie_on_clock_out'] == true);
+      if (selfie == null) {
+        if (mounted) setState(() => _punchStatus = 'cancelled');
+        return;
+      }
+      await _repository.clockOut(_branchId!, session.id,
+          idempotencyKey: _punchIdempotencyKey ??= _newPunchKey(),
+          policyVersion: session.policyVersion,
+          latitude: location['latitude'],
+          longitude: location['longitude'],
+          accuracy: location['accuracy'],
+          selfieStorageKey: selfie['storage_key']?.toString(),
+          selfieUploadToken: selfie['upload_token']?.toString(),
+          selfieContentType: selfie['content_type']?.toString(),
+          selfieSizeBytes: (selfie['size_bytes'] as num?)?.toInt());
+      await _load();
+      _punchIdempotencyKey = null;
+      if (mounted) setState(() => _punchStatus = 'confirmed');
+      _show('Clock-out submitted and confirmed.');
+    } catch (error) {
+      if (mounted) setState(() => _punchStatus = 'error');
+      _show(attendanceErrorMessage(error));
+    } finally {
+      if (mounted) setState(() => _actionLoading = false);
+    }
+  }
+
+  void _show(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      appBar: _buildAppBar(),
-      body: _isLoading
-          ? ShimmerLoader.list()
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Self attendance', style: TextStyle(fontSize: 18)),
+          if (_branchName != null)
+            Text(_branchName!, style: const TextStyle(fontSize: 12)),
+        ]),
+        actions: [
+          IconButton(onPressed: _load, icon: const Icon(Icons.refresh))
+        ],
+        bottom: TabBar(
+          controller: _tabs,
+          tabs: const [Tab(text: 'Today'), Tab(text: 'Attendance record')],
+        ),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!))
-              : Column(
-                  children: [
-                    _buildTabBar(),
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildTodayTab(),
-                          _buildHistoryTab(),
-                        ],
-                      ),
-                    ),
-                  ],
+              ? _errorView()
+              : TabBarView(
+                  controller: _tabs,
+                  children: [_todayView(), _historyView()],
                 ),
-      bottomNavigationBar: _selectedTab == 0 && !_isLoading && _error == null
-          ? _buildTodayBottomActions()
-          : null,
     );
   }
 
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-    try {
-      final policy = await _repository
-          .getAttendancePolicy(_locationId)
-          .catchError((_) => <String, dynamic>{});
-      final active = await _repository.getActiveSession(_locationId);
-      if (mounted) {
-        setState(() {
-          _policy = policy;
-          _activeSession = active;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<Map<String, dynamic>?> _collectEvidence(
-      {required bool isClockIn}) async {
-    if (_policy == null) return {};
-
-    final locationReq = isClockIn
-        ? (_policy!['location_on_clock_in'] == true)
-        : (_policy!['location_on_clock_out'] == true);
-
-    final selfieReq = isClockIn
-        ? (_policy!['selfie_on_clock_in'] == true)
-        : (_policy!['selfie_on_clock_out'] == true);
-
-    double? lat, lng, acc;
-    if (locationReq) {
-      try {
-        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-        if (!serviceEnabled) throw Exception('Location services disabled.');
-
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
-          if (permission == LocationPermission.denied) {
-            throw Exception('Location denied');
-          }
-        }
-        if (permission == LocationPermission.deniedForever) {
-          throw Exception('Location permanently denied');
-        }
-
-        final pos = await Geolocator.getCurrentPosition();
-        lat = pos.latitude;
-        lng = pos.longitude;
-        acc = pos.accuracy;
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('Location error: $e')));
-        }
-        return null;
-      }
-    }
-
-    if (selfieReq) {
-      try {
-        final picker = ImagePicker();
-        final xfile = await picker.pickImage(
-            source: ImageSource.camera,
-            preferredCameraDevice: CameraDevice.front);
-        if (xfile == null) throw Exception('Selfie required');
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('$e')));
-        }
-        return null;
-      }
-    }
-
-    return {
-      if (lat != null) 'latitude': lat,
-      if (lng != null) 'longitude': lng,
-      if (acc != null) 'accuracy': acc,
-    };
-  }
-
-  Future<void> _clockIn() async {
-    if (_isActionLoading) return;
-    setState(() => _isActionLoading = true);
-    try {
-      final evidence = await _collectEvidence(isClockIn: true);
-      if (evidence == null) {
-        setState(() => _isActionLoading = false);
-        return;
-      }
-      await _repository.clockIn(
-        _locationId,
-        latitude: evidence['latitude'],
-        longitude: evidence['longitude'],
-        accuracy: evidence['accuracy'],
+  Widget _errorView() => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.cloud_off, size: 42, color: Colors.grey),
+            const SizedBox(height: 12),
+            Text(_error!, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            OutlinedButton(onPressed: _load, child: const Text('Try again')),
+          ]),
+        ),
       );
-      await _loadData();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Clocked in successfully')));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) setState(() => _isActionLoading = false);
-    }
-  }
 
-  Future<void> _clockOut() async {
-    if (_activeSession == null || _isActionLoading) return;
-    setState(() => _isActionLoading = true);
-    try {
-      final evidence = await _collectEvidence(isClockIn: false);
-      if (evidence == null) {
-        setState(() => _isActionLoading = false);
-        return;
-      }
-      await _repository.clockOut(
-        _locationId,
-        _activeSession!.id,
-        latitude: evidence['latitude'],
-        longitude: evidence['longitude'],
-        accuracy: evidence['accuracy'],
-      );
-      await _loadData();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Clocked out successfully')));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) setState(() => _isActionLoading = false);
-    }
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      leading: IconButton(
-        icon: const Icon(Iconsax.arrow_left, color: Colors.black),
-        onPressed: () => Navigator.pop(context),
-      ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _todayView() {
+    final open = _activeSession != null;
+    final attendanceEnabled = _policy['punch_required'] != false;
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
         children: [
-          Row(
-            children: [
-              const Text('Dailio ',
-                  style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(4)),
-                child: const Text('ATTENDANCE',
-                    style: TextStyle(
-                        color: Colors.orange,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold)),
-              )
-            ],
-          ),
-          const SizedBox(height: 2),
-          Row(
-            children: [
-              Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                      color: Colors.green, shape: BoxShape.circle)),
-              const SizedBox(width: 4),
-              Text('Main Branch - Indiranagar',
-                  style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600)),
-              const SizedBox(width: 4),
-              Icon(Iconsax.refresh, size: 10, color: Colors.grey.shade400)
-            ],
-          )
-        ],
-      ),
-      actions: [
-        IconButton(
-            icon: const Icon(Iconsax.notification, color: Colors.black),
-            onPressed: () {}),
-        const Padding(
-          padding: EdgeInsets.only(right: 16),
-          child: CircleAvatar(
-            radius: 16,
-            backgroundColor: Colors.black,
-            child: Text('D',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold)),
-          ),
-        )
-      ],
-    );
-  }
-
-  Widget _buildTabBar() {
-    return Container(
-      color: Colors.white,
-      child: TabBar(
-        controller: _tabController,
-        labelColor: const Color(0xFF8D490B),
-        unselectedLabelColor: Colors.grey,
-        indicatorColor: const Color(0xFF8D490B),
-        indicatorWeight: 3,
-        tabs: const [
-          Tab(text: 'Today'),
-          Tab(text: 'Attendance Record'),
-        ],
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------
-  // TODAY TAB
-  // ---------------------------------------------------------
-  Widget _buildTodayTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          _buildLivePulseCard(),
-          const SizedBox(height: 16),
-          _buildActiveSessionCard(),
-          const SizedBox(height: 16),
-          _buildStatsRow(),
-          const SizedBox(height: 16),
-          _buildShiftTimeline(),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLivePulseCard() {
-    final timeStr = DateFormat('hh:mm:ss a').format(_currentTime);
-    final dateStr = DateFormat('EEEE, dd MMMM yyyy').format(_currentTime);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                          color: Color(0xFF8D490B), shape: BoxShape.circle)),
-                  const SizedBox(width: 8),
-                  const Text('LIVE SHIFT PULSE',
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF4B5563))),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                    color: const Color(0xFFEEF2FF),
-                    borderRadius: BorderRadius.circular(12)),
-                child: const Text('IST (UTC+5:30)',
-                    style: TextStyle(
-                        color: Color(0xFF4F46E5),
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold)),
-              )
-            ],
-          ),
+          _clockCard(),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(timeStr,
-                  style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -1,
-                      color: Colors.black)),
-              Row(
-                children: [
-                  const Icon(Iconsax.verify,
-                      color: Color(0xFF8D490B), size: 14),
-                  const SizedBox(width: 4),
-                  const Text('Synced',
-                      style: TextStyle(
-                          color: Color(0xFF8D490B),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold)),
-                ],
-              )
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text('$dateStr • Asia/Kolkata',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActiveSessionCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4))
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(16)),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Iconsax.tick_circle,
-                    color: Colors.green.shade700, size: 14),
-                const SizedBox(width: 6),
-                Text('Active Session: 02h 14m',
-                    style: TextStyle(
-                        color: Colors.green.shade700,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Punch Button
-          Container(
-            width: 140,
-            height: 140,
-            decoration: BoxDecoration(
-              color: const Color(0xFF8D490B).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(32),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF8D490B),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                      color: const Color(0xFF8D490B).withValues(alpha: 0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8))
-                ],
-              ),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.fingerprint, color: Colors.white, size: 48),
-                  SizedBox(height: 8),
-                  Text('PUNCH',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-          const Text('Tap to Confirm Attendance',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text('Clocked in at 06:28 AM • Morning Strength',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
-
-          const SizedBox(height: 24),
-          _buildVerificationPill(Iconsax.location,
-              'Main Branch Geofence Verified', '12m beacon', Colors.green),
-          const SizedBox(height: 8),
-          _buildVerificationPill(Iconsax.user_tick,
-              'Live Selfie & Liveness Checked', null, Colors.green,
-              hasAvatar: true),
-          const SizedBox(height: 8),
-          _buildVerificationPill(
-              Icons.phone_android,
-              'SM-G998B • Zero Mock Location',
-              'Secured',
-              const Color(0xFF4F46E5),
-              isBlue: true),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVerificationPill(
-      IconData icon, String title, String? trailing, Color color,
-      {bool hasAvatar = false, bool isBlue = false}) {
-    final bgColor = isBlue ? const Color(0xFFEEF2FF) : Colors.green.shade50;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 8),
-          Expanded(
-              child: Text(title,
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87))),
-          if (trailing != null)
-            Text(trailing,
-                style: TextStyle(
-                    color: color, fontSize: 10, fontWeight: FontWeight.bold)),
-          if (hasAvatar)
-            const CircleAvatar(
-                radius: 8,
-                backgroundImage:
-                    NetworkImage('https://i.pravatar.cc/150?img=32')),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        Expanded(
-            child: _buildStatBox('Expected', '6.0', 'hrs', '06:00 - 12:00')),
-        const SizedBox(width: 12),
-        Expanded(
-            child: _buildStatBox('Elapsed', '02h', '14m', '37% Shift',
-                valueColor: const Color(0xFF8D490B),
-                subtitleColor: Colors.green.shade700)),
-        const SizedBox(width: 12),
-        Expanded(
-            child: _buildStatBox('Punctuality', '+4', 'min', 'On-Time',
-                valueColor: Colors.green.shade700,
-                subtitleColor: Colors.green.shade700)),
-      ],
-    );
-  }
-
-  Widget _buildStatBox(String title, String val1, String val2, String subtitle,
-      {Color? valueColor, Color? subtitleColor}) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: TextStyle(
-                  color: Colors.grey.shade500,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(val1,
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: valueColor ?? Colors.black,
-                      height: 1)),
-              const SizedBox(width: 2),
-              Text(' $val2',
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: valueColor ?? Colors.black,
-                      height: 1.2)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(subtitle,
-              style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: subtitleColor ?? Colors.grey.shade600)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShiftTimeline() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
-                children: [
-                  Icon(Iconsax.clock, size: 16),
-                  SizedBox(width: 8),
-                  Text('Shift Timeline',
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              Text('4 Checkpoints',
-                  style: TextStyle(
-                      color: const Color(0xFF8D490B),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 24),
-          _buildTimelineItem(
-              Iconsax.login_1,
-              'Clocked In',
-              '06:28 AM',
-              'Front Turnstile • Biometric & Selfie Verified\n12.9716° N, 77.6412° E',
-              Colors.green.shade700,
-              isFirst: true),
-          _buildTimelineItem(
-              Iconsax.location,
-              'Floor Check-in',
-              '07:15 AM',
-              'Strength & Conditioning Zone B • Beacon Scan',
-              const Color(0xFF8D490B)),
-          _buildTimelineItem(
-              Iconsax.cup,
-              'Hydration Break',
-              '08:30 AM',
-              'Pantry Lounge Terminal • 10 min break recorded',
-              Colors.blueGrey),
-          _buildTimelineItem(
-              Icons.radio_button_checked,
-              'Active Duty',
-              'Now',
-              'Gym Floor Zone A • Roster duty in progress',
-              Colors.green.shade700,
-              isLast: true),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimelineItem(
-      IconData icon, String title, String time, String desc, Color color,
-      {bool isFirst = false, bool isLast = false}) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: 32,
-            child: Column(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: isLast
-                        ? Colors.transparent
-                        : color.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                    border: isLast ? Border.all(color: color, width: 2) : null,
-                  ),
-                  child: Icon(icon, size: 14, color: color),
-                ),
-                if (!isLast)
-                  Expanded(
-                    child: Container(
-                      width: 1,
-                      color: Colors.grey.shade300,
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                    ),
-                  )
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(title,
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: isLast ? color : Colors.black87)),
-                      const SizedBox(width: 8),
-                      Text(time,
-                          style: TextStyle(
-                              color: isLast ? color : Colors.grey.shade500,
-                              fontSize: 11)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(desc,
-                      style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 11,
-                          height: 1.4)),
-                ],
-              ),
-            ),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTodayBottomActions() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Row(
-        children: [
-          if (_activeSession != null)
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Iconsax.cup, size: 16),
-                label: const Text('Record Break',
-                    style:
-                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.black87,
-                  backgroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: Colors.grey.shade300),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
-          if (_activeSession != null) const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: _isActionLoading
-                  ? null
-                  : (_activeSession == null ? _clockIn : _clockOut),
-              icon: Icon(
-                  _activeSession == null ? Iconsax.login_1 : Iconsax.logout,
-                  size: 16),
-              label: Text(_activeSession == null ? 'Clock In' : 'Clock Out',
-                  style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: const Color(0xFF8D490B),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------
-  // HISTORY TAB
-  // ---------------------------------------------------------
-  Widget _buildHistoryTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Attendance History',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Personal logs & verification timeline',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(16)),
-                child: Row(
-                  children: [
-                    Icon(Iconsax.export,
-                        size: 12, color: Colors.orange.shade800),
-                    const SizedBox(width: 4),
-                    Text('Export',
-                        style: TextStyle(
-                            color: Colors.orange.shade800,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              )
-            ],
-          ),
-          const SizedBox(height: 24),
-          _buildCyclePerformance(),
-          const SizedBox(height: 16),
-          _buildFilterTabs(),
-          const SizedBox(height: 16),
-          _buildFilterChips(),
-          const SizedBox(height: 16),
-          _buildHistoryCardToday(),
-          const SizedBox(height: 16),
-          _buildHistoryCardCompleted(),
-          const SizedBox(height: 16),
-          _buildHistoryCardLate(),
-          const SizedBox(height: 16),
-          _buildHistoryCardMissing(),
-          const SizedBox(height: 48),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCyclePerformance() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
-                children: [
-                  Icon(Iconsax.activity, size: 16, color: Color(0xFF8D490B)),
-                  SizedBox(width: 8),
-                  Text('Cycle Performance',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(8)),
-                child: const Text('March 2025',
-                    style: TextStyle(
-                        color: Color(0xFF8D490B),
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold)),
-              )
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _buildCycleStat('Total', '24', 'Days', null)),
-              const SizedBox(width: 8),
-              Expanded(
-                  child: _buildCycleStat(
-                      'Present', '22', '91.6%', Colors.green.shade50)),
-              const SizedBox(width: 8),
-              Expanded(
-                  child: _buildCycleStat(
-                      'Late', '2', '8.4%', Colors.orange.shade50)),
-              const SizedBox(width: 8),
-              Expanded(
-                  child: _buildCycleStat('Rate', '96%', '~+2%', Colors.white)),
-            ],
-          ),
+          _policyCard(),
           const SizedBox(height: 12),
-          Container(
-            height: 6,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(3),
-              color: Colors.orange.shade700,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 92,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade600,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-                const Expanded(flex: 8, child: SizedBox()),
-              ],
-            ),
-          )
+          _sessionCard(_activeSession, open: open),
+          if (_punchStatus != null) ...[
+            const SizedBox(height: 12),
+            _punchStatusCard(),
+          ],
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: _actionLoading || (!open && !attendanceEnabled)
+                ? null
+                : (open ? _clockOut : _clockIn),
+            icon: _actionLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : Icon(open ? Icons.logout : Icons.login),
+            label: Text(open
+                ? 'Clock out'
+                : attendanceEnabled
+                    ? 'Clock in'
+                    : 'Attendance not required'),
+            style:
+                FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed:
+                _actionLoading ? null : () => context.push(AppRoutes.qrScanner),
+            icon: const Icon(Icons.qr_code_scanner),
+            label: const Text('Scan branch gate QR'),
+            style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48)),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildCycleStat(String title, String val, String sub, Color? bgColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-          color: bgColor ?? Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(8)),
-      child: Column(
-        children: [
-          Text(title,
-              style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(val,
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold, height: 1)),
-          const SizedBox(height: 4),
-          Text(sub,
-              style: TextStyle(
-                  color: Colors.grey.shade500,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterTabs() {
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade200)),
-      child: Row(
-        children: [
-          Expanded(
-              child: Container(
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-                border: Border(
-                    bottom: BorderSide(color: Color(0xFF8D490B), width: 2))),
-            child: const Text('This Week',
-                style: TextStyle(
-                    color: Color(0xFF8D490B),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold)),
-          )),
-          Expanded(
-              child: Container(
-            alignment: Alignment.center,
-            child: Text('This Month',
-                style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600)),
-          )),
-          Expanded(
-              child: Container(
-            alignment: Alignment.center,
-            child: Text('Custom',
-                style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600)),
-          )),
-          Container(
-            width: 40,
-            decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius:
-                    const BorderRadius.horizontal(right: Radius.circular(8)),
-                border: Border(left: BorderSide(color: Colors.grey.shade200))),
-            child: const Icon(Icons.tune, size: 16, color: Colors.black87),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChips() {
-    return Row(
-      children: [
-        _buildChip('All Statuses', '5', true),
-        const SizedBox(width: 8),
-        _buildChip('Present', '4', false, color: Colors.green),
-        const SizedBox(width: 8),
-        _buildChip('Late', '1', false, color: Colors.orange.shade700),
-      ],
-    );
-  }
-
-  Widget _buildChip(String label, String count, bool active, {Color? color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-          color: active ? Colors.black : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border:
-              Border.all(color: active ? Colors.black : Colors.grey.shade300)),
-      child: Row(
-        children: [
-          if (color != null) ...[
-            Container(
-                width: 6,
-                height: 6,
-                decoration:
-                    BoxDecoration(color: color, shape: BoxShape.circle)),
-            const SizedBox(width: 6),
-          ],
-          Text(label,
-              style: TextStyle(
-                  color: active ? Colors.white : Colors.black87,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold)),
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            decoration: BoxDecoration(
-                color: active ? Colors.grey.shade800 : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(4)),
-            child: Text(count,
-                style: TextStyle(
-                    color: active ? Colors.white : Colors.grey.shade600,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold)),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistoryCardToday() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 4,
-              decoration: BoxDecoration(
-                  color: Colors.green.shade600,
-                  borderRadius:
-                      const BorderRadius.horizontal(left: Radius.circular(16))),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Today • 02 Mar 2025',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 13)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(12)),
-                          child: Row(
-                            children: [
-                              Icon(Iconsax.verify,
-                                  size: 12, color: Colors.green.shade700),
-                              const SizedBox(width: 4),
-                              Text('Present • In Progress',
-                                  style: TextStyle(
-                                      color: Colors.green.shade700,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text('Morning Shift (06:30 AM - 01:00 PM)',
-                        style: TextStyle(
-                            color: Colors.grey.shade500, fontSize: 11)),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildTimeCol('CLOCK IN', '06:28 AM'),
-                        _buildTimeCol('CLOCK OUT', '--:--'),
-                        _buildTimeCol('LOGGED', '2h 14m',
-                            valueColor: const Color(0xFF8D490B)),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        _buildSmallPill(Icons.camera_alt_outlined,
-                            'Selfie Verified', Colors.blueGrey),
-                        const SizedBox(width: 8),
-                        _buildSmallPill(Icons.location_on_outlined,
-                            'Indiranagar HQ', Colors.blueGrey),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    _buildSmallPill(
-                        Icons.shield_outlined, 'Zero Anomaly', Colors.blueGrey),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Shift Activity Log (3 events)',
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade700)),
-                        Icon(Icons.keyboard_arrow_down,
-                            size: 16, color: Colors.grey.shade500),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildActivityRow('06:28 AM',
-                        'Punched in at Main Turnstile', Colors.green),
-                    const SizedBox(height: 8),
-                    _buildActivityRow('08:30 AM', 'Morning Break started (15m)',
-                        Colors.blueGrey),
-                    const SizedBox(height: 8),
-                    _buildActivityRow('Active', 'Floor 2 Zone B Workstation',
-                        const Color(0xFF8D490B)),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActivityRow(String time, String desc, Color color) {
-    return Row(
-      children: [
-        Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 8),
-        Text(time,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-        const SizedBox(width: 8),
-        Expanded(
-            child: Text(desc,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 11))),
-      ],
-    );
-  }
-
-  Widget _buildHistoryCardCompleted() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-                width: 4,
-                decoration: BoxDecoration(
-                    color: Colors.green.shade100,
-                    borderRadius: const BorderRadius.horizontal(
-                        left: Radius.circular(16)))),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Saturday • 01 Mar 2025',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 13)),
-                        Row(
-                          children: [
-                            Icon(Iconsax.verify,
-                                size: 12, color: Colors.green.shade700),
-                            const SizedBox(width: 4),
-                            Text('Present • Completed',
-                                style: TextStyle(
-                                    color: Colors.green.shade700,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold)),
-                          ],
-                        )
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text('Morning Shift Regular',
-                        style: TextStyle(
-                            color: Colors.grey.shade500, fontSize: 11)),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildTimeCol('CLOCK IN', '06:30 AM'),
-                        _buildTimeCol('CLOCK OUT', '12:45 PM'),
-                        _buildTimeCol('TOTAL', '6h 15m'),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        _buildSmallPill(Icons.camera_alt_outlined,
-                            'Selfie + Geo', Colors.blueGrey),
-                        const SizedBox(width: 8),
-                        _buildSmallPill(Icons.check, 'Shift Fulfilled',
-                            Colors.green.shade700),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Icon(Icons.history,
-                            size: 12, color: Colors.grey.shade400),
-                        const SizedBox(width: 6),
-                        Text('06:30 Clock In → 10:00 Break → 12:45 Clock Out',
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w600)),
-                        const SizedBox(width: 4),
-                        Icon(Icons.check_circle,
-                            size: 12, color: Colors.green.shade600),
-                      ],
-                    )
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHistoryCardLate() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-                width: 4,
-                decoration: BoxDecoration(
-                    color: const Color(0xFF8D490B),
-                    borderRadius: const BorderRadius.horizontal(
-                        left: Radius.circular(16)))),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Friday • 28 Feb 2025',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 13)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(12)),
-                          child: Row(
-                            children: [
-                              Icon(Iconsax.clock,
-                                  size: 12, color: Colors.orange.shade800),
-                              const SizedBox(width: 4),
-                              Text('Late (+22m)',
-                                  style: TextStyle(
-                                      color: Colors.orange.shade800,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text('Roster: 06:30 AM Call',
-                        style: TextStyle(
-                            color: Colors.grey.shade500, fontSize: 11)),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildTimeCol('CLOCK IN', '06:52 AM',
-                            valueColor: const Color(0xFF8D490B)),
-                        _buildTimeCol('CLOCK OUT', '01:10 PM'),
-                        _buildTimeCol('TOTAL', '6h 18m'),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8)),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.info_outline,
-                              size: 14, color: Colors.orange.shade800),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Grace Period Exceeded',
-                                    style: TextStyle(
-                                        color: Colors.orange.shade800,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 2),
-                                Text(
-                                    'Shift scheduled 06:30 AM. Punch registered 06:52 AM. Approved by Operations Admin.',
-                                    style: TextStyle(
-                                        color: Colors.orange.shade900,
-                                        fontSize: 10)),
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHistoryCardMissing() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8)),
-                      child: Icon(Icons.help_outline,
-                          color: Colors.orange.shade800, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Missing a Punch?',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 13)),
-                          const SizedBox(height: 2),
-                          Text('Raise an attendance discrepancy request.',
-                              style: TextStyle(
-                                  color: Colors.grey.shade600, fontSize: 11)),
-                        ],
-                      ),
-                    ),
-                    OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                          side: BorderSide(color: Colors.grey.shade300)),
-                      child: const Text('Request',
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold)),
-                    )
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimeCol(String label, String time,
-      {Color valueColor = Colors.black}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5)),
+  Widget _clockCard() =>
+      _card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(
+            DateFormat('EEEE, dd MMM yyyy')
+                .format(BranchTime.toBranch(_clock, _branchTimezone)),
+            style: TextStyle(color: Colors.grey.shade700)),
+        const SizedBox(height: 8),
+        Text(
+            DateFormat('hh:mm:ss a')
+                .format(BranchTime.toBranch(_clock, _branchTimezone)),
+            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text(time,
-            style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.bold, color: valueColor)),
+        Text(
+            '${_repository.hasServerTime ? 'Server-synchronized clock' : 'Device clock until server sync'} • server confirms every punch',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+      ]));
+
+  Widget _policyCard() {
+    final requirements = <String>[
+      if (_policy['location_on_clock_in'] == true ||
+          _policy['location_on_clock_out'] == true ||
+          _policy['geofence_enabled'] == true)
+        'Location required',
+      if (_policy['selfie_on_clock_in'] == true ||
+          _policy['selfie_on_clock_out'] == true)
+        'Selfie required',
+      if (_policy['geofence_enabled'] == true) 'Geofence enabled',
+    ];
+    return _card(
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Effective attendance policy',
+          style: TextStyle(fontWeight: FontWeight.bold)),
+      const SizedBox(height: 10),
+      Text(requirements.isEmpty
+          ? 'No additional evidence required.'
+          : requirements.join(' • ')),
+      if (_policy['punch_required'] == false) ...[
+        const SizedBox(height: 8),
+        const Text(
+          'Attendance punching is disabled for this policy.',
+          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.orange),
+        ),
+      ],
+      const SizedBox(height: 6),
+      Text('Late grace: ${_policy['late_grace_minutes'] ?? 15} minutes',
+          style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+      if (_policy['shift_snapshot'] is Map) ...[
+        const SizedBox(height: 6),
+        Text(
+            'Shift: ${(_policy['shift_snapshot'] as Map)['name'] ?? 'Scheduled'} (${(_policy['shift_snapshot'] as Map)['start_time'] ?? '--'}–${(_policy['shift_snapshot'] as Map)['end_time'] ?? '--'})',
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+      ],
+      const SizedBox(height: 4),
+      Text(
+          'Policy ${_policy['version'] ?? '-'} • ${_policy['source_scope'] ?? 'BRANCH_DEFAULT'}',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+    ]));
+  }
+
+  Widget _sessionCard(AttendanceSessionModel? session, {required bool open}) {
+    if (session == null) {
+      return _card(const ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(Icons.event_available, color: Colors.green),
+        title: Text('No open attendance session'),
+        subtitle: Text('Clock in when you begin your session.'),
+      ));
+    }
+    return InkWell(
+      onTap: () => _openDetail(session),
+      borderRadius: BorderRadius.circular(16),
+      child:
+          _card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Expanded(
+              child: Text('Current session',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
+          Chip(label: Text(open ? 'OPEN' : session.state)),
+        ]),
+        const SizedBox(height: 10),
+        Text(
+            'Clock in: ${_time(session.clockInServerTime, session.branchTimezone)}'),
+        Text('Duration: ${session.durationLabel}'),
+        if (session.hasLocationEvidence)
+          const Text('Location evidence recorded',
+              style: TextStyle(fontSize: 12, color: Colors.green)),
+        const SizedBox(height: 4),
+        const Text('Tap for full details',
+            style: TextStyle(fontSize: 12, color: Colors.indigo)),
+      ])),
+    );
+  }
+
+  Widget _punchStatusCard() {
+    final status = _punchStatus;
+    final submitting = status == 'submitting';
+    final confirmed = status == 'confirmed';
+    final cancelled = status == 'cancelled';
+    final color = submitting
+        ? Colors.indigo
+        : confirmed
+            ? Colors.green
+            : cancelled
+                ? Colors.orange.shade800
+                : Colors.red;
+    return _card(Row(children: [
+      Icon(
+          submitting
+              ? Icons.sync
+              : confirmed
+                  ? Icons.check_circle_outline
+                  : cancelled
+                      ? Icons.info_outline
+                      : Icons.error_outline,
+          color: color),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(
+          submitting
+              ? 'Attendance submission pending server confirmation.'
+              : confirmed
+                  ? 'Attendance confirmed by the server.'
+                  : cancelled
+                      ? 'Attendance was not submitted. Review the requirement and try again.'
+                      : 'Attendance submission failed. Your retry key is preserved.',
+          style: TextStyle(color: color, fontWeight: FontWeight.w600),
+        ),
+      ),
+    ]));
+  }
+
+  Widget _historyView() {
+    return Column(
+      children: [
+        _historyFilter(),
+        Expanded(child: _historyListView()),
       ],
     );
   }
 
-  Widget _buildSmallPill(IconData icon, String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.05),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-          borderRadius: BorderRadius.circular(12)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 10, color: color),
-          const SizedBox(width: 4),
-          Text(text,
-              style: TextStyle(
-                  color: color, fontSize: 9, fontWeight: FontWeight.bold)),
-        ],
+  Widget _historyListView() {
+    if (_history.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: const [
+              SizedBox(height: 180),
+              Center(child: Text('No attendance records for this period.')),
+            ]),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        itemCount: _history.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (_, index) {
+          final session = _history[index];
+          return InkWell(
+            onTap: () => _openDetail(session),
+            borderRadius: BorderRadius.circular(14),
+            child: _card(Row(children: [
+              CircleAvatar(
+                backgroundColor: session.state == 'OPEN'
+                    ? Colors.orange.shade50
+                    : Colors.green.shade50,
+                child: Icon(
+                    session.state == 'OPEN' ? Icons.timelapse : Icons.check,
+                    color:
+                        session.state == 'OPEN' ? Colors.orange : Colors.green),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text(
+                        DateFormat('EEE, dd MMM yyyy').format(
+                            BranchTime.toBranch(session.clockInServerTime,
+                                session.branchTimezone ?? _branchTimezone)),
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(
+                        '${_time(session.clockInServerTime, session.branchTimezone)} → ${session.clockOutServerTime == null ? 'Open' : _time(session.clockOutServerTime!, session.branchTimezone)}',
+                        style: TextStyle(
+                            color: Colors.grey.shade700, fontSize: 12)),
+                  ])),
+              Text(session.durationLabel,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+            ])),
+          );
+        },
       ),
     );
   }
+
+  Widget _historyFilter() => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final item in const [
+                ('today', 'Today'),
+                ('yesterday', 'Yesterday'),
+                ('this_week', 'This week'),
+                ('this_month', 'This month'),
+                ('this_year', 'This year'),
+                ('custom', 'Custom'),
+              ]) ...[
+                ChoiceChip(
+                  label: Text(item.$2),
+                  selected: _historyPeriod == item.$1,
+                  onSelected: (_) => _selectHistoryPeriod(item.$1),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+      );
+
+  Future<void> _selectHistoryPeriod(String period) async {
+    if (period == 'custom') {
+      final range = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(2020),
+        lastDate: DateTime.now(),
+        initialDateRange: _customFrom != null && _customTo != null
+            ? DateTimeRange(start: _customFrom!, end: _customTo!)
+            : null,
+      );
+      if (range == null) return;
+      _customFrom = range.start;
+      _customTo = range.end;
+    }
+    if (!mounted) return;
+    setState(() => _historyPeriod = period);
+    await _load();
+  }
+
+  void _openDetail(AttendanceSessionModel session) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => AttendanceDetailPage(sessionId: session.id)));
+  }
+
+  Widget _card(Widget child) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: child,
+      );
+
+  String _time(DateTime value, [String? timezone]) => DateFormat('hh:mm a')
+      .format(BranchTime.toBranch(value, timezone ?? _branchTimezone));
+
+  String _newPunchKey() =>
+      'mobile-attendance-${DateTime.now().toUtc().microsecondsSinceEpoch}';
+
+  String _dateOnly(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }

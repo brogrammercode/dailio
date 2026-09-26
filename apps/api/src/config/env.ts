@@ -22,6 +22,7 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().default(100),
   CORS_ORIGIN: z.string().default('*'),
   API_BASE_URL: z.string().default('http://localhost:3000'),
+  ATTENDANCE_EVIDENCE_RETENTION_DAYS: z.coerce.number().int().min(1).default(90),
 });
 
 const parsed = envSchema.safeParse(process.env);

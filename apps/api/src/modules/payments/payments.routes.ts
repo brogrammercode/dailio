@@ -3,6 +3,7 @@ import { type Router, Router as ExpressRouter } from 'express';
 import { authenticate } from '../../middleware/auth';
 import { requireAnyPermission, requirePermission } from '../../middleware/permission';
 import { resolveTenantContext } from '../../middleware/tenant';
+
 import * as controller from './payments.controller';
 
 const router: Router = ExpressRouter();

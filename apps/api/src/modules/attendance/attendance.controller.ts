@@ -1,18 +1,49 @@
 import type { Request, Response, NextFunction } from 'express';
 
-import { ClockInSchema, ClockOutSchema, ListSessionsQuerySchema } from './attendance.schema';
+import { ValidationError } from '../../lib/errors';
+
+import {
+  AttendanceEvidenceUploadSchema,
+  ClockInSchema,
+  ClockOutSchema,
+  CorrectSessionSchema,
+  CreateManualSessionSchema,
+  ListSessionsQuerySchema,
+  UpdatePolicySchema,
+} from './attendance.schema';
 import * as attendanceService from './attendance.service';
 
 export async function clockInHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const body = ClockInSchema.parse({ body: req.body }).body;
+    const idempotencyKey = req.header('Idempotency-Key')?.trim();
+    if (!idempotencyKey) throw new ValidationError('Idempotency-Key header is required');
     const session = await attendanceService.clockIn(
       req.user!.id,
       req.organization!.id,
       req.branch!.id,
-      body
+      { ...body, idempotency_key: idempotencyKey },
     );
-    res.status(201).json({ data: session });
+    res.status(201).json({ data: session, server_time: new Date().toISOString() });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createEvidenceUploadSignatureHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const input = AttendanceEvidenceUploadSchema.parse(req.body);
+    const signature = attendanceService.createAttendanceSelfieUploadSignature(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      input.filename,
+    );
+    res.json({ data: signature });
   } catch (error) {
     next(error);
   }
@@ -21,28 +52,37 @@ export async function clockInHandler(req: Request, res: Response, next: NextFunc
 export async function clockOutHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const body = ClockOutSchema.parse({ body: req.body }).body;
-    
-    // Pass permissions if we decide to implement ATTENDANCE_CREATE_ALL check inside the service
-    // For now we'll do a basic implementation since we aren't passing permissions in the instruction signature
-    // except for listSessions. Let's adjust clockOut if needed.
+    const idempotencyKey = req.header('Idempotency-Key')?.trim();
+    if (!idempotencyKey) throw new ValidationError('Idempotency-Key header is required');
 
-    // Check permissions
     const permissions = req.permissions || new Set<string>();
-    
-    // We should ideally pass permissions to clockOut to check ATTENDANCE_CREATE_ALL.
-    // For now we update the service signature in thought, or just implement it. 
-    // Let's implement it in controller before calling service or pass it.
-    // I'll update the service slightly to accept permissions or handle it.
-    // Actually the instruction for clockOut didn't specify passing permissions explicitly in signature, but said "Verify the session belongs to the calling user's membership (unless they have ATTENDANCE_CREATE_ALL)".
-    
+
     const session = await attendanceService.clockOut(
       req.user!.id,
       req.organization!.id,
       req.branch!.id,
-      body,
-      permissions
+      { ...body, idempotency_key: idempotencyKey },
+      permissions,
     );
-    res.json({ data: session });
+    res.json({ data: session, server_time: new Date().toISOString() });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createManualSessionHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = CreateManualSessionSchema.parse({ body: req.body }).body;
+    const idempotencyKey = req.header('Idempotency-Key')?.trim();
+    if (!idempotencyKey) throw new ValidationError('Idempotency-Key header is required');
+    const session = await attendanceService.createManualSession(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      { ...body, idempotency_key: idempotencyKey },
+      req.permissions || new Set<string>(),
+    );
+    res.status(201).json({ data: session, server_time: new Date().toISOString() });
   } catch (error) {
     next(error);
   }
@@ -53,9 +93,10 @@ export async function activeSessionHandler(req: Request, res: Response, next: Ne
     const session = await attendanceService.getActiveSession(
       req.user!.id,
       req.organization!.id,
-      req.branch!.id
+      req.branch!.id,
+      req.permissions ?? new Set<string>(),
     );
-    res.json({ session });
+    res.json({ session, server_time: new Date().toISOString() });
   } catch (error) {
     next(error);
   }
@@ -65,14 +106,74 @@ export async function listSessionsHandler(req: Request, res: Response, next: Nex
   try {
     const query = ListSessionsQuerySchema.parse({ query: req.query }).query;
     const permissions = req.permissions || new Set<string>();
-    const data = await attendanceService.listSessions(
+    const result = await attendanceService.listSessionsPage(
       req.user!.id,
       req.organization!.id,
       req.branch!.id,
       query,
-      permissions
+      permissions,
     );
-    res.json({ data });
+    res.json({
+      data: result.data,
+      meta: { next_cursor: result.next_cursor },
+      server_time: new Date().toISOString(),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function exportSessionsHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const query = ListSessionsQuerySchema.parse({ query: req.query }).query;
+    const csv = await attendanceService.exportSessions(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      query,
+      req.permissions || new Set<string>(),
+    );
+    res
+      .status(200)
+      .type('text/csv')
+      .setHeader('Content-Disposition', 'attachment; filename="dailio-attendance.csv"')
+      .send(csv);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getSessionDetailHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const permissions = req.permissions || new Set<string>();
+    const session = await attendanceService.getSessionDetail(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      req.params.session_id,
+      permissions,
+    );
+    res.json({ data: session });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getEvidenceDownloadUrlHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await attendanceService.getEvidenceDownloadUrl(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      req.params.session_id,
+      req.params.evidence_id,
+      req.permissions ?? new Set<string>(),
+    );
+    res.json({ data: result });
   } catch (error) {
     next(error);
   }
@@ -80,14 +181,31 @@ export async function listSessionsHandler(req: Request, res: Response, next: Nex
 
 export async function getPolicyHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const policy = await attendanceService.getPolicy(req.organization!.id, req.branch!.id);
-    res.status(200).json({ data: policy });
+    const policy = await attendanceService.getPolicy(
+      req.organization!.id,
+      req.branch!.id,
+      req.user!.id,
+      req.permissions ?? new Set<string>(),
+      typeof req.query.member_id === 'string' ? req.query.member_id : undefined,
+    );
+    res.status(200).json({ data: policy, server_time: new Date().toISOString() });
   } catch (error) {
     next(error);
   }
 }
 
-import { UpdatePolicySchema } from './attendance.schema';
+export async function listPoliciesHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const policies = await attendanceService.listPolicies(
+      req.organization!.id,
+      req.branch!.id,
+      req.permissions ?? new Set<string>(),
+    );
+    res.json({ data: policies });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function updatePolicyHandler(req: Request, res: Response, next: NextFunction) {
   try {
@@ -96,7 +214,8 @@ export async function updatePolicyHandler(req: Request, res: Response, next: Nex
       req.user!.id,
       req.organization!.id,
       req.branch!.id,
-      body
+      body,
+      req.permissions ?? new Set<string>(),
     );
     res.status(200).json({ data: policy });
   } catch (error) {
@@ -104,20 +223,18 @@ export async function updatePolicyHandler(req: Request, res: Response, next: Nex
   }
 }
 
-
-import { CorrectSessionSchema } from './attendance.schema';
-
 export async function correctSessionHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const session_id = req.params.session_id;
     const body = CorrectSessionSchema.parse({ body: req.body }).body;
-    
+
     const session = await attendanceService.correctSession(
       req.user!.id,
       req.organization!.id,
       req.branch!.id,
       session_id,
-      body
+      body,
+      req.permissions ?? new Set<string>(),
     );
 
     res.status(200).json({ data: session });
@@ -125,4 +242,3 @@ export async function correctSessionHandler(req: Request, res: Response, next: N
     next(error);
   }
 }
-

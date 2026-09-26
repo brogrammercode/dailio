@@ -29,6 +29,7 @@ import '../../features/fees/pages/subscription_purchase_page.dart';
 import '../../features/fees/pages/buy_subscription_page.dart';
 
 import '../../features/profile/pages/profile_page.dart';
+import '../../features/notifications/pages/notifications_page.dart';
 import '../widgets/app_shell.dart';
 import '../storage/preferences_storage.dart';
 import 'route_names.dart';
@@ -172,6 +173,10 @@ GoRouter buildRouter(
         path: AppRoutes.profile,
         builder: (_, __) => const ProfilePage(),
       ),
+      GoRoute(
+        path: AppRoutes.notifications,
+        builder: (_, __) => const NotificationsPage(),
+      ),
     ],
   );
 }
@@ -200,8 +205,12 @@ String? _guardConfigurationRoute(
     AppRoutes.editOrganization => preferences.hasPermission('GYM_UPDATE'),
     AppRoutes.manageBranches => any(['BRANCH_READ', 'BRANCH_UPDATE']),
     AppRoutes.addBranch => preferences.hasPermission('BRANCH_CREATE'),
-    AppRoutes.attendancePolicy =>
-      preferences.hasPermission('BRANCH_SETTINGS_UPDATE'),
+    AppRoutes.attendancePolicy => any([
+        'BRANCH_SETTINGS_UPDATE',
+        'ATTENDANCE_POLICY_READ',
+        'ATTENDANCE_POLICY_MANAGE',
+        'ATTENDANCE_POLICY_ASSIGN',
+      ]),
     AppRoutes.roles => preferences.hasPermission('ROLE_READ'),
     AppRoutes.subscriptionPlans => preferences.hasPermission('PLAN_MANAGE'),
     AppRoutes.shiftManagement => any(['SHIFT_READ_ALL', 'SHIFT_MANAGE']),

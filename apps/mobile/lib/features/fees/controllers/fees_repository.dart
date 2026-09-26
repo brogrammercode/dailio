@@ -38,9 +38,10 @@ class FeesRepository {
       '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 
   Future<List<PaymentRequestModel>> listPaymentRequests(String branchId,
-      {String? status}) async {
+      {String? status, String? period}) async {
     final data = await _getContext(branchId, 'payment-requests', query: {
       if (status != null) 'status': status,
+      if (period != null) 'period': period,
     });
     return ((data['data'] as List?) ?? const [])
         .map((item) => PaymentRequestModel.fromJson(

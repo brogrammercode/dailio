@@ -3,7 +3,7 @@ import { ulid } from 'ulid';
 import type { Prisma } from '@prisma/client';
 
 import { prisma } from '../../lib/prisma';
-import { NotFoundError } from '../../lib/errors';
+import { ConflictError, NotFoundError } from '../../lib/errors';
 
 import type {
   ListMembersQuery,
@@ -76,6 +76,11 @@ export async function getMemberDetail(
     include: {
       user: true,
       role: true,
+      role_assignments: {
+        where: { effective_to: null },
+        orderBy: { priority: 'asc' },
+        include: { role: true },
+      },
       subscriptions: {
         orderBy: { end_date: 'desc' },
         take: 5,
@@ -222,6 +227,19 @@ export async function createAssistedAdmission(
         status: 'ACTIVE',
       },
     });
+    if (memberRole?.id) {
+      await tx.memberRoleAssignment.create({
+        data: {
+          id: ulid(),
+          organization_id,
+          branch_id,
+          member_id: member.id,
+          role_id: memberRole.id,
+          priority: 0,
+          updated_at: new Date(),
+        },
+      });
+    }
 
     await tx.auditLog.create({
       data: {
@@ -256,10 +274,116 @@ export async function updateMember(
       throw new NotFoundError('Member');
     }
 
+    if (data.manager_member_id !== undefined && data.manager_member_id !== null) {
+      const manager = await tx.member.findUnique({
+        where: { id: data.manager_member_id },
+        select: {
+          id: true,
+          organization_id: true,
+          branch_id: true,
+          status: true,
+          manager_member_id: true,
+        },
+      });
+      if (
+        !manager ||
+        manager.organization_id !== organization_id ||
+        manager.branch_id !== branch_id ||
+        manager.status !== 'ACTIVE'
+      ) {
+        throw new NotFoundError('Manager member');
+      }
+
+      const visited = new Set<string>();
+      let cursor: string | null = manager.id;
+      while (cursor) {
+        if (cursor === member_id || visited.has(cursor)) {
+          throw new ConflictError('Reporting hierarchy cannot contain a cycle');
+        }
+        visited.add(cursor);
+        let nextManagerId: string | null;
+        if (cursor === manager.id) {
+          nextManagerId = manager.manager_member_id;
+        } else {
+          const current: { manager_member_id: string | null } | null = await tx.member.findUnique({
+            where: { id: cursor },
+            select: { manager_member_id: true },
+          });
+          nextManagerId = current?.manager_member_id ?? null;
+        }
+        cursor = nextManagerId;
+      }
+    }
+
+    const requestedRoleIds =
+      data.role_ids !== undefined
+        ? (data.role_ids ?? [])
+        : data.role_id !== undefined
+          ? data.role_id
+            ? [data.role_id]
+            : []
+          : null;
+    const now = new Date();
+    if (requestedRoleIds !== null) {
+      const roleIds = [...new Set(requestedRoleIds)];
+      const roles = await tx.role.findMany({
+        where: {
+          id: { in: roleIds },
+          organization_id,
+          OR: [{ branch_id }, { branch_id: null }],
+        },
+        select: { id: true },
+      });
+      if (roles.length !== roleIds.length) throw new NotFoundError('Member role target');
+
+      const activeAssignments = await tx.memberRoleAssignment.findMany({
+        where: { member_id, effective_to: null },
+      });
+      for (const assignment of activeAssignments) {
+        if (!roleIds.includes(assignment.role_id)) {
+          await tx.memberRoleAssignment.update({
+            where: { id: assignment.id },
+            data: { effective_to: now },
+          });
+        }
+      }
+      for (const [priority, roleId] of roleIds.entries()) {
+        const current = activeAssignments.find((assignment) => assignment.role_id === roleId);
+        if (current) {
+          if (current.priority !== priority) {
+            await tx.memberRoleAssignment.update({
+              where: { id: current.id },
+              data: { priority },
+            });
+          }
+          continue;
+        }
+        await tx.memberRoleAssignment.create({
+          data: {
+            id: ulid(),
+            organization_id,
+            branch_id,
+            member_id,
+            role_id: roleId,
+            priority,
+            effective_from: now,
+            updated_at: now,
+          },
+        });
+      }
+    }
+
     const updated = await tx.member.update({
       where: { id: member_id },
       data: {
-        role_id: data.role_id !== undefined ? data.role_id : undefined,
+        role_id:
+          data.role_ids !== undefined
+            ? (data.role_ids?.[0] ?? null)
+            : data.role_id !== undefined
+              ? data.role_id
+              : undefined,
+        manager_member_id:
+          data.manager_member_id !== undefined ? data.manager_member_id : undefined,
         subscription_id: data.subscription_id !== undefined ? data.subscription_id : undefined,
         shift_id: data.shift_id !== undefined ? data.shift_id : undefined,
         salary_structure_id:
@@ -270,6 +394,11 @@ export async function updateMember(
       include: {
         user: true,
         role: true,
+        role_assignments: {
+          where: { effective_to: null },
+          orderBy: { priority: 'asc' },
+          include: { role: true },
+        },
       },
     });
 

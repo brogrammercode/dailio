@@ -39,9 +39,11 @@ class MemberModel {
   final String? phone;
   final String status; // ACTIVE | SUSPENDED | INACTIVE
   final RoleModel? role;
+  final List<RoleModel> assignedRoles;
   final String? branchId;
   final String? subscriptionId;
   final String? shiftId;
+  final String? managerMemberId;
   final String? salaryStructureId;
   final String? joinedAt;
   final MemberSubscription? activeSubscription;
@@ -55,9 +57,11 @@ class MemberModel {
     this.phone,
     required this.status,
     this.role,
+    this.assignedRoles = const [],
     this.branchId,
     this.subscriptionId,
     this.shiftId,
+    this.managerMemberId,
     this.salaryStructureId,
     this.joinedAt,
     this.activeSubscription,
@@ -66,6 +70,14 @@ class MemberModel {
   factory MemberModel.fromJson(Map<String, dynamic> j) {
     final user = j['user'] as Map<String, dynamic>? ?? {};
     final roleJson = j['role'] as Map<String, dynamic>?;
+    final assignmentJson = (j['role_assignments'] as List?) ?? const [];
+    final assignedRoles = assignmentJson
+        .whereType<Map>()
+        .map((item) => item['role'] is Map
+            ? RoleModel.fromJson(Map<String, dynamic>.from(item['role'] as Map))
+            : null)
+        .whereType<RoleModel>()
+        .toList();
 
     MemberSubscription? sub;
     final subs = j['subscriptions'] as List?;
@@ -82,9 +94,11 @@ class MemberModel {
       phone: user['phone'],
       status: j['status'] ?? 'ACTIVE',
       role: roleJson != null ? RoleModel.fromJson(roleJson) : null,
+      assignedRoles: assignedRoles,
       branchId: j['branch_id'],
       subscriptionId: j['subscription_id'],
       shiftId: j['shift_id'],
+      managerMemberId: j['manager_member_id']?.toString(),
       salaryStructureId: j['salary_structure_id'],
       joinedAt: j['created_at'],
       activeSubscription: sub,
@@ -92,4 +106,8 @@ class MemberModel {
   }
 
   String get fullName => name;
+
+  List<String> get roleIds => assignedRoles.isNotEmpty
+      ? assignedRoles.map((role) => role.id).toList()
+      : (role?.id == null ? const [] : [role!.id]);
 }

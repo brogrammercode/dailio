@@ -44,14 +44,18 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Lint
         run: pnpm --filter api lint
+
+      - name: Lint guarded attendance scripts
+        run: npx eslint scripts --max-warnings 0
+        working-directory: apps/api
 
       - name: Type-check
         run: pnpm --filter api type-check
@@ -73,6 +77,7 @@ jobs:
           REDIS_URL: redis://localhost:6379
           JWT_ACCESS_SECRET: ci-test-access-secret
           JWT_REFRESH_SECRET: ci-test-refresh-secret
+          GOOGLE_CLIENT_ID: ci-test-google-client-id
           NODE_ENV: test
 
   mobile-ci:
@@ -84,8 +89,8 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.x'
-          channel: 'stable'
+          flutter-version: "3.32.x"
+          channel: "stable"
           cache: true
 
       - name: Get Flutter dependencies

@@ -117,7 +117,7 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
           IconButton(
               icon: const Icon(Icons.notifications_none,
                   color: Color(0xFF4B5563)),
-              onPressed: () {}),
+              onPressed: () => context.push(AppRoutes.notifications)),
           const SizedBox(width: 8),
         ],
       ),

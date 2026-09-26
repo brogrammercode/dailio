@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 
+import { ForbiddenError } from '../../lib/errors';
+
 import {
   ListMembersQuerySchema,
   AssistedAdmissionSchema,
@@ -7,7 +9,6 @@ import {
   UpdateMemberSchema,
 } from './members.schema';
 import * as membersService from './members.service';
-import { ForbiddenError } from '../../lib/errors';
 
 export async function listMembers(req: Request, res: Response, next: NextFunction) {
   try {

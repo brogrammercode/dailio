@@ -126,6 +126,25 @@ export async function approveJoinRequest(
             },
           });
 
+      if (memberRole?.id) {
+        const existingAssignment = await txClient.memberRoleAssignment.findFirst({
+          where: { member_id: member.id, role_id: memberRole.id, effective_to: null },
+        });
+        if (!existingAssignment) {
+          await txClient.memberRoleAssignment.create({
+            data: {
+              id: ulid(),
+              organization_id,
+              branch_id,
+              member_id: member.id,
+              role_id: memberRole.id,
+              priority: 0,
+              updated_at: new Date(),
+            },
+          });
+        }
+      }
+
       // 3. Mark request as APPROVED only after the membership exists.
       await txClient.joinRequest.update({
         where: { id: request_id },
@@ -200,7 +219,7 @@ export async function approveJoinRequest(
         });
       }
     }
-  } catch (_) {
+  } catch {
     // Best-effort — never fail the main operation for a notification
   }
 

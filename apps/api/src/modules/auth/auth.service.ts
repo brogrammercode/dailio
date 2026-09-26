@@ -93,7 +93,7 @@ export async function revokeRefreshToken(refreshToken: string): Promise<void> {
     const payload = await verifyRefreshToken(refreshToken);
     const ttlSeconds = 60 * 60 * 24 * 30;
     await redis.setex(`revoked_jti:${payload.jti}`, ttlSeconds, '1');
-  } catch (_) {
+  } catch {
     // Token already invalid — nothing to do
   }
 }

@@ -31,6 +31,8 @@ export type MemberActionInput = z.infer<typeof MemberActionSchema>['body'];
 export const UpdateMemberSchema = z.object({
   body: z.object({
     role_id: z.string().nullable().optional(),
+    role_ids: z.array(z.string().min(1)).max(20).nullable().optional(),
+    manager_member_id: z.string().nullable().optional(),
     is_geofence_exempt: z.boolean().optional(),
     is_selfie_mandatory: z.boolean().optional(),
     is_multi_branch: z.boolean().optional(),
@@ -41,4 +43,3 @@ export const UpdateMemberSchema = z.object({
 });
 
 export type UpdateMemberInput = z.infer<typeof UpdateMemberSchema>['body'];
-

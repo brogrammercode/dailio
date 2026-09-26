@@ -1,5 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
+
 import { ValidationError } from '../../lib/errors';
+import { QrPunchSchema } from '../attendance/attendance.schema';
+
 import {
   CreateDirectSubscriptionDraftSchema,
   CreateSubscriptionDraftSchema,
@@ -48,7 +51,10 @@ export async function createPlanInvite(req: Request, res: Response, next: NextFu
 
 export async function resolveInvite(req: Request, res: Response, next: NextFunction) {
   try {
-    res.json({ data: await service.resolveInvite(req.user!.id, token(req)) });
+    res.json({
+      data: await service.resolveInvite(req.user!.id, token(req)),
+      server_time: new Date().toISOString(),
+    });
   } catch (error) {
     next(error);
   }
@@ -63,6 +69,22 @@ export async function submitJoinRequest(req: Request, res: Response, next: NextF
       JoinInviteRequestSchema.parse(req.body),
     );
     res.status(201).json({ data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function punchAttendanceFromInvite(req: Request, res: Response, next: NextFunction) {
+  try {
+    const idempotency = idempotencyKey(req);
+    const body = QrPunchSchema.parse({ body: req.body }).body;
+    const result = await service.punchAttendanceFromInvite(
+      req.user!.id,
+      body.token,
+      idempotency,
+      body,
+    );
+    res.status(201).json({ data: result, server_time: new Date().toISOString() });
   } catch (error) {
     next(error);
   }

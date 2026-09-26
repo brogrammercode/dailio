@@ -12,6 +12,7 @@ class PreferencesStorage extends ChangeNotifier {
   static const _branchIdKey = 'active_branch_id';
   static const _organizationNameKey = 'active_organization_name';
   static const _branchNameKey = 'active_branch_name';
+  static const _branchTimezoneKey = 'active_branch_timezone';
   static const _roleSystemKey = 'active_role_system_key';
   static const _permissionsKey = 'active_permissions';
 
@@ -19,6 +20,7 @@ class PreferencesStorage extends ChangeNotifier {
   String? get activeBranchId => _prefs.getString(_branchIdKey);
   String? get activeOrganizationName => _prefs.getString(_organizationNameKey);
   String? get activeBranchName => _prefs.getString(_branchNameKey);
+  String? get activeBranchTimezone => _prefs.getString(_branchTimezoneKey);
   String? get activeRoleSystemKey => _prefs.getString(_roleSystemKey);
   List<String> get activePermissions {
     try {
@@ -47,6 +49,7 @@ class PreferencesStorage extends ChangeNotifier {
     required String branchId,
     String? organizationName,
     String? branchName,
+    String? branchTimezone,
     String? roleSystemKey,
     List<String>? permissions,
   }) async {
@@ -57,6 +60,9 @@ class PreferencesStorage extends ChangeNotifier {
     }
     if (branchName != null) {
       await _prefs.setString(_branchNameKey, branchName);
+    }
+    if (branchTimezone != null) {
+      await _prefs.setString(_branchTimezoneKey, branchTimezone);
     }
     if (roleSystemKey != null) {
       await _prefs.setString(_roleSystemKey, roleSystemKey);
@@ -72,6 +78,7 @@ class PreferencesStorage extends ChangeNotifier {
     await _prefs.remove(_branchIdKey);
     await _prefs.remove(_organizationNameKey);
     await _prefs.remove(_branchNameKey);
+    await _prefs.remove(_branchTimezoneKey);
     await _prefs.remove(_roleSystemKey);
     await _prefs.remove(_permissionsKey);
     notifyListeners();

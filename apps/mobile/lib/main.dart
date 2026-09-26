@@ -13,6 +13,7 @@ import 'core/network/api_client.dart';
 import 'core/network/interceptors/auth_interceptor.dart';
 import 'core/network/interceptors/tenant_interceptor.dart';
 import 'core/router/route_names.dart';
+import 'core/utils/branch_time.dart';
 
 import 'features/auth/controllers/auth_repository.dart';
 import 'features/context_selection/controllers/branch_repository.dart';
@@ -61,6 +62,7 @@ Future<bool> _restoreActiveContext(
         organizationName:
             organizationEntry['organization']?['name']?.toString(),
         branchName: location['name']?.toString(),
+        branchTimezone: location['timezone']?.toString(),
         roleSystemKey: role?['system_key']?.toString(),
         permissions: permissions,
       );
@@ -73,6 +75,7 @@ Future<bool> _restoreActiveContext(
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  BranchTime.initialize();
   await dotenv.load(fileName: ".env");
   configureDependencies();
 

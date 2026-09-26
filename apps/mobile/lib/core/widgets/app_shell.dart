@@ -8,6 +8,7 @@ import '../router/route_names.dart';
 
 import '../../features/attendance/pages/attendance_page.dart';
 import '../../features/fees/pages/fees_page.dart';
+import '../../features/fees/controllers/fees_repository.dart';
 import '../../features/payments/pages/payments_page.dart';
 import '../../features/settings/pages/settings_page.dart';
 
@@ -20,6 +21,8 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
+  String? _loadedContextKey;
+  bool _memberHasCurrentPlan = false;
 
   final _labels = const ['Attendance', 'Fees', 'Payments', 'Settings'];
 
@@ -38,11 +41,50 @@ class _AppShellState extends State<AppShell> {
   ];
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final preferences = context.read<PreferencesStorage>();
+    final key =
+        '${preferences.activeOrganizationId}:${preferences.activeBranchId}';
+    if (_loadedContextKey != key) {
+      _loadedContextKey = key;
+      _refreshPlanAvailability(preferences);
+    }
+  }
+
+  Future<void> _refreshPlanAvailability(PreferencesStorage preferences) async {
+    if (preferences.canReadAllFees || preferences.activeBranchId == null) {
+      if (mounted) setState(() => _memberHasCurrentPlan = false);
+      return;
+    }
+    try {
+      final cards = await context.read<FeesRepository>().listFees(
+            preferences.activeBranchId!,
+            period: 'this_month',
+          );
+      final hasCurrentPlan = cards.any((card) {
+        final status = card.subscriptionStatus?.toUpperCase();
+        return card.subscriptionId != null &&
+            card.endDate != null &&
+            card.endDate!.isAfter(DateTime.now()) &&
+            status != 'CANCELLED' &&
+            status != 'EXPIRED';
+      });
+      if (mounted) setState(() => _memberHasCurrentPlan = hasCurrentPlan);
+    } catch (_) {
+      // Keep the action available if availability cannot be determined.
+      if (mounted) setState(() => _memberHasCurrentPlan = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final preferences = context.watch<PreferencesStorage>();
     final contextKey =
         '${preferences.activeOrganizationId}:${preferences.activeBranchId}';
     final isFeesTab = _currentIndex == 1;
+    final showBuyPlan =
+        isFeesTab && (preferences.canReadAllFees || !_memberHasCurrentPlan);
     final pages = [
       AttendancePage(key: ValueKey('attendance-$contextKey')),
       FeesPage(key: ValueKey('fees-$contextKey')),
@@ -60,26 +102,29 @@ class _AppShellState extends State<AppShell> {
           Positioned(
             bottom: 90, // Above the custom bottom nav
             right: 24,
-            child: FloatingActionButton(
-              heroTag: isFeesTab ? 'buy_plan_fab' : 'self_attendance_fab',
-              tooltip: isFeesTab ? 'Buy plan' : 'Self attendance',
-              backgroundColor:
-                  isFeesTab ? const Color(0xFF4F46E5) : const Color(0xFF8D490B),
-              foregroundColor: Colors.white,
-              shape: const CircleBorder(),
-              onPressed: () {
-                if (isFeesTab) {
-                  context.push(AppRoutes.buyPlan);
-                  return;
-                }
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const SelfAttendancePage()));
-              },
-              child: Icon(
-                isFeesTab ? Iconsax.medal_star : Iconsax.finger_scan,
-                size: 28,
-              ),
-            ),
+            child: showBuyPlan || !isFeesTab
+                ? FloatingActionButton(
+                    heroTag: isFeesTab ? 'buy_plan_fab' : 'self_attendance_fab',
+                    tooltip: isFeesTab ? 'Buy plan' : 'Self attendance',
+                    backgroundColor: isFeesTab
+                        ? const Color(0xFF4F46E5)
+                        : const Color(0xFF8D490B),
+                    foregroundColor: Colors.white,
+                    shape: const CircleBorder(),
+                    onPressed: () {
+                      if (isFeesTab) {
+                        context.push(AppRoutes.buyPlan);
+                        return;
+                      }
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const SelfAttendancePage()));
+                    },
+                    child: Icon(
+                      isFeesTab ? Iconsax.medal_star : Iconsax.finger_scan,
+                      size: 28,
+                    ),
+                  )
+                : const SizedBox.shrink(),
           )
         ],
       ),
