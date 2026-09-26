@@ -167,8 +167,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       subtitle: 'Configure RBAC roles & access levels',
                       actionLabel: 'Configure',
                       onTap: () => context.push(AppRoutes.roles),
-                      chips: const ['Owner', 'Branch Mgr', 'Trainer'],
-                      primaryChipIndex: 0,
                     ),
 
                   if (canReadMembers)
@@ -179,10 +177,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       title: 'Members & Admissions',
                       subtitle: 'Manage enrolled members & join requests',
                       actionLabel: 'Manage',
-                      isPrimaryAction: true,
                       onTap: () => context.push(AppRoutes.members),
-                      chips: const ['Active', 'Pending Requests', 'Suspended'],
-                      primaryChipIndex: 0,
                     ),
 
                   if (canManageBranches)
@@ -192,8 +187,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       subtitle: 'Manage your gym branches & facilities',
                       actionLabel: 'Manage',
                       onTap: () => context.push(AppRoutes.manageBranches),
-                      chips: const ['Primary Branch', 'Add Branch'],
-                      primaryChipIndex: 0,
                     ),
 
                   if (canReadPlans)
@@ -203,12 +196,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       subtitle: 'Membership tiers, pricing & billing',
                       actionLabel: canManagePlans ? 'Configure' : 'View',
                       onTap: () => context.push(AppRoutes.subscriptionPlans),
-                      chips: const [
-                        'Annual Elite',
-                        'Quarterly Pro',
-                        'Monthly Flex'
-                      ],
-                      primaryChipIndex: 0,
                     ),
 
                   if (canManageShifts)
@@ -218,8 +205,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       subtitle: 'Rosters, grace periods & duty cycles',
                       actionLabel: 'Configure',
                       onTap: () => context.push(AppRoutes.shiftManagement),
-                      chips: const ['Morning', 'Evening', 'General Duty'],
-                      primaryChipIndex: 0,
                     ),
 
                   if (canManagePayroll)
@@ -230,50 +215,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       title: 'Payroll & Compensation',
                       subtitle: 'Staff salary structures & disbursals',
                       actionLabel: 'Manage',
-                      isPrimaryAction: true,
                       onTap: () => context.push(AppRoutes.payrollManagement),
-                      chips: const [
-                        'Monthly Payouts',
-                        'Base + Incentive',
-                        'Tax & Deductions'
-                      ],
-                      primaryChipIndex: 0,
                     ),
-
-                  const SizedBox(height: 24),
-
-                  //  Workspace Settings
-                  _sectionHeader('WORKSPACE SETTINGS', null),
-                  const SizedBox(height: 12),
-                  _buildWorkspaceCard(),
-
-                  const SizedBox(height: 24),
-
-                  //  Sign Out
-                  OutlinedButton.icon(
-                    onPressed: _confirmSignOut,
-                    icon:
-                        const Icon(Iconsax.logout, color: Colors.red, size: 18),
-                    label: Text(
-                      orgName != null ? 'Sign Out of $orgName' : 'Sign Out',
-                      style: const TextStyle(
-                          color: Colors.red, fontWeight: FontWeight.bold),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.red.shade50,
-                      side: BorderSide(color: Colors.red.shade200),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      minimumSize: const Size(double.infinity, 0),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Tap to confirm  this will end all active kiosk sessions.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 10, color: Colors.grey),
-                  ),
                 ],
               ),
             ),
@@ -376,162 +319,81 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildProfileCard(
       BuildContext context, UserModel? user, PreferencesStorage prefs) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
       ),
-      child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Avatar
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.orange.shade100,
-                backgroundImage: user?.avatarUrl != null
-                    ? NetworkImage(user!.avatarUrl!)
-                    : null,
-                child: user?.avatarUrl == null
-                    ? Text(
-                        (user?.name.isNotEmpty == true)
-                            ? user!.name[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.orange),
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              // Name + details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            user?.name ?? 'Loading...',
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton.icon(
-                          onPressed: () => context.push(AppRoutes.profile),
-                          icon: const Icon(Iconsax.edit, size: 12),
-                          label: const Text('Edit',
-                              style: TextStyle(fontSize: 11)),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 0),
-                            minimumSize: const Size(0, 28),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20)),
-                          ),
-                        ),
-                      ],
+          CircleAvatar(
+            radius: 23,
+            backgroundColor: AppColors.brandAccent.withValues(alpha: 0.12),
+            backgroundImage:
+                user?.avatarUrl == null ? null : NetworkImage(user!.avatarUrl!),
+            child: user?.avatarUrl == null
+                ? Text(
+                    user?.name.isNotEmpty == true
+                        ? user!.name[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                      color: AppColors.brandAccent,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Iconsax.shield_tick,
-                              size: 10, color: Colors.orange),
-                          SizedBox(width: 4),
-                          Text(prefs.activeRoleSystemKey ?? 'Member',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    if (user?.email != null)
-                      Text(
-                        user!.email!,
-                        style:
-                            const TextStyle(fontSize: 11, color: Colors.grey),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    if (user == null)
-                      Text('Not signed in',
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.grey.shade400)),
-                  ],
-                ),
-              ),
-            ],
+                  )
+                : null,
           ),
-          const SizedBox(height: 12),
-          // Access row
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Iconsax.shield_security,
-                    color: Colors.red, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('ACCESS',
-                          style: TextStyle(
-                              fontSize: 9,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold)),
-                      Text(
-                          prefs.activeRoleSystemKey == 'OWNER'
-                              ? 'Organization Owner'
-                              : 'Branch ${prefs.activeRoleSystemKey ?? 'Member'}',
-                          style: TextStyle(
-                              fontSize: 11, fontWeight: FontWeight.bold)),
-                    ],
+                Text(
+                  user?.name ?? 'Loading...',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.brandDark,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                Container(width: 1, height: 24, color: Colors.grey.shade300),
-                const SizedBox(width: 12),
-                const Icon(Iconsax.security_safe,
-                    color: Colors.green, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('GOOGLE',
-                          style: TextStyle(
-                              fontSize: 9,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold)),
-                      Text('Verified Sign-in',
-                          style: TextStyle(
-                              fontSize: 11, fontWeight: FontWeight.bold)),
-                    ],
+                const SizedBox(height: 3),
+                Text(
+                  user?.email ??
+                      '${prefs.activeRoleSystemKey ?? 'Member'} · Verified sign-in',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF6B6B6B),
+                    fontSize: 11,
                   ),
                 ),
               ],
             ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.brandAccent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Text(
+              prefs.activeRoleSystemKey ?? 'Member',
+              style: const TextStyle(
+                color: AppColors.brandAccent,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Edit profile',
+            onPressed: () => context.push(AppRoutes.profile),
+            icon: const Icon(Iconsax.edit_2, size: 18),
+            color: AppColors.brandDark,
+            visualDensity: VisualDensity.compact,
           ),
         ],
       ),
@@ -543,148 +405,68 @@ class _SettingsPageState extends State<SettingsPage> {
       BuildContext context, Map<String, dynamic>? orgMap, String? orgName,
       {required bool canEdit}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade800,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child:
-                    const Icon(Iconsax.weight, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Iconsax.verify,
-                            color: Colors.orange, size: 14),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            _isLoadingOrg
-                                ? 'Loading...'
-                                : (orgMap?['name'] ??
-                                    orgName ??
-                                    'Your Organization'),
-                            style: const TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.bold),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (orgMap?['website'] != null || orgMap?['slug'] != null)
-                      Text(
-                        orgMap?['website'] ??
-                            'dailio.app/${orgMap?['slug'] ?? ''}',
-                        style:
-                            const TextStyle(fontSize: 11, color: Colors.grey),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      )
-                    else
-                      Text(
-                        _isLoadingOrg ? '' : 'No website configured',
-                        style: TextStyle(
-                            fontSize: 11, color: Colors.grey.shade400),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (canEdit)
-                OutlinedButton.icon(
-                  onPressed: () => context.push(AppRoutes.editOrganization),
-                  icon: const Icon(Iconsax.setting_4, size: 12),
-                  label: const Text('Edit', style: TextStyle(fontSize: 11)),
-                  style: OutlinedButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                    minimumSize: const Size(0, 28),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                  ),
-                ),
-            ],
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.brandAccent.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Iconsax.building_3,
+                color: AppColors.brandAccent, size: 19),
           ),
-          if (_isLoadingOrg) ...[
-            const SizedBox(height: 12),
-            const LinearProgressIndicator(color: Colors.orange, minHeight: 2),
-          ] else if (orgMap != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(radius: 4, backgroundColor: Colors.orange),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      orgMap['industry'] ?? 'Fitness & Wellness',
-                      style: const TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isLoadingOrg
+                      ? 'Loading...'
+                      : (orgMap?['name'] ?? orgName ?? 'Your Organization'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.brandDark,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                   ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text('Active',
-                        style: TextStyle(
-                            fontSize: 9,
-                            color: Colors.green.shade700,
-                            fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _isLoadingOrg
+                      ? 'Loading organization details'
+                      : (orgMap?['website'] ??
+                          orgMap?['industry'] ??
+                          'No website configured'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF6B6B6B),
+                    fontSize: 11,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ] else ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(Iconsax.info_circle,
-                      size: 14, color: Colors.orange.shade700),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Organization details unavailable. Check your connection.',
-                      style: TextStyle(fontSize: 10, color: Colors.orange),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
+          if (canEdit)
+            IconButton(
+              tooltip: 'Edit organization',
+              onPressed: () => context.push(AppRoutes.editOrganization),
+              icon: const Icon(Iconsax.setting_4, size: 18),
+              color: AppColors.brandDark,
+              visualDensity: VisualDensity.compact,
+            )
+          else
+            const Icon(Iconsax.arrow_right_3,
+                size: 16, color: Color(0xFF9E9E9E)),
         ],
       ),
     );
@@ -698,10 +480,7 @@ class _SettingsPageState extends State<SettingsPage> {
     required String title,
     required String subtitle,
     required String actionLabel,
-    bool isPrimaryAction = false,
     required VoidCallback onTap,
-    required List<String> chips,
-    required int primaryChipIndex,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -716,198 +495,61 @@ class _SettingsPageState extends State<SettingsPage> {
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(4, 10, 4, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: iconBg ?? const Color(0xFFF3F4F6),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(icon, color: iconColor, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title,
-                            style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style:
-                              const TextStyle(fontSize: 11, color: Colors.grey),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  isPrimaryAction
-                      ? ElevatedButton(
-                          onPressed: onTap,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.brandAccent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            minimumSize: const Size(0, 30),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20)),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(actionLabel,
-                              style: const TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.bold)),
-                        )
-                      : OutlinedButton(
-                          onPressed: onTap,
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            minimumSize: const Size(0, 30),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20)),
-                            side: BorderSide(color: Colors.grey.shade300),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(actionLabel,
-                              style: const TextStyle(
-                                  fontSize: 11, color: Colors.black87)),
-                        ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: List.generate(chips.length, (i) {
-                    final isPrimary = i == primaryChipIndex;
-                    return Padding(
-                      padding:
-                          EdgeInsets.only(right: i < chips.length - 1 ? 6 : 0),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isPrimary
-                              ? Colors.orange.shade50
-                              : Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: isPrimary
-                                ? Colors.orange.shade200
-                                : Colors.grey.shade200,
-                          ),
-                        ),
-                        child: Text(
-                          chips[i],
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: isPrimary
-                                ? Colors.orange.shade800
-                                : Colors.grey.shade700,
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: iconBg ?? const Color(0xFFF3F4F6),
+                  shape: BoxShape.circle,
                 ),
+                child: Icon(icon, color: iconColor, size: 20),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  //  Workspace Settings Card
-  Widget _buildWorkspaceCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
-          _buildSettingsRow(
-            icon: Iconsax.notification_bing,
-            title: 'Push & Shift Alerts',
-            subtitle: 'Real-time attendance & gym floor pings',
-          ),
-          const Divider(height: 24),
-          _buildSettingsRow(
-            icon: Iconsax.scan,
-            title: 'Biometric Check-ins',
-            subtitle: 'Selfie & geofence enforcement on punch',
-          ),
-          const Divider(height: 24),
-          Row(
-            children: [
-              const Icon(Iconsax.document_code, size: 18, color: Colors.grey),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('App Version',
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w500)),
-                    Text('v2.4.1 (Build 4182)',
-                        style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.brandDark,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF6B6B6B),
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(4),
+              const SizedBox(width: 8),
+              Text(
+                actionLabel,
+                style: const TextStyle(
+                  color: AppColors.brandAccent,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
                 ),
-                child: const Text('Up to date',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w600)),
               ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingsRow(
-      {required IconData icon,
-      required String title,
-      required String subtitle}) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: Colors.grey),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w500)),
-              Text(subtitle,
-                  style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              const SizedBox(width: 6),
+              const Icon(Iconsax.arrow_right_3,
+                  size: 16, color: Color(0xFF9E9E9E)),
             ],
           ),
         ),
-        Icon(Iconsax.arrow_right_3, size: 14, color: Colors.grey.shade400),
-      ],
+      ),
     );
   }
 

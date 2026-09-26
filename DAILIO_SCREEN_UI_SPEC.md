@@ -50,6 +50,33 @@ Do not introduce WhatsApp teal, unrelated blue, purple, green, or decorative gra
 - Touch targets remain comfortable even when the visual scale is compact.
 - Use line icons, primarily the existing Iconsax icon family.
 
+### Approved compact list standard
+
+This is the approved baseline for the current UI rework and must be reused for
+every future page. New pages should not introduce a separate visual language.
+
+- Use a white page with a compact **Dailio** app bar and a horizontal ellipsis
+  menu for secondary actions.
+- Keep every primary and secondary tab strip left-aligned. Scrollable tabs must
+  start from the same 16 px content edge; never center a tab row.
+- Give the first list tile a 12 px top inset and keep 8 px of vertical space
+  between subsequent tiles.
+- Use compact, mostly flat rows: avatar or circular icon on the left, one-line
+  title with a small role/category badge, one-line event/status subtitle, and
+  date or context text above the overflow menu on the right.
+- Attach a small status icon badge to avatars when the row represents an event
+  or state. The icon and text must communicate the state in addition to color.
+- Use restrained shimmer skeletons that match the final row geometry while data
+  is loading. Do not replace list loading with a large centered spinner when a
+  list structure is known.
+- Keep actions at screen level. A floating action belongs only on the screen
+  that owns the action; it is not part of the global app shell.
+- Settings uses the same flat compact rows. Avoid large dashboard cards,
+  decorative chip collections, nested workspace panels, or repeated sign-out
+  sections. Sign out belongs in the app-bar overflow menu.
+- Preserve the existing Dailio logo, font, bottom navigation, permissions,
+  server states, and domain content while changing presentation only.
+
 ### App bars
 
 - White app bar.
@@ -89,8 +116,9 @@ There is no separate Home/Dashboard tab. `/home` is the shell route that contain
 
 ### Floating action behavior
 
-- On Attendance, Payments, and Settings, the floating action opens **Self Attendance**.
+- On Attendance, the floating action opens **Self Attendance**.
 - On Fees, the floating action opens **Buy a Plan** only when the user has no active, unexpired plan.
+- Payments and Settings do not display a floating action button.
 - If the member already has valid current coverage, the Fees floating action is hidden.
 - Keep the floating action as a single icon button with a short tooltip; do not add a second bottom-navigation item.
 
@@ -219,11 +247,14 @@ Attendance is the first fully redesigned module. It must feel like a calm activi
 
 **App bar:**
 
-- Title: **Attendance**.
+- Title: **Dailio**.
 - White background, black title.
 - Optional add/manual record action only for users with `ATTENDANCE_CREATE_ALL`.
 - Export action only when the effective permission allows it.
-- Tabs under the app bar:
+
+**Primary tabs under the app bar:**
+
+- Left-aligned period tabs:
   - Today
   - Yesterday
   - This Week
@@ -231,30 +262,18 @@ Attendance is the first fully redesigned module. It must feel like a calm activi
 
 **Content order:**
 
-1. Compact cycle-performance summary.
-2. Active period indicator.
-3. Role filter only when role filtering is permitted and useful.
-4. Attendance record list.
-
-**Cycle-performance summary:**
-
-- Present count.
-- Late count.
-- Absent count.
-- Use black text and orange emphasis; include labels and icons.
+1. Left-aligned role tabs: All, followed by the effective roles.
+2. Attendance record list.
 
 **Attendance card:**
 
 - Member avatar or initials.
 - Member name.
-- Date and local branch time.
-- Status label: Present, Late, Open, Completed, or other server-derived state.
-- Clock-in time.
-- Clock-out time or Open.
-- Logged duration.
-- Small evidence pills such as Selfie evidence or Location evidence.
-- Timeline-event count.
-- “View details” affordance.
+- Date in the upper-right above the horizontal ellipsis menu.
+- Member name followed by a compact role badge.
+- Clock-in/clock-out event and current state as the subtitle.
+- Status icon badge attached to the avatar.
+- “View details” through row tap or the overflow menu.
 
 The list card must remain compact. Do not render the complete server timeline inside every list card.
 
@@ -272,7 +291,7 @@ The list card must remain compact. Do not render the complete server timeline in
 
 **App bar:**
 
-- Title: **Self attendance**.
+- Title: **Dailio**.
 - Branch name as subtitle.
 - Refresh icon.
 - Two tabs:
@@ -442,7 +461,7 @@ These are secondary sheets, not bottom-navigation screens.
 
 ### 5.1 Fees tab — member view
 
-**App bar:** Fees & Subscriptions plus branch subtitle.
+**App bar:** **Dailio**, with the standard overflow menu.
 
 **Content:**
 
@@ -461,12 +480,13 @@ Members must never see organization-level fee cards unless they have explicit al
 
 **Content order:**
 
-1. Summary metrics: Paid, Requested, Pending.
-2. Period tabs: This Month, Last Month, Custom.
-3. Status filters: All, Paid, Requested, Pending, Partial, Expiring.
-4. Member fee cards.
+1. Left-aligned status tabs: All, Paid, Requested, Pending, Partial, Expiring,
+   and Expired.
+2. Member fee rows.
 
-Each card shows member avatar, name, plan, expiry, urgency, paid/due amount, payment date, receipt number, and review action where authorized.
+Each row shows a member avatar with an Active/Expiring/Expired/Pending status
+icon badge, member name with role badge, plan name in the upper-right, expiry
+urgency in the subtitle, paid/due amount, and review action where authorized.
 
 ### 5.3 Buy a Plan
 
@@ -527,7 +547,7 @@ Existing subscription terms remain snapshot-based and immutable after assignment
 
 ### 6.1 Payments tab
 
-**App bar:** Payments.
+**App bar:** **Dailio**, with the standard overflow menu.
 
 **Period tabs:**
 
@@ -542,6 +562,8 @@ Existing subscription terms remain snapshot-based and immutable after assignment
 - Only the current member’s payments.
 - Use the member’s signed amount direction consistently; do not show organization-level income as the member’s own payment.
 - Show plan, date, amount, method, status, evidence count, reference, and receipt number.
+- Use compact rows with the member role badge, date above the overflow menu, and
+  a Credit/Deduct icon badge attached to the avatar.
 
 **Owner/admin view:**
 
@@ -629,11 +651,10 @@ These screens are hidden or route-blocked for a normal member.
 **Member view:**
 
 - Active organization/branch context pill.
-- Profile card with avatar, name, email, role, and Edit action.
-- Read-only organization card.
-- Empty management section when no management permissions exist.
-- Workspace settings rows.
-- Sign out.
+- Compact profile row with avatar, name, email, role badge, and Edit action.
+- Compact read-only organization row.
+- Permission-filtered management rows only when available.
+- Sign out in the app-bar overflow menu.
 
 **Owner/admin view:**
 
@@ -645,6 +666,10 @@ The same page conditionally adds permission-gated cards:
 - Subscription Plans.
 - Shift Configuration.
 - Payroll & Compensation.
+
+Management entries use the approved compact row style: circular icon, title,
+one-line description, action label, and chevron. Do not render a Workspace
+Settings section or a large sign-out panel on this page.
 
 Never show a card merely because the route exists. Derive visibility from effective permissions, membership state, and active branch.
 
@@ -843,6 +868,11 @@ Before marking a screen complete, verify:
 
 - [ ] Correct module and navigation order.
 - [ ] Correct active organization/branch context is visible where operational data appears.
+- [ ] App bar and overflow menu follow the approved Dailio compact standard.
+- [ ] Primary and secondary tabs are left-aligned from the same content edge.
+- [ ] First tile has top inset and subsequent tiles have consistent vertical spacing.
+- [ ] Row badges and avatar status icons communicate event/state meaning.
+- [ ] List loading uses a geometry-matched skeleton where applicable.
 - [ ] Correct role/permission visibility.
 - [ ] API still enforces the same permission and tenant scope.
 - [ ] White/black/logo-orange palette only for redesigned content.
