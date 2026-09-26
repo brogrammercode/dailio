@@ -13,6 +13,56 @@ import '../controllers/members_repository.dart';
 import '../models/member_model.dart';
 import '../controllers/shift_repository.dart';
 import '../controllers/payroll_repository.dart';
+import '../../fees/pages/assign_subscription_page.dart';
+
+/// Returns unique, selectable subscription records for the member selector.
+///
+/// `Member.subscription_id` stores a subscription ID, not a plan ID. Keeping
+/// this normalization at the UI boundary prevents stale or duplicate API
+/// records from violating DropdownButton's single-value invariant.
+List<Map<String, String>> normalizeSubscriptionOptions(
+  List<Map<String, dynamic>> subscriptions, {
+  String? currentSubscriptionId,
+  String? currentPlanName,
+}) {
+  final options = <Map<String, String>>[];
+  final seen = <String>{};
+
+  for (final subscription in subscriptions) {
+    final id = subscription['id']?.toString();
+    if (id == null || id.isEmpty || !seen.add(id)) continue;
+
+    final plan = subscription['plan'];
+    final snapshot = subscription['plan_snapshot'];
+    final planMap = plan is Map ? Map<String, dynamic>.from(plan) : null;
+    final snapshotMap =
+        snapshot is Map ? Map<String, dynamic>.from(snapshot) : null;
+    final planName = (planMap?['name'] ??
+            snapshotMap?['name'] ??
+            subscription['plan_name'] ??
+            currentPlanName ??
+            'Subscription')
+        .toString();
+    final status = subscription['status']?.toString();
+    final label = status == null || status.isEmpty
+        ? planName
+        : '$planName · ${status.toLowerCase()}';
+    options.add({'id': id, 'label': label});
+  }
+
+  // Keep a stale current value selectable while the server/API response is
+  // catching up. It is still the subscription ID, never a plan ID.
+  if (currentSubscriptionId != null &&
+      currentSubscriptionId.isNotEmpty &&
+      seen.add(currentSubscriptionId)) {
+    options.add({
+      'id': currentSubscriptionId,
+      'label': currentPlanName ?? 'Current subscription',
+    });
+  }
+
+  return options;
+}
 
 class ConfigureMemberPage extends StatefulWidget {
   final String memberId;
@@ -30,7 +80,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
   List<Map<String, dynamic>> _branches = [];
   List<Map<String, dynamic>> _shifts = [];
   List<Map<String, dynamic>> _salaryStructures = [];
-  List<Map<String, dynamic>> _plans = [];
+  List<Map<String, dynamic>> _subscriptions = [];
   List<Map<String, dynamic>> _branchMembers = [];
 
   String? _selectedBranchId;
@@ -80,7 +130,6 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         _repo.getMember(_branchId, widget.memberId),
         _orgRepo.getRoles(_orgId),
         _orgRepo.getOrganizationBranches(_orgId),
-        _orgRepo.getOrganizationPlans(_orgId),
         context.read<ShiftRepository>().listShifts(_orgId),
         context.read<PayrollRepository>().listSalaryStructures(_orgId),
         _repo.listMembers(_branchId, limit: 100),
@@ -91,24 +140,30 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       final roles = roleMaps.map((e) => RoleModel.fromJson(e)).toList();
 
       final branches = (futures[2] as List).cast<Map<String, dynamic>>();
-      final plans = (futures[3] as List).cast<Map<String, dynamic>>();
-      final shifts = (futures[4] as List).cast<Map<String, dynamic>>();
-      final structures = (futures[5] as List).cast<Map<String, dynamic>>();
-      final memberResponse = futures[6] as Map<String, dynamic>;
+      final shifts = (futures[3] as List).cast<Map<String, dynamic>>();
+      final structures = (futures[4] as List).cast<Map<String, dynamic>>();
+      final memberResponse = futures[5] as Map<String, dynamic>;
       final branchMembers = ((memberResponse['data'] as List?) ?? const [])
           .map((item) => Map<String, dynamic>.from(item as Map))
           .where((item) => item['id']?.toString() != widget.memberId)
           .toList();
 
-      final m = MemberModel.fromJson(memberData['data'] ?? memberData);
+      final memberJson = memberData['data'] is Map
+          ? Map<String, dynamic>.from(memberData['data'] as Map)
+          : memberData;
+      final m = MemberModel.fromJson(memberJson);
+      final subscriptions = ((memberJson['subscriptions'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
 
       setState(() {
         _member = m;
         _roles = roles;
         _branches = branches;
-        _plans = plans;
         _shifts = shifts;
         _salaryStructures = structures;
+        _subscriptions = subscriptions;
         _branchMembers = branchMembers;
         _selectedRoleIds = m.roleIds.toSet();
         _selectedBranchId = m.branchId;
@@ -694,6 +749,16 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
   }
 
   Widget _buildSubscription() {
+    final subscriptionOptions = normalizeSubscriptionOptions(
+      _subscriptions,
+      currentSubscriptionId: _member?.subscriptionId,
+      currentPlanName: _member?.activeSubscription?.planName,
+    );
+    final subscriptionIds =
+        subscriptionOptions.map((option) => option['id']).toSet();
+    final selectedSubscriptionId =
+        subscriptionIds.contains(_selectedPlanId) ? _selectedPlanId : null;
+
     return _buildSectionCard(
       title: 'Subscription Plan',
       icon: Iconsax.card,
@@ -709,15 +774,36 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
             child: DropdownButton<String>(
               isExpanded: true,
               hint: const Text('No Plan Assigned'),
-              value: _selectedPlanId,
+              value: selectedSubscriptionId,
               items: [
                 const DropdownMenuItem<String>(
                     value: null, child: Text('No Plan Assigned')),
-                ..._plans.map((p) => DropdownMenuItem<String>(
-                    value: p['id'], child: Text(p['name'])))
+                ...subscriptionOptions.map((subscription) =>
+                    DropdownMenuItem<String>(
+                        value: subscription['id'],
+                        child: Text(subscription['label'] ?? 'Subscription')))
               ],
               onChanged: (val) => setState(() => _selectedPlanId = val),
             ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: _member == null
+                ? null
+                : () async {
+                    final assigned = await Navigator.of(context).push<bool>(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AssignSubscriptionPage(member: _member!),
+                      ),
+                    );
+                    if (assigned == true && mounted) await _loadData();
+                  },
+            icon: const Icon(Iconsax.add_circle, size: 17),
+            label: const Text('Assign a new plan'),
           ),
         ),
       ],

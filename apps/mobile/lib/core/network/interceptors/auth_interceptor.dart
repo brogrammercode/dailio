@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../storage/secure_storage.dart';
+import 'logging_interceptor.dart';
 
 class AuthInterceptor extends QueuedInterceptor {
   final SecureStorage _secureStorage;
@@ -46,8 +47,8 @@ class AuthInterceptor extends QueuedInterceptor {
       if (refreshToken != null) {
         try {
           // Use a completely separate Dio instance to avoid interceptor infinite loops
-          final tokenDio =
-              Dio(BaseOptions(baseUrl: err.requestOptions.baseUrl));
+          final tokenDio = Dio(BaseOptions(baseUrl: err.requestOptions.baseUrl))
+            ..interceptors.add(LoggingInterceptor());
 
           final response = await tokenDio.post(
             '/auth/refresh',

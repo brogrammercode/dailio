@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/network/interceptors/logging_interceptor.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../controllers/fees_repository.dart';
 import '../models/fee_models.dart';
@@ -351,7 +352,8 @@ class _MemberSubscriptionDetailPageState
       'public_id': signature['public_id'],
       'type': signature['type'],
     });
-    final response = await Dio().post(uploadUrl,
+    final uploadDio = Dio()..interceptors.add(LoggingInterceptor());
+    final response = await uploadDio.post(uploadUrl,
         data: form, options: Options(contentType: 'multipart/form-data'));
     if (response.statusCode != 200) throw Exception('Evidence upload failed');
     final storageKey = signature['storage_key']?.toString();

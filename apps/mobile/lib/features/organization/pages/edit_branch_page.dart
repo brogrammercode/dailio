@@ -12,6 +12,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../controllers/organization_repository.dart';
 import '../../context_selection/controllers/branch_repository.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/network/interceptors/logging_interceptor.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 
 class EditBranchPage extends StatefulWidget {
@@ -204,7 +205,8 @@ class _EditBranchPageState extends State<EditBranchPage> {
     _debounce = Timer(const Duration(milliseconds: 500), () async {
       setState(() => _isFetchingSuggestions = true);
       try {
-        final response = await Dio().get(
+        final response =
+            await (Dio()..interceptors.add(LoggingInterceptor())).get(
           'https://nominatim.openstreetmap.org/search',
           queryParameters: {
             'q': query,
@@ -300,7 +302,8 @@ class _EditBranchPageState extends State<EditBranchPage> {
 
   Future<void> _reverseGeocode(LatLng location) async {
     try {
-      final response = await Dio().get(
+      final response =
+          await (Dio()..interceptors.add(LoggingInterceptor())).get(
         'https://nominatim.openstreetmap.org/reverse',
         queryParameters: {
           'lat': location.latitude,

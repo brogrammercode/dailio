@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../context_selection/controllers/branch_repository.dart';
+import '../../../core/network/interceptors/logging_interceptor.dart';
 import '../controllers/fees_repository.dart';
 
 class SubscriptionPurchasePage extends StatefulWidget {
@@ -192,7 +193,8 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
         'public_id': signature['public_id'],
         'type': signature['type'],
       });
-      final response = await Dio().post(uploadUrl,
+      final uploadDio = Dio()..interceptors.add(LoggingInterceptor());
+      final response = await uploadDio.post(uploadUrl,
           data: form, options: Options(contentType: 'multipart/form-data'));
       if (response.statusCode != 200) throw Exception('Evidence upload failed');
       return {
