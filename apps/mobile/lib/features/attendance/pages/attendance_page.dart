@@ -10,12 +10,18 @@ import 'package:flutter/services.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/utils/branch_time.dart';
 import '../../../core/widgets/shimmer_loader.dart';
+import '../../../core/widgets/app_shell_toast.dart';
+import '../../../core/widgets/dailio_compact_tile.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_tab_strip.dart';
 import '../controllers/attendance_repository.dart';
 import '../attendance_error.dart';
+import '../attendance_ui.dart';
 import '../models/attendance_models.dart';
 import '../../branch/controllers/members_repository.dart';
 import '../../organization/controllers/organization_repository.dart';
 import 'attendance_detail_page.dart';
+import 'self_attendance_page.dart';
 
 class AttendancePage extends StatefulWidget {
   const AttendancePage({super.key});
@@ -51,7 +57,6 @@ class _AttendancePageState extends State<AttendancePage>
   bool _isLoading = false;
   bool _isExporting = false;
   String? _error;
-  DateTime? _lastSyncedAt;
   Timer? _refreshTimer;
   String? _nextCursor;
   bool _isLoadingMore = false;
@@ -142,8 +147,11 @@ class _AttendancePageState extends State<AttendancePage>
           _sessions = page.sessions;
           _nextCursor = page.nextCursor;
           _error = null;
-          _lastSyncedAt = DateTime.now();
         });
+        AppShellToastController.show(
+          'Last activity · updated ${DateFormat('hh:mm a').format(BranchTime.now(_branchTimezone))}',
+          icon: Iconsax.activity,
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -169,7 +177,6 @@ class _AttendancePageState extends State<AttendancePage>
       setState(() {
         _sessions = [..._sessions, ...page.sessions];
         _nextCursor = page.nextCursor;
-        _lastSyncedAt = DateTime.now();
       });
     } catch (error) {
       if (mounted) {
@@ -239,74 +246,58 @@ class _AttendancePageState extends State<AttendancePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: AttendanceUi.canvas,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: const Text('Attendance',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        foregroundColor: AttendanceUi.text,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Dailio',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
         actions: [
-          if (_canCreateManual)
-            IconButton(
-              tooltip: 'Add manual attendance record',
-              icon: const Icon(Iconsax.add_circle),
-              onPressed: _openManualRecordModal,
-            ),
-          IconButton(
-              tooltip: 'Export attendance',
-              icon: _isExporting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Iconsax.document_download),
-              onPressed: _isExporting ? null : _exportAttendance),
+          DailioOverflowMenu<String>(
+            items: [
+              if (_canCreateManual)
+                const DailioMenuItem(
+                  value: 'manual',
+                  icon: Iconsax.add_circle,
+                  label: 'Add attendance',
+                ),
+              const DailioMenuItem(
+                value: 'export',
+                icon: Iconsax.document_download,
+                label: 'Export attendance',
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'manual') _openManualRecordModal();
+              if (value == 'export') _exportAttendance();
+            },
+          ),
+          const SizedBox(width: 8),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          labelColor: const Color(0xFF8D490B),
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFF8D490B),
-          indicatorWeight: 3,
-          tabs: const [
-            Tab(text: 'Today'),
-            Tab(text: 'Yesterday'),
-            Tab(text: 'This Week'),
-            Tab(text: 'This Month'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(44),
+          child: AnimatedBuilder(
+            animation: _tabController,
+            builder: (context, _) => DailioTabStrip<String>(
+              tabs: const [
+                DailioTabItem(value: 'today', label: 'Today'),
+                DailioTabItem(value: 'yesterday', label: 'Yesterday'),
+                DailioTabItem(value: 'this_week', label: 'This Week'),
+                DailioTabItem(value: 'this_month', label: 'This Month'),
+              ],
+              selected: _periods[_tabController.index],
+              onChanged: (period) =>
+                  _tabController.animateTo(_periods.indexOf(period)),
+            ),
+          ),
         ),
       ),
       body: Column(
         children: [
-          _buildCyclePerformance(),
-          if (_lastSyncedAt != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (_isLoading)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 6),
-                      child: SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                  Text(
-                    'Live activity \u2022 updated ${DateFormat('hh:mm:ss a').format(_lastSyncedAt!)}',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           _buildRoleFilters(),
           Expanded(
             child: _isLoading && _sessions.isEmpty
@@ -332,11 +323,14 @@ class _AttendancePageState extends State<AttendancePage>
                                   child: ListView.separated(
                                     physics:
                                         const AlwaysScrollableScrollPhysics(),
-                                    padding: const EdgeInsets.all(16),
+                                    padding: const EdgeInsets.only(
+                                      top: 12,
+                                      bottom: 92,
+                                    ),
                                     itemCount: _sessions.length +
                                         (_isLoadingMore ? 1 : 0),
                                     separatorBuilder: (_, __) =>
-                                        const SizedBox(height: 12),
+                                        const SizedBox(height: 8),
                                     itemBuilder: (context, index) {
                                       if (index >= _sessions.length) {
                                         return const Center(
@@ -357,145 +351,36 @@ class _AttendancePageState extends State<AttendancePage>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildRoleFilters() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      width: double.infinity,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildRoleChip('All Roles', null),
-            const SizedBox(width: 8),
-            ..._roles.map((r) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: _buildRoleChip(r['name'], r['id']),
-              );
-            }),
-          ],
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 78),
+        child: FloatingActionButton(
+          heroTag: 'self_attendance_fab',
+          tooltip: 'Self attendance',
+          backgroundColor: AttendanceUi.accent,
+          foregroundColor: Colors.white,
+          shape: const CircleBorder(),
+          onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SelfAttendancePage())),
+          child: const Icon(Iconsax.finger_scan, size: 27),
         ),
       ),
     );
   }
 
-  Widget _buildRoleChip(String label, String? roleId) {
-    final isSelected = _selectedRoleId == roleId;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => _onRoleSelected(roleId),
-      selectedColor: const Color(0xFF8D490B).withValues(alpha: 0.1),
-      labelStyle: TextStyle(
-          color: isSelected ? const Color(0xFF8D490B) : Colors.black87,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-          fontSize: 12),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-              color:
-                  isSelected ? const Color(0xFF8D490B) : Colors.grey.shade300)),
-      backgroundColor: Colors.white,
-      showCheckmark: false,
-    );
-  }
-
-  Widget _buildCyclePerformance() {
-    int presentCount = 0;
-    int lateCount = 0;
-    int absentCount = 0;
-
-    for (var s in _sessions) {
-      if (s.derivedStatus == 'PRESENT') {
-        presentCount++;
-      } else if (s.derivedStatus == 'LATE')
-        lateCount++;
-      else if (s.derivedStatus == 'ABSENT') absentCount++;
-    }
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
-                children: [
-                  Icon(Iconsax.activity, size: 16, color: Color(0xFF8D490B)),
-                  SizedBox(width: 8),
-                  Text('Cycle Performance',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(8)),
-                child: Text('Current Period',
-                    style: const TextStyle(
-                        color: Color(0xFF8D490B),
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold)),
-              )
-            ],
+  Widget _buildRoleFilters() => DailioTabStrip<String?>(
+        tabs: [
+          const DailioTabItem<String?>(value: null, label: 'All'),
+          ..._roles.map(
+            (role) => DailioTabItem<String?>(
+              value: role['id']?.toString(),
+              label: role['name']?.toString() ?? 'Role',
+            ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatItem('Present', presentCount.toString(),
-                    Colors.green.shade600, Iconsax.tick_circle),
-              ),
-              Container(width: 1, height: 30, color: Colors.grey.shade200),
-              Expanded(
-                child: _buildStatItem('Late', lateCount.toString(),
-                    Colors.orange.shade600, Iconsax.clock),
-              ),
-              Container(width: 1, height: 30, color: Colors.grey.shade200),
-              Expanded(
-                child: _buildStatItem('Absent', absentCount.toString(),
-                    Colors.red.shade600, Iconsax.close_circle),
-              ),
-            ],
-          )
         ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(
-      String label, String value, Color color, IconData icon) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 12, color: color),
-            const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 10)),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(value,
-            style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-      ],
-    );
-  }
+        selected: _selectedRoleId,
+        onChanged: _onRoleSelected,
+      );
 
   void _openCorrectionModal(AttendanceSessionModel session) {
     showModalBottomSheet(
@@ -512,298 +397,238 @@ class _AttendancePageState extends State<AttendancePage>
   }
 
   Widget _buildAttendanceCard(AttendanceSessionModel session) {
-    final bool isCompleted = session.state == 'CLOSED';
-    final bool isLate = session.derivedStatus == 'LATE';
-    final Color barColor = isLate
-        ? Colors.orange
-        : (isCompleted ? Colors.green.shade600 : Colors.green.shade300);
-    final Color bgColor = isLate ? Colors.orange.shade50 : Colors.green.shade50;
-
     final branchTimezone = session.branchTimezone ?? _branchTimezone;
-    final clockInWall = BranchTime.toBranch(
-      session.clockInServerTime,
-      branchTimezone,
-    );
+    final clockInWall =
+        BranchTime.toBranch(session.clockInServerTime, branchTimezone);
     final clockOutWall = session.clockOutServerTime == null
         ? null
         : BranchTime.toBranch(session.clockOutServerTime!, branchTimezone);
-    final clockInTime = DateFormat('hh:mm a').format(clockInWall);
-    final clockOutTime = clockOutWall != null
-        ? DateFormat('hh:mm a').format(clockOutWall)
-        : '--:--';
-    final loggedTime = isCompleted
-        ? session.durationLabel
-        : _liveDurationLabel(session.clockInServerTime);
+    final isOpen = clockOutWall == null;
+    final isLate = session.derivedStatus == 'LATE';
+    final statusColor =
+        isOpen || isLate ? AttendanceUi.accent : AttendanceUi.text;
+    final statusIcon = isOpen
+        ? Iconsax.login
+        : isLate
+            ? Iconsax.clock
+            : Iconsax.verify;
+    final eventTime = clockOutWall ?? clockInWall;
+    final eventLabel = isOpen ? 'Clocked in at' : 'Clocked out at';
+    final roleLabel = session.memberRoleName ?? session.shiftName;
+    final statusLabel = isOpen
+        ? 'In progress'
+        : isLate
+            ? 'Late'
+            : 'Completed';
 
-    final now = BranchTime.now(branchTimezone);
-    final isToday = clockInWall.day == now.day &&
-        clockInWall.month == now.month &&
-        clockInWall.year == now.year;
-    final dateStr = isToday
-        ? 'Today \u2022 '
-        : DateFormat("EEEE \u2022 dd MMM yyyy").format(clockInWall);
-
-    return InkWell(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => AttendanceDetailPage(sessionId: session.id))),
-        onLongPress: _canCorrect ? () => _openCorrectionModal(session) : null,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200),
+    return DailioCompactTile(
+      avatar: _buildAttendanceAvatar(session, statusColor, statusIcon),
+      title: session.memberName ?? 'You',
+      titleBadge: roleLabel,
+      subtitle:
+          '$eventLabel ${DateFormat('hh:mm a').format(eventTime)} · $statusLabel',
+      trailing: DateFormat('dd MMM').format(eventTime),
+      subtitleColor: statusColor,
+      onTap: () => _openDetail(session),
+      onLongPress: _canCorrect ? () => _openCorrectionModal(session) : null,
+      menuItems: [
+        const DailioMenuItem(
+          value: 'details',
+          icon: Iconsax.document_text,
+          label: 'View details',
+        ),
+        if (_canCorrect)
+          const DailioMenuItem(
+            value: 'correct',
+            icon: Iconsax.edit_2,
+            label: 'Correct record',
           ),
-          child: IntrinsicHeight(
+      ],
+      onMenuSelected: (value) {
+        if (value == 'details') _openDetail(session);
+        if (value == 'correct') _openCorrectionModal(session);
+      },
+    );
+  }
+
+  // ignore: unused_element
+  Widget _buildAttendanceCardLegacy(AttendanceSessionModel session) {
+    final branchTimezone = session.branchTimezone ?? _branchTimezone;
+    final clockInWall =
+        BranchTime.toBranch(session.clockInServerTime, branchTimezone);
+    final clockOutWall = session.clockOutServerTime == null
+        ? null
+        : BranchTime.toBranch(session.clockOutServerTime!, branchTimezone);
+    final isOpen = clockOutWall == null;
+    final isLate = session.derivedStatus == 'LATE';
+    final statusColor =
+        isOpen || isLate ? AttendanceUi.accent : AttendanceUi.text;
+    final statusIcon = isOpen
+        ? Iconsax.login
+        : isLate
+            ? Iconsax.clock
+            : Iconsax.verify;
+    final eventTime = clockOutWall ?? clockInWall;
+    final eventLabel = isOpen ? 'Clocked in at' : 'Clocked out at';
+    final dateLabel = DateFormat('dd MMM').format(eventTime);
+    final statusLabel = isOpen
+        ? 'In progress'
+        : isLate
+            ? 'Late'
+            : 'Completed';
+
+    final roleLabel = session.memberRoleName ?? session.shiftName;
+
+    return Material(
+      color: Colors.white,
+      child: InkWell(
+        onTap: () => _openDetail(session),
+        onLongPress: _canCorrect ? () => _openCorrectionModal(session) : null,
+        child: Ink(
+          color: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                    width: 4,
-                    decoration: BoxDecoration(
-                        color: barColor,
-                        borderRadius: const BorderRadius.horizontal(
-                            left: Radius.circular(16)))),
+                _buildAttendanceAvatar(session, statusColor, statusIcon),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            if (session.memberAvatar != null &&
-                                session.memberAvatar!.isNotEmpty)
-                              CircleAvatar(
-                                radius: 12,
-                                backgroundImage:
-                                    NetworkImage(session.memberAvatar!),
-                              )
-                            else
-                              CircleAvatar(
-                                radius: 12,
-                                backgroundColor: Colors.blue.shade50,
-                                child: Text(
-                                  session.memberName?.isNotEmpty == true
-                                      ? session.memberName![0].toUpperCase()
-                                      : '?',
-                                  style: TextStyle(
-                                      color: Colors.blue.shade800,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            const SizedBox(width: 8),
-                            Text(
-                              session.memberName ?? 'Unknown Member',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Text(dateStr,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12)),
-                                const SizedBox(width: 6),
-                                Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                        color: barColor,
-                                        shape: BoxShape.circle)),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                  color: bgColor,
-                                  borderRadius: BorderRadius.circular(12)),
-                              child: Row(
-                                children: [
-                                  Icon(isLate ? Iconsax.clock : Iconsax.verify,
-                                      size: 12, color: barColor),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                      '${session.derivedStatus ?? session.state} \u2022 ${isCompleted ? 'Completed' : 'In Progress'}',
-                                      style: TextStyle(
-                                          color: barColor,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                            )
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(session.shiftName ?? 'No shift assigned',
-                            style: TextStyle(
-                                color: Colors.grey.shade500, fontSize: 11)),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                              color: const Color(0xFFF9FAFB),
-                              borderRadius: BorderRadius.circular(12)),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildTimeCol('CLOCK IN', clockInTime),
-                              _buildTimeCol('CLOCK OUT', clockOutTime),
-                              _buildTimeCol('LOGGED', loggedTime,
-                                  valueColor: const Color(0xFF8D490B)),
-                            ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(session.memberName ?? 'You',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700, fontSize: 14)),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            if (session.hasSelfieEvidence)
-                              _buildPill(Iconsax.camera, 'Selfie evidence',
-                                  Colors.blue.shade700, Colors.blue.shade50),
-                            if (session.hasLocationEvidence)
-                              _buildPill(Iconsax.location, 'Location evidence',
-                                  Colors.blue.shade700, Colors.blue.shade50),
-                            if (session.evidence.isEmpty)
-                              _buildPill(
-                                  Iconsax.info_circle,
-                                  'No evidence recorded',
-                                  Colors.grey.shade700,
-                                  Colors.grey.shade100),
+                          if (roleLabel != null) ...[
+                            const SizedBox(width: 7),
+                            Flexible(child: _buildRoleBadge(roleLabel)),
                           ],
-                        ),
-                        const SizedBox(height: 16),
-                        Divider(color: Colors.grey.shade200, height: 1),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                                'Server timeline (${session.timeline.length} events)',
-                                style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold)),
-                            Icon(Iconsax.arrow_down_1,
-                                size: 14, color: Colors.grey.shade500),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        ...session.timeline.map((event) => _buildLogEvent(
-                              _timelineColor(event.type),
-                              _time(event.at, branchTimezone),
-                              _timelineLabel(event.type),
-                            )),
-                      ],
-                    ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Icon(statusIcon, size: 13, color: statusColor),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              '$eventLabel ${DateFormat('hh:mm a').format(eventTime)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: statusColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                          '$dateLabel  •  $statusLabel  •  ${session.durationLabel}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: AttendanceUi.muted, fontSize: 10)),
+                    ],
                   ),
+                ),
+                DailioOverflowMenu<String>(
+                  items: [
+                    const DailioMenuItem(
+                      value: 'details',
+                      icon: Iconsax.document_text,
+                      label: 'View details',
+                    ),
+                    if (_canCorrect)
+                      const DailioMenuItem(
+                        value: 'correct',
+                        icon: Iconsax.edit_2,
+                        label: 'Correct record',
+                      ),
+                  ],
+                  onSelected: (value) {
+                    if (value == 'details') _openDetail(session);
+                    if (value == 'correct') _openCorrectionModal(session);
+                  },
                 ),
               ],
             ),
           ),
-        ));
+        ),
+      ),
+    );
   }
 
-  Widget _buildTimeCol(String label, String time,
-      {Color valueColor = Colors.black}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildRoleBadge(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: AttendanceUi.accentTint,
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: AttendanceUi.accent,
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttendanceAvatar(
+      AttendanceSessionModel session, Color statusColor, IconData statusIcon) {
+    final image = session.memberAvatar;
+    final initials = session.memberName?.isNotEmpty == true
+        ? session.memberName![0].toUpperCase()
+        : '?';
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        Text(label,
-            style: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5)),
-        const SizedBox(height: 4),
-        Text(time,
-            style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.bold, color: valueColor)),
+        CircleAvatar(
+          radius: 25,
+          backgroundColor: AttendanceUi.accentTint,
+          backgroundImage:
+              image == null || image.isEmpty ? null : NetworkImage(image),
+          child: image == null || image.isEmpty
+              ? Text(initials,
+                  style: const TextStyle(
+                      color: AttendanceUi.accent,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold))
+              : null,
+        ),
+        Positioned(
+          right: -2,
+          bottom: -2,
+          child: Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              color: statusColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: Icon(statusIcon, size: 9, color: Colors.white),
+          ),
+        ),
       ],
     );
   }
 
-  String _liveDurationLabel(DateTime clockIn) {
-    final minutes = DateTime.now()
-        .difference(clockIn)
-        .inMinutes
-        .clamp(0, 60 * 24 * 30)
-        .toInt();
-    final hours = minutes ~/ 60;
-    final remainingMinutes = minutes % 60;
-    return hours > 0 ? '${hours}h ${remainingMinutes}m' : '${minutes}m';
-  }
-
-  Color _timelineColor(String type) {
-    if (type.contains('CLOCK_IN')) return Colors.green.shade600;
-    if (type.contains('CLOCK_OUT')) return Colors.grey.shade600;
-    if (type.contains('CORRECTION')) return Colors.orange.shade700;
-    if (type.contains('SELFIE') || type.contains('LOCATION')) {
-      return Colors.blue.shade700;
-    }
-    return Colors.indigo.shade600;
-  }
-
-  String _timelineLabel(String type) => type
-      .replaceAll('_', ' ')
-      .toLowerCase()
-      .split(' ')
-      .map((word) =>
-          word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
-      .join(' ');
-
-  String _time(DateTime value, [String? timezone]) => DateFormat('hh:mm a')
-      .format(BranchTime.toBranch(value, timezone ?? _branchTimezone));
-
-  Widget _buildPill(IconData icon, String text, Color color, Color bgColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-          color: bgColor, borderRadius: BorderRadius.circular(12)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(text,
-              style: TextStyle(
-                  color: color, fontSize: 10, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLogEvent(Color dotColor, String time, String desc) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Container(
-              width: 8,
-              height: 8,
-              decoration:
-                  BoxDecoration(color: dotColor, shape: BoxShape.circle)),
-          const SizedBox(width: 8),
-          Text(time,
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  color: time == 'Active' ? dotColor : Colors.black87)),
-          const SizedBox(width: 8),
-          Text(desc,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
-        ],
-      ),
-    );
+  void _openDetail(AttendanceSessionModel session) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => AttendanceDetailPage(sessionId: session.id)));
   }
 
   Widget _buildEmptyState() {
@@ -1038,7 +863,7 @@ class _CorrectionModalState extends State<_CorrectionModal> {
           ElevatedButton(
             onPressed: _isLoading ? null : _submit,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
+              backgroundColor: AttendanceUi.accent,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(

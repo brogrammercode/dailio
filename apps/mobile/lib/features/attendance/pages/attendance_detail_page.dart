@@ -6,6 +6,8 @@ import '../../../core/storage/preferences_storage.dart';
 import '../../../core/utils/branch_time.dart';
 import '../controllers/attendance_repository.dart';
 import '../attendance_error.dart';
+import '../attendance_ui.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../models/attendance_models.dart';
 
 class AttendanceDetailPage extends StatefulWidget {
@@ -52,8 +54,38 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(title: const Text('Attendance details')),
+      backgroundColor: AttendanceUi.canvas,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: AttendanceUi.text,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Dailio',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text('Attendance details',
+                style: TextStyle(fontSize: 11, color: AttendanceUi.muted)),
+          ],
+        ),
+        actions: [
+          DailioOverflowMenu<String>(
+            items: const [
+              DailioMenuItem(
+                value: 'refresh',
+                icon: Icons.refresh,
+                label: 'Refresh',
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'refresh') _load();
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -84,7 +116,8 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
   Widget _summary(AttendanceSessionModel session) {
     final date = DateFormat('EEEE, dd MMM yyyy').format(
         BranchTime.toBranch(session.clockInServerTime, session.branchTimezone));
-    final color = session.state == 'OPEN' ? Colors.orange : Colors.green;
+    final color =
+        session.state == 'OPEN' ? AttendanceUi.accent : AttendanceUi.softBlack;
     return _card(
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -94,15 +127,17 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                       fontWeight: FontWeight.bold, fontSize: 16))),
           Chip(
             label: Text(session.state),
-            labelStyle: TextStyle(color: color.shade700, fontSize: 11),
-            backgroundColor: color.shade50,
+            labelStyle: TextStyle(color: color, fontSize: 11),
+            backgroundColor: session.state == 'OPEN'
+                ? AttendanceUi.accentTint
+                : AttendanceUi.divider,
             side: BorderSide.none,
           ),
         ]),
         if (session.memberName != null) ...[
           const SizedBox(height: 4),
           Text(session.memberName!,
-              style: TextStyle(color: Colors.grey.shade700)),
+              style: const TextStyle(color: AttendanceUi.muted)),
         ],
         const SizedBox(height: 16),
         Row(children: [
@@ -123,23 +158,23 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
             style: const TextStyle(fontWeight: FontWeight.w600)),
         Text(
             'Source: ${session.source ?? 'SELF'}${session.clockOutSource == null ? '' : ' → ${session.clockOutSource}'}',
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+            style: const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
         if (session.branchTimezone != null)
           Text('Branch timezone: ${session.branchTimezone}',
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+              style: const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
         if ((session.lateMinutes ?? 0) > 0 ||
             (session.earlyLeaveMinutes ?? 0) > 0)
           Text(
               'Variance: ${session.lateMinutes ?? 0}m late • ${session.earlyLeaveMinutes ?? 0}m early',
-              style: TextStyle(color: Colors.orange.shade800, fontSize: 12)),
+              style: const TextStyle(color: AttendanceUi.accent, fontSize: 12)),
         if (session.shiftName != null)
           Text(
               'Shift: ${session.shiftName} (${session.shiftStartTime ?? '--'}–${session.shiftEndTime ?? '--'})',
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+              style: const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
         if (session.correctionReason != null) ...[
           const SizedBox(height: 8),
           Text('Correction reason: ${session.correctionReason}',
-              style: TextStyle(color: Colors.orange.shade800, fontSize: 12)),
+              style: const TextStyle(color: AttendanceUi.accent, fontSize: 12)),
         ],
       ]),
     );
@@ -158,9 +193,9 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
                   radius: 16,
-                  backgroundColor: Colors.indigo.shade50,
+                  backgroundColor: AttendanceUi.accentTint,
                   child: Icon(_timelineIcon(entry.type),
-                      size: 16, color: Colors.indigo)),
+                      size: 16, color: AttendanceUi.accent)),
               title: Text(_timelineLabel(entry.type),
                   style: const TextStyle(fontSize: 13)),
               subtitle: entry.reason == null
@@ -197,7 +232,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
       const SizedBox(height: 8),
       if (session.evidence.isEmpty)
         Text('No evidence was recorded for this session.',
-            style: TextStyle(color: Colors.grey.shade700))
+            style: const TextStyle(color: AttendanceUi.muted))
       else
         ...session.evidence.map((item) => ListTile(
               contentPadding: EdgeInsets.zero,
@@ -250,7 +285,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AttendanceUi.divider),
         ),
         child: child,
       );
@@ -259,7 +294,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+              style: const TextStyle(color: AttendanceUi.muted, fontSize: 11)),
           const SizedBox(height: 4),
           Text(value,
               style:

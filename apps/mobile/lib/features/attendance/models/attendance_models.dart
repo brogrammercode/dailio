@@ -74,6 +74,7 @@ class AttendanceSessionModel {
   final int? workedMinutes;
   final String? memberName; // populated from includes
   final String? memberAvatar; // populated from includes
+  final String? memberRoleName; // populated from includes
   final int? lateMinutes;
   final int? earlyLeaveMinutes;
   final String? shiftName;
@@ -99,6 +100,7 @@ class AttendanceSessionModel {
       this.workedMinutes,
       this.memberName,
       this.memberAvatar,
+      this.memberRoleName,
       this.lateMinutes,
       this.earlyLeaveMinutes,
       this.shiftName,
@@ -132,6 +134,8 @@ class AttendanceSessionModel {
       workedMinutes: j['worked_minutes'],
       memberName: user?['name'],
       memberAvatar: user?['avatar_url'],
+      memberRoleName:
+          (member?['role'] as Map<String, dynamic>?)?['name']?.toString(),
       lateMinutes: (j['late_minutes'] as num?)?.toInt(),
       earlyLeaveMinutes: (j['early_leave_minutes'] as num?)?.toInt(),
       shiftName: snapshot['name']?.toString(),

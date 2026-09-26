@@ -338,7 +338,12 @@ export async function listPaymentRequests(
       ...(bounds ? { created_at: { gte: bounds.start, lt: bounds.end } } : {}),
     },
     include: {
-      member: { include: { user: true } },
+      member: {
+        include: {
+          user: true,
+          role: { select: { name: true } },
+        },
+      },
       subscription: { include: { plan: true } },
       evidence: true,
       payment_attempt: { include: { receipt: true } },
@@ -366,7 +371,12 @@ export async function getPaymentRequest(
       ...(canReadAll ? {} : { member_id: memberId }),
     },
     include: {
-      member: { include: { user: true } },
+      member: {
+        include: {
+          user: true,
+          role: { select: { name: true } },
+        },
+      },
       subscription: { include: { plan: true } },
       evidence: true,
       payment_attempt: { include: { receipt: true } },
@@ -700,6 +710,7 @@ export async function listFees(
     where,
     include: {
       user: true,
+      role: { select: { name: true } },
       subscriptions: { include: { plan: true }, orderBy: { end_date: 'desc' } },
       ledger_entries: {
         include: { allocations: { include: { payment_attempt: true } } },
@@ -767,6 +778,7 @@ export async function listFees(
           name: member.user.name,
           member_number: member.member_number,
           avatar_url: member.user.avatar_url,
+          role_name: member.role?.name ?? null,
         },
         subscription: subscription
           ? {

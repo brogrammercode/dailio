@@ -16,8 +16,6 @@ const resetColour = '\x1B[0m';
 type HttpLogContext = {
   startedAt: bigint;
   requestLogged: boolean;
-  responseBody?: unknown;
-  responseCaptured: boolean;
 };
 
 const contextKey = Symbol('dailioHttpLogContext');
@@ -61,6 +59,20 @@ export function safeHttpPayload(value: unknown) {
   }
 }
 
+export function formatHttpResponseLog(input: {
+  time: string;
+  speed: string;
+  method: string;
+  status: number;
+  path: string;
+}) {
+  return (
+    `${colourForStatus(input.status)}${emojiForStatus(input.status)} : ` +
+    `[${input.time}] : [${input.speed}] : [${input.method}] : ` +
+    `[${input.status}] : [${input.path}]${resetColour}`
+  );
+}
+
 export function httpLogMiddleware(req: Request, res: Response, next: NextFunction) {
   if (env.NODE_ENV === 'test') {
     next();
@@ -71,25 +83,8 @@ export function httpLogMiddleware(req: Request, res: Response, next: NextFunctio
   const context: HttpLogContext = {
     startedAt: process.hrtime.bigint(),
     requestLogged: false,
-    responseCaptured: false,
   };
   loggedResponse[contextKey] = context;
-
-  const originalJson = res.json.bind(res);
-  res.json = ((body: unknown) => {
-    context.responseBody = body;
-    context.responseCaptured = true;
-    return originalJson(body);
-  }) as typeof res.json;
-
-  const originalSend = res.send.bind(res);
-  res.send = ((body?: unknown) => {
-    if (!context.responseCaptured) {
-      context.responseBody = body;
-      context.responseCaptured = true;
-    }
-    return originalSend(body);
-  }) as typeof res.send;
 
   res.on('finish', () => writeResponseLog(req, res, context));
   res.on('close', () => {
@@ -129,10 +124,13 @@ function writeResponseLog(req: Request, res: Response, context: HttpLogContext) 
   const elapsedMs = Number(process.hrtime.bigint() - context.startedAt) / 1_000_000;
   const speed = `${Math.round(elapsedMs)}ms`;
   write(
-    `${colourForStatus(status)}${emojiForStatus(status)} : [${istTime()}] : ` +
-      `[${speed}] : [${req.method}] : [${status}] : ` +
-      `[${safeHttpPath(req.originalUrl ?? req.url ?? '-')}] : ` +
-      `[${safeHttpPayload(context.responseBody)}]${resetColour}`,
+    formatHttpResponseLog({
+      time: istTime(),
+      speed,
+      method: req.method,
+      status,
+      path: safeHttpPath(req.originalUrl ?? req.url ?? '-'),
+    }),
   );
 }
 

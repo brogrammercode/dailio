@@ -5,6 +5,8 @@ import 'package:iconsax/iconsax.dart';
 
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../auth/controllers/auth_cubit.dart';
 import '../../auth/controllers/auth_state.dart';
 import '../../auth/models/user_model.dart';
@@ -101,13 +103,45 @@ class _SettingsPageState extends State<SettingsPage> {
             prefs.hasPermission('PAYROLL_READ_BRANCH');
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF9FAFB),
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            foregroundColor: AppColors.brandDark,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            title: const Text(
+              'Dailio',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              DailioOverflowMenu<String>(
+                items: const [
+                  DailioMenuItem(
+                    value: 'refresh',
+                    icon: Icons.refresh,
+                    label: 'Refresh',
+                  ),
+                  DailioMenuItem(
+                    value: 'sign_out',
+                    icon: Iconsax.logout,
+                    label: 'Sign out',
+                    destructive: true,
+                  ),
+                ],
+                onSelected: (value) {
+                  if (value == 'refresh') _loadOrgData();
+                  if (value == 'sign_out') _confirmSignOut();
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
           body: SafeArea(
             child: RefreshIndicator(
-              color: Colors.orange.shade800,
+              color: AppColors.brandAccent,
               onRefresh: _loadOrgData,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                 children: [
                   //  Context Pill
                   _buildContextPill(orgName, branchName),
@@ -670,17 +704,18 @@ class _SettingsPageState extends State<SettingsPage> {
     required int primaryChipIndex,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200),
+        ),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(4, 10, 4, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -688,10 +723,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: iconBg ?? const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(12),
+                      shape: BoxShape.circle,
                     ),
                     child: Icon(icon, color: iconColor, size: 20),
                   ),
@@ -719,7 +755,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ? ElevatedButton(
                           onPressed: onTap,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange.shade800,
+                            backgroundColor: AppColors.brandAccent,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             minimumSize: const Size(0, 30),

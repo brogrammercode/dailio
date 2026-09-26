@@ -178,6 +178,7 @@ These rules apply to all Stitch generations and implementation unless a later de
 - Use the **canonical supplied app logo only** wherever a logo is required. Do not substitute, redraw, recolor arbitrarily, or invent another logo.
 - Derive accent/theme direction from the canonical logo while keeping contrast and accessibility intact.
 - Font: **Space Grotesk** throughout the product UI.
+- **Confirmed Dailio UI palette:** preserve the existing bottom navigation and font; use the canonical logo orange (`AppColors.brandAccent`) with white surfaces and black text/controls as the primary visual palette. Do not introduce WhatsApp teal or unrelated blue/green/purple accents in redesigned screens.
 - Overall scale should be slightly reduced compared with default mobile mockup proportions: smaller but still readable typography, compact controls, disciplined icon sizes, and more visible content per viewport.
 - The result must remain **super clean, professional, spacious, calm, and premium**.
 - Prefer whitespace, clear grouping, thin dividers, low-noise surfaces, and restrained accent usage.
@@ -2319,6 +2320,7 @@ A feature is complete only when all applicable items are true:
 | 2026-09-26 | The permanent branch join QR is also the reusable physical gate QR. Active members use it to trigger the server-determined next punch (clock-in or clock-out); non-members retain the fast-join flow. | One printed branch QR supports admission and attendance while preserving server-side membership, policy, evidence, geofence, idempotency, and tenant checks. |
 | 2026-09-26 | Attendance operations use branch-local time, stable cursor pagination, live activity refresh, and deduplicated in-app/push alerts for late, incomplete, evidence-failure, and missing-clock-out events. | Keeps reporting consistent across timezones and makes operational exceptions visible without allowing notification delivery to affect attendance state. |
 | 2026-09-26 | Attendance authorization uses explicit self/team/branch/all read scopes, self/all evidence scopes, and dedicated policy read/assign/manage permissions; `ATTENDANCE_CREATE_ALL` is the authorized cross-member clock-out scope. | Aligns the product permission catalog with the server-enforced authorization contract and prevents UI-only policy management or evidence disclosure. |
+| 2026-09-26 | Attendance UI redesign keeps the existing bottom navigation, Space Grotesk font, and canonical Dailio logo; redesigned Attendance screens use only the logo orange, white, and black as the primary palette with compact WhatsApp-like information hierarchy. | Approved screen-by-screen UI direction for the member and attendance-policy flows. |
 
 ---
 

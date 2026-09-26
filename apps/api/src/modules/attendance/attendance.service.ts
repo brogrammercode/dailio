@@ -1062,7 +1062,12 @@ export async function clockOut(
       branch: { status: 'ACTIVE' },
     },
     include: {
-      member: { include: { user: { select: { id: true, name: true, avatar_url: true } } } },
+      member: {
+        include: {
+          user: { select: { id: true, name: true, avatar_url: true } },
+          role: { select: { name: true } },
+        },
+      },
     },
   });
 
@@ -1562,7 +1567,10 @@ export async function listSessionsPage(
     where,
     include: {
       member: {
-        include: { user: { select: { id: true, name: true, avatar_url: true } } },
+        include: {
+          user: { select: { id: true, name: true, avatar_url: true } },
+          role: { select: { name: true } },
+        },
       },
       evidence: true,
       corrections: { orderBy: { created_at: 'asc' } },
@@ -1679,7 +1687,12 @@ export async function getSessionDetail(
       ...(scopeMemberIds === null ? {} : { member_id: { in: scopeMemberIds } }),
     },
     include: {
-      member: { include: { user: { select: { id: true, name: true, avatar_url: true } } } },
+      member: {
+        include: {
+          user: { select: { id: true, name: true, avatar_url: true } },
+          role: { select: { name: true } },
+        },
+      },
       evidence: true,
       corrections: { orderBy: { created_at: 'asc' } },
     },

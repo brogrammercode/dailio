@@ -15,6 +15,71 @@ class ShimmerLoader extends StatelessWidget {
 
   static Widget list() => const ShimmerLoader();
 
+  /// Loading state for compact list pages such as fees and payments.
+  /// The geometry mirrors [DailioCompactTile] so the list does not jump when
+  /// the server response arrives.
+  static Widget compactList() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: ListView.separated(
+        padding: const EdgeInsets.only(top: 12, bottom: 96),
+        itemCount: 6,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (_, __) => const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: SizedBox(
+            height: 68,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(radius: 24, backgroundColor: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 150,
+                        height: 14,
+                        child: ColoredBox(color: Colors.white),
+                      ),
+                      SizedBox(height: 8),
+                      SizedBox(
+                        width: 210,
+                        height: 11,
+                        child: ColoredBox(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 12),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    SizedBox(
+                      width: 54,
+                      height: 11,
+                      child: ColoredBox(color: Colors.white),
+                    ),
+                    SizedBox(height: 9),
+                    SizedBox(
+                      width: 18,
+                      height: 4,
+                      child: ColoredBox(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   static Widget form() {
     return Shimmer.fromColors(
       baseColor: Colors.grey.shade300,

@@ -3,10 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../attendance/attendance_ui.dart';
 import '../../attendance/attendance_error.dart';
 import '../../attendance/controllers/attendance_repository.dart';
 import '../../branch/controllers/members_repository.dart';
 import '../controllers/organization_repository.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
 
 String attendancePolicyErrorMessage(Object error) {
   if (error is DioException) {
@@ -317,18 +319,18 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: AttendanceUi.accentTint,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
-          Icon(Iconsax.people, size: 18, color: Colors.blue.shade700),
+          Icon(Iconsax.people, size: 18, color: AttendanceUi.accent),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Currently affects $count active ${count == 1 ? 'member' : 'members'}. Future punches use the next saved version.',
               style: TextStyle(
-                color: Colors.blue.shade900,
+                color: AttendanceUi.text,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -342,11 +344,21 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: AttendanceUi.canvas,
       appBar: AppBar(
-        title: const Text('Attendance Policy',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Dailio',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text('Attendance policy',
+                style: TextStyle(fontSize: 11, color: AttendanceUi.muted)),
+          ],
+        ),
         backgroundColor: Colors.white,
+        foregroundColor: AttendanceUi.text,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         actions: [
           if (_isSaving)
@@ -357,13 +369,27 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2))))
-          else
+          else ...[
             TextButton(
               onPressed: _savePolicy,
               child: const Text('Save',
                   style: TextStyle(
-                      color: Colors.orange, fontWeight: FontWeight.bold)),
-            )
+                      color: AttendanceUi.accent, fontWeight: FontWeight.bold)),
+            ),
+            DailioOverflowMenu<String>(
+              items: const [
+                DailioMenuItem(
+                  value: 'refresh',
+                  icon: Icons.refresh,
+                  label: 'Refresh',
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'refresh') _loadPolicy();
+              },
+            ),
+            const SizedBox(width: 8),
+          ]
         ],
       ),
       body: _isLoading
@@ -590,7 +616,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: Colors.orange),
+              Icon(icon, size: 20, color: AttendanceUi.accent),
               const SizedBox(width: 8),
               Text(title,
                   style: const TextStyle(

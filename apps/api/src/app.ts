@@ -29,8 +29,8 @@ export function createApp(): Express {
   // Request ID
   app.use(requestIdMiddleware);
 
-  // HTTP logging keeps the mobile-compatible request/response format while
-  // retaining timing and response-body redaction on the server.
+  // HTTP logging keeps the mobile-compatible request format while response
+  // lines stay compact and contain status/timing only.
   app.use(httpLogMiddleware);
 
   // Body parsing

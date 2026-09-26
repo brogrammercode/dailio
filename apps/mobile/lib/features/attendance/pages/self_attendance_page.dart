@@ -4,15 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/utils/branch_time.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_tab_strip.dart';
 import '../controllers/attendance_repository.dart';
 import '../models/attendance_models.dart';
 import '../attendance_error.dart';
+import '../attendance_ui.dart';
 import 'attendance_detail_page.dart';
 
 class SelfAttendancePage extends StatefulWidget {
@@ -27,7 +31,6 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
   late final AttendanceRepository _repository;
   late final TabController _tabs;
   String? _branchId;
-  String? _branchName;
   String _branchTimezone = 'Asia/Kolkata';
   AttendanceSessionModel? _activeSession;
   List<AttendanceSessionModel> _history = [];
@@ -49,7 +52,6 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     _repository = context.read<AttendanceRepository>();
     final preferences = context.read<PreferencesStorage>();
     _branchId = preferences.activeBranchId;
-    _branchName = preferences.activeBranchName;
     _branchTimezone = preferences.activeBranchTimezone ?? _branchTimezone;
     _tabs = TabController(length: 2, vsync: this);
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -245,19 +247,50 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: AttendanceUi.canvas,
       appBar: AppBar(
-        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Self attendance', style: TextStyle(fontSize: 18)),
-          if (_branchName != null)
-            Text(_branchName!, style: const TextStyle(fontSize: 12)),
-        ]),
+        backgroundColor: Colors.white,
+        foregroundColor: AttendanceUi.text,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Dailio',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text('Self attendance',
+                style: TextStyle(fontSize: 11, color: AttendanceUi.muted)),
+          ],
+        ),
         actions: [
-          IconButton(onPressed: _load, icon: const Icon(Icons.refresh))
+          DailioOverflowMenu<String>(
+            items: const [
+              DailioMenuItem(
+                value: 'refresh',
+                icon: Icons.refresh,
+                label: 'Refresh',
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'refresh') _load();
+            },
+          ),
+          const SizedBox(width: 8),
         ],
-        bottom: TabBar(
-          controller: _tabs,
-          tabs: const [Tab(text: 'Today'), Tab(text: 'Attendance record')],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(44),
+          child: AnimatedBuilder(
+            animation: _tabs,
+            builder: (context, _) => DailioTabStrip<String>(
+              tabs: const [
+                DailioTabItem(value: 'today', label: 'Today'),
+                DailioTabItem(value: 'history', label: 'Attendance record'),
+              ],
+              selected: _tabs.index == 0 ? 'today' : 'history',
+              onChanged: (value) => _tabs.animateTo(value == 'today' ? 0 : 1),
+            ),
+          ),
         ),
       ),
       body: _loading
@@ -275,11 +308,15 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.cloud_off, size: 42, color: Colors.grey),
+            Icon(Icons.cloud_off, size: 42, color: AttendanceUi.muted),
             const SizedBox(height: 12),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            OutlinedButton(onPressed: _load, child: const Text('Try again')),
+            OutlinedButton(
+              onPressed: _load,
+              style: AttendanceUi.outlinedButton(),
+              child: const Text('Try again'),
+            ),
           ]),
         ),
       );
@@ -318,8 +355,9 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
                 : attendanceEnabled
                     ? 'Clock in'
                     : 'Attendance not required'),
-            style:
-                FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            style: AttendanceUi.primaryButton().copyWith(
+              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(52)),
+            ),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
@@ -327,8 +365,9 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
                 _actionLoading ? null : () => context.push(AppRoutes.qrScanner),
             icon: const Icon(Icons.qr_code_scanner),
             label: const Text('Scan branch gate QR'),
-            style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(48)),
+            style: AttendanceUi.outlinedButton().copyWith(
+              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(48)),
+            ),
           ),
         ],
       ),
@@ -340,7 +379,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         Text(
             DateFormat('EEEE, dd MMM yyyy')
                 .format(BranchTime.toBranch(_clock, _branchTimezone)),
-            style: TextStyle(color: Colors.grey.shade700)),
+            style: const TextStyle(color: AttendanceUi.muted)),
         const SizedBox(height: 8),
         Text(
             DateFormat('hh:mm:ss a')
@@ -349,7 +388,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         const SizedBox(height: 4),
         Text(
             '${_repository.hasServerTime ? 'Server-synchronized clock' : 'Device clock until server sync'} • server confirms every punch',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+            style: const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
       ]));
 
   Widget _policyCard() {
@@ -375,22 +414,23 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         const SizedBox(height: 8),
         const Text(
           'Attendance punching is disabled for this policy.',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.orange),
+          style: TextStyle(
+              fontWeight: FontWeight.w600, color: AttendanceUi.accent),
         ),
       ],
       const SizedBox(height: 6),
       Text('Late grace: ${_policy['late_grace_minutes'] ?? 15} minutes',
-          style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+          style: const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
       if (_policy['shift_snapshot'] is Map) ...[
         const SizedBox(height: 6),
         Text(
             'Shift: ${(_policy['shift_snapshot'] as Map)['name'] ?? 'Scheduled'} (${(_policy['shift_snapshot'] as Map)['start_time'] ?? '--'}–${(_policy['shift_snapshot'] as Map)['end_time'] ?? '--'})',
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+            style: const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
       ],
       const SizedBox(height: 4),
       Text(
           'Policy ${_policy['version'] ?? '-'} • ${_policy['source_scope'] ?? 'BRANCH_DEFAULT'}',
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+          style: const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
     ]));
   }
 
@@ -398,7 +438,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     if (session == null) {
       return _card(const ListTile(
         contentPadding: EdgeInsets.zero,
-        leading: Icon(Icons.event_available, color: Colors.green),
+        leading: Icon(Icons.event_available, color: AttendanceUi.accent),
         title: Text('No open attendance session'),
         subtitle: Text('Clock in when you begin your session.'),
       ));
@@ -412,18 +452,26 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
           const Expanded(
               child: Text('Current session',
                   style: TextStyle(fontWeight: FontWeight.bold))),
-          Chip(label: Text(open ? 'OPEN' : session.state)),
+          PopupMenuButton<String>(
+            padding: EdgeInsets.zero,
+            icon: const Icon(Icons.more_vert,
+                size: 20, color: AttendanceUi.muted),
+            onSelected: (_) => _openDetail(session),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'details', child: Text('View details')),
+            ],
+          ),
         ]),
         const SizedBox(height: 10),
         Text(
             'Clock in: ${_time(session.clockInServerTime, session.branchTimezone)}'),
         Text('Duration: ${session.durationLabel}'),
         if (session.hasLocationEvidence)
-          const Text('Location evidence recorded',
-              style: TextStyle(fontSize: 12, color: Colors.green)),
+          Text('Location evidence recorded',
+              style: TextStyle(fontSize: 12, color: AttendanceUi.accent)),
         const SizedBox(height: 4),
         const Text('Tap for full details',
-            style: TextStyle(fontSize: 12, color: Colors.indigo)),
+            style: TextStyle(fontSize: 12, color: AttendanceUi.accent)),
       ])),
     );
   }
@@ -433,13 +481,9 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     final submitting = status == 'submitting';
     final confirmed = status == 'confirmed';
     final cancelled = status == 'cancelled';
-    final color = submitting
-        ? Colors.indigo
-        : confirmed
-            ? Colors.green
-            : cancelled
-                ? Colors.orange.shade800
-                : Colors.red;
+    final color = submitting || confirmed || cancelled
+        ? AttendanceUi.accent
+        : AttendanceUi.text;
     return _card(Row(children: [
       Icon(
           submitting
@@ -496,18 +540,20 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (_, index) {
           final session = _history[index];
-          return InkWell(
+          return _historyTile(session);
+          /*
             onTap: () => _openDetail(session),
             borderRadius: BorderRadius.circular(14),
             child: _card(Row(children: [
               CircleAvatar(
                 backgroundColor: session.state == 'OPEN'
-                    ? Colors.orange.shade50
-                    : Colors.green.shade50,
+                    ? AttendanceUi.accentTint
+                    : AttendanceUi.divider,
                 child: Icon(
                     session.state == 'OPEN' ? Icons.timelapse : Icons.check,
-                    color:
-                        session.state == 'OPEN' ? Colors.orange : Colors.green),
+                    color: session.state == 'OPEN'
+                        ? AttendanceUi.accent
+                        : AttendanceUi.text),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -522,14 +568,108 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
                     const SizedBox(height: 4),
                     Text(
                         '${_time(session.clockInServerTime, session.branchTimezone)} → ${session.clockOutServerTime == null ? 'Open' : _time(session.clockOutServerTime!, session.branchTimezone)}',
-                        style: TextStyle(
-                            color: Colors.grey.shade700, fontSize: 12)),
+                        style:
+                            TextStyle(color: AttendanceUi.muted, fontSize: 12)),
                   ])),
               Text(session.durationLabel,
                   style: const TextStyle(fontWeight: FontWeight.w600)),
             ])),
-          );
+          */
         },
+      ),
+    );
+  }
+
+  Widget _historyTile(AttendanceSessionModel session) {
+    final timezone = session.branchTimezone ?? _branchTimezone;
+    final clockIn = BranchTime.toBranch(session.clockInServerTime, timezone);
+    final clockOut = session.clockOutServerTime == null
+        ? null
+        : BranchTime.toBranch(session.clockOutServerTime!, timezone);
+    final open = clockOut == null;
+    final statusColor = open ? AttendanceUi.accent : AttendanceUi.text;
+    final statusIcon = open ? Iconsax.login : Iconsax.verify;
+    final eventTime = clockOut ?? clockIn;
+    final avatar = session.memberAvatar;
+    final initials = session.memberName?.isNotEmpty == true
+        ? session.memberName![0].toUpperCase()
+        : 'Y';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openDetail(session),
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          decoration: AttendanceUi.cardDecoration(),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
+            child: Row(children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AttendanceUi.accentTint,
+                    backgroundImage: avatar == null || avatar.isEmpty
+                        ? null
+                        : NetworkImage(avatar),
+                    child: avatar == null || avatar.isEmpty
+                        ? Text(initials,
+                            style: const TextStyle(
+                                color: AttendanceUi.accent,
+                                fontWeight: FontWeight.bold))
+                        : null,
+                  ),
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                          color: statusColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2)),
+                      child: Icon(statusIcon, size: 9, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(DateFormat('EEE, dd MMM yyyy').format(clockIn),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 14)),
+                      const SizedBox(height: 5),
+                      Text(
+                          '${open ? 'Clocked in at' : 'Clocked out at'} ${DateFormat('hh:mm a').format(eventTime)}',
+                          style: TextStyle(
+                              color: statusColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 3),
+                      Text(
+                          '${session.durationLabel}  •  ${open ? 'In progress' : 'Completed'}',
+                          style: const TextStyle(
+                              color: AttendanceUi.muted, fontSize: 11)),
+                    ]),
+              ),
+              PopupMenuButton<String>(
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.more_vert,
+                    size: 20, color: AttendanceUi.muted),
+                onSelected: (_) => _openDetail(session),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'details', child: Text('View details')),
+                ],
+              ),
+            ]),
+          ),
+        ),
       ),
     );
   }
@@ -589,7 +729,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AttendanceUi.divider),
         ),
         child: child,
       );
