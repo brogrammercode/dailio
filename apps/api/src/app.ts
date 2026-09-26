@@ -2,16 +2,14 @@ import compression from 'compression';
 import cors from 'cors';
 import express, { type Express } from 'express';
 import helmet from 'helmet';
-import morgan from 'morgan';
 
 import { env } from './config/env';
-import { logger } from './config/logger';
 import { docsRouter } from './docs/swagger';
 import { errorHandler } from './middleware/errorHandler';
 import { requestIdMiddleware } from './middleware/requestId';
 import { defaultRateLimiter } from './middleware/rateLimiter';
 import { apiRouter } from './routes';
-import { redactSensitiveRequestUrl } from './lib/requestLog';
+import { httpLogMiddleware, httpRequestBodyLogMiddleware } from './lib/httpLog';
 
 export function createApp(): Express {
   const app = express();
@@ -31,34 +29,14 @@ export function createApp(): Express {
   // Request ID
   app.use(requestIdMiddleware);
 
-  // HTTP logging (skip in test)
-  if (env.NODE_ENV !== 'test') {
-    app.use(
-      morgan(
-        (tokens, req, res) => {
-          const url = redactSensitiveRequestUrl(req.originalUrl ?? req.url ?? '-');
-          return [
-            tokens['remote-addr'](req, res),
-            '-',
-            tokens['remote-user'](req, res),
-            `[${tokens.date(req, res, 'iso')}]`,
-            `"${tokens.method(req, res)} ${url} HTTP/${tokens['http-version'](req, res)}"`,
-            tokens.status(req, res),
-            tokens.res(req, res, 'content-length'),
-            `"${redactSensitiveRequestUrl(tokens.referrer(req, res) ?? '-')}"`,
-            `"${tokens['user-agent'](req, res)}"`,
-          ].join(' ');
-        },
-        {
-          stream: { write: (msg) => logger.http(msg.trim()) },
-        },
-      ),
-    );
-  }
+  // HTTP logging keeps the mobile-compatible request/response format while
+  // retaining timing and response-body redaction on the server.
+  app.use(httpLogMiddleware);
 
   // Body parsing
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
+  app.use(httpRequestBodyLogMiddleware);
 
   // Rate limiting
   app.use('/api', defaultRateLimiter);

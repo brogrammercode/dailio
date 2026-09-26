@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/network/interceptors/logging_interceptor.dart';
 import '../models/attendance_models.dart';
 
 class AttendanceRepository {
@@ -179,7 +180,8 @@ class AttendanceRepository {
       'type': signature['type'],
       'file': await MultipartFile.fromFile(file.path, filename: file.name),
     };
-    final upload = await Dio().post(
+    final uploadDio = Dio()..interceptors.add(LoggingInterceptor());
+    final upload = await uploadDio.post(
       'https://api.cloudinary.com/v1_1/${signature['cloud_name']}/auto/upload',
       data: FormData.fromMap(uploadData),
     );

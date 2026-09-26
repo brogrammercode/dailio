@@ -17,4 +17,10 @@ describe('request log redaction', () => {
       redactSensitiveRequestUrl('/api/v1/purchase-invites/plan-secret/subscription-drafts'),
     ).toBe('/api/v1/purchase-invites/[redacted]/subscription-drafts');
   });
+
+  it('redacts credential-bearing query parameters', () => {
+    expect(
+      redactSensitiveRequestUrl('/api/v1/upload?token=secret&source=mobile&signature=private'),
+    ).toBe('/api/v1/upload?token=[redacted]&source=mobile&signature=[redacted]');
+  });
 });

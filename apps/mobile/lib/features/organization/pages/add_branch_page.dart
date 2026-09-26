@@ -11,6 +11,7 @@ import 'package:dio/dio.dart';
 import '../controllers/organization_repository.dart';
 import '../models/create_organization_models.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/network/interceptors/logging_interceptor.dart';
 
 class AddBranchPage extends StatefulWidget {
   const AddBranchPage({super.key});
@@ -112,7 +113,8 @@ class _AddBranchPageState extends State<AddBranchPage> {
     _debounce = Timer(const Duration(milliseconds: 500), () async {
       setState(() => _isFetchingSuggestions = true);
       try {
-        final response = await Dio().get(
+        final response =
+            await (Dio()..interceptors.add(LoggingInterceptor())).get(
           'https://nominatim.openstreetmap.org/search',
           queryParameters: {
             'q': query,
@@ -208,7 +210,8 @@ class _AddBranchPageState extends State<AddBranchPage> {
 
   Future<void> _reverseGeocode(LatLng location) async {
     try {
-      final response = await Dio().get(
+      final response =
+          await (Dio()..interceptors.add(LoggingInterceptor())).get(
         'https://nominatim.openstreetmap.org/reverse',
         queryParameters: {
           'lat': location.latitude,
