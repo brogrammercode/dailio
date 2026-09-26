@@ -24,6 +24,10 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Dailio uses your camera to scan branch and subscription QR codes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Dailio uses your photo library to scan a saved QR code.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

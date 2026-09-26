@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'core/network/api_client.dart';
 import 'core/router/app_router.dart';
@@ -71,7 +72,7 @@ class _MainAppState extends State<MainApp> {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider.value(value: widget.apiClient),
-        RepositoryProvider.value(value: widget.preferencesStorage),
+        ChangeNotifierProvider.value(value: widget.preferencesStorage),
         RepositoryProvider.value(value: widget.branchRepository),
         RepositoryProvider.value(value: widget.admissionRepository),
         RepositoryProvider.value(value: widget.organizationRepository),

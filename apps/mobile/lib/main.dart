@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +23,53 @@ import 'features/branch/controllers/payroll_repository.dart';
 import 'features/organization/controllers/organization_repository.dart';
 import 'features/attendance/controllers/attendance_repository.dart';
 import 'features/fees/controllers/fees_repository.dart';
+
+Future<bool> _restoreActiveContext(
+  PreferencesStorage preferences,
+  List<Map<String, dynamic>> organizations,
+) async {
+  final organizationId = preferences.activeOrganizationId;
+  final branchId = preferences.activeBranchId;
+  if (organizationId == null || branchId == null) return false;
+
+  for (final organizationEntry in organizations) {
+    if (organizationEntry['organization']?['id']?.toString() !=
+        organizationId) {
+      continue;
+    }
+
+    final memberships = organizationEntry['location_memberships'];
+    if (memberships is! List) return false;
+    for (final entry in memberships) {
+      if (entry is! Map) continue;
+      final location = entry['location'];
+      if (location is! Map || location['id']?.toString() != branchId) {
+        continue;
+      }
+
+      final role = entry['role'] is Map
+          ? Map<String, dynamic>.from(entry['role'] as Map)
+          : null;
+      final rawPermissions = role?['permissions'];
+      final permissions = rawPermissions is List
+          ? rawPermissions.map((permission) => permission.toString()).toList()
+          : <String>[];
+
+      await preferences.setActiveContext(
+        organizationId: organizationId,
+        branchId: branchId,
+        organizationName:
+            organizationEntry['organization']?['name']?.toString(),
+        branchName: location['name']?.toString(),
+        roleSystemKey: role?['system_key']?.toString(),
+        permissions: permissions,
+      );
+      return true;
+    }
+  }
+
+  return false;
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,8 +114,9 @@ void main() async {
         if (orgs.isEmpty) {
           initialRoute = AppRoutes.joinOrCreate;
         } else {
-          if (preferencesStorage.activeOrganizationId == null ||
-              preferencesStorage.activeBranchId == null) {
+          final restored =
+              await _restoreActiveContext(preferencesStorage, orgs);
+          if (!restored) {
             initialRoute = AppRoutes.contextSwitcher;
           } else {
             initialRoute = AppRoutes.home;

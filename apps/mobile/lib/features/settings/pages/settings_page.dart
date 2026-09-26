@@ -90,7 +90,10 @@ class _SettingsPageState extends State<SettingsPage> {
         final canReadMembers = prefs.hasPermission('MEMBER_READ_ALL');
         final canManageBranches = prefs.hasPermission('BRANCH_CREATE') ||
             prefs.hasPermission('BRANCH_UPDATE');
-        final canReadPlans = prefs.hasPermission('PLAN_READ');
+        // PLAN_READ powers member plan discovery; the settings card is the
+        // administrative plan-management surface and must stay hidden from
+        // members.
+        final canReadPlans = prefs.hasPermission('PLAN_MANAGE');
         final canManagePlans = prefs.hasPermission('PLAN_MANAGE');
         final canManageShifts = prefs.hasPermission('SHIFT_MANAGE') ||
             prefs.hasPermission('SHIFT_READ_ALL');

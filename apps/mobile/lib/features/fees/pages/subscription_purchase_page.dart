@@ -45,6 +45,8 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
       ((_plan['joining_fee_minor'] as num?)?.toInt() ?? 0) -
       _discount;
 
+  bool get _isDirectPurchase => widget.invite['direct_plan'] == true;
+
   @override
   Widget build(BuildContext context) {
     final name = _plan['name']?.toString() ?? 'Subscription plan';
@@ -206,7 +208,12 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
   Future<void> _submit() async {
     final branchId = _branch['id']?.toString();
     final token = widget.invite['token']?.toString();
-    if (branchId == null || token == null || token.isEmpty) return;
+    final planId = _plan['id']?.toString();
+    if (branchId == null ||
+        (!_isDirectPurchase && (token == null || token.isEmpty)) ||
+        (_isDirectPurchase && (planId == null || planId.isEmpty))) {
+      return;
+    }
     if (_referenceController.text.trim().isEmpty && _evidenceFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Add a reference ID or payment evidence.')));
@@ -216,17 +223,31 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
     try {
       final branchRepository = context.read<BranchRepository>();
       final feesRepository = context.read<FeesRepository>();
-      final draft = await branchRepository.createSubscriptionDraft(
-        token,
-        DateTime.now().toUtc().toIso8601String(),
-        idempotencyKey: _requestKey,
-      );
+      final draft = _isDirectPurchase
+          ? await branchRepository.createDirectSubscriptionDraft(
+              branchId,
+              planId!,
+              DateTime.now().toUtc().toIso8601String(),
+              idempotencyKey: _requestKey,
+            )
+          : await branchRepository.createSubscriptionDraft(
+              token!,
+              DateTime.now().toUtc().toIso8601String(),
+              idempotencyKey: _requestKey,
+            );
+      final subscription =
+          (draft['subscription'] as Map?)?.cast<String, dynamic>();
+      final subscriptionId = (subscription?['id'] ?? draft['id'])?.toString();
+      if (subscriptionId == null || subscriptionId.isEmpty) {
+        throw Exception('The subscription draft was not created');
+      }
       final evidence = await _uploadEvidence(branchId);
       await feesRepository.createPaymentRequest(
         branchId,
         {
-          'subscription_id': draft['id'],
-          'amount_minor_unit': _total,
+          'subscription_id': subscriptionId,
+          'amount_minor_unit':
+              (draft['total_minor_unit'] as num?)?.toInt() ?? _total,
           'currency': _plan['currency'] ?? 'INR',
           'method': _method,
           if (_referenceController.text.trim().isNotEmpty)

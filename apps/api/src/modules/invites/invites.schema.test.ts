@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { CreateInviteSchema, CreateSubscriptionDraftSchema } from './invites.schema';
+import {
+  CreateDirectSubscriptionDraftSchema,
+  CreateInviteSchema,
+  CreateSubscriptionDraftSchema,
+} from './invites.schema';
 import { createOpaqueInviteToken, hashInviteToken } from './invites.service';
 
 describe('invite contracts and token handling', () => {
-  it('defaults invite expiry and rejects unsafe durations', () => {
-    expect(CreateInviteSchema.parse({}).expires_in_hours).toBe(24);
-    expect(() => CreateInviteSchema.parse({ expires_in_hours: 0 })).toThrow();
-    expect(() => CreateInviteSchema.parse({ expires_in_hours: 721 })).toThrow();
+  it('accepts permanent invite creation without an expiry input', () => {
+    expect(CreateInviteSchema.parse({})).toEqual({});
+    expect(() => CreateInviteSchema.parse({ expires_in_hours: 24 })).toThrow();
   });
 
   it('uses an opaque token and stores a deterministic one-way hash', () => {
@@ -23,5 +26,13 @@ describe('invite contracts and token handling', () => {
     expect(CreateSubscriptionDraftSchema.parse({ start_date: '2026-09-25T00:00:00.000Z' })).toEqual(
       { start_date: '2026-09-25T00:00:00.000Z' },
     );
+  });
+
+  it('uses the same validated start-date contract for member plan purchases', () => {
+    expect(
+      CreateDirectSubscriptionDraftSchema.parse({
+        start_date: '2026-09-25T00:00:00.000Z',
+      }),
+    ).toEqual({ start_date: '2026-09-25T00:00:00.000Z' });
   });
 });

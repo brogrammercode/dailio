@@ -1,5 +1,5 @@
-name: mobile
-description: "Gym Management Platform — Flutter mobile app"
+name: dailio
+description: "Dailio — gym management mobile app"
 publish_to: "none"
 version: 1.0.0+1
 
@@ -81,6 +81,7 @@ flutter:
     - assets/
     - .env
     - .env.example
+    - shorebird.yaml
 
 flutter_icons:
   android: "launcher_icon"

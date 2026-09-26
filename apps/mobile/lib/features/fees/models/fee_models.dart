@@ -4,6 +4,7 @@ class FeeCardModel {
   final String memberId;
   final String memberName;
   final String? memberNumber;
+  final String? avatarUrl;
   final String status;
   final String? subscriptionId;
   final String? planName;
@@ -24,6 +25,7 @@ class FeeCardModel {
     required this.memberId,
     required this.memberName,
     this.memberNumber,
+    this.avatarUrl,
     required this.status,
     this.subscriptionId,
     this.planName,
@@ -51,6 +53,7 @@ class FeeCardModel {
       memberId: member['id']?.toString() ?? '',
       memberName: member['name']?.toString() ?? 'Member',
       memberNumber: member['member_number']?.toString(),
+      avatarUrl: member['avatar_url']?.toString(),
       status: json['status']?.toString() ?? 'PENDING',
       subscriptionId: subscription?['id']?.toString(),
       planName: subscription?['plan_name']?.toString(),

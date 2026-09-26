@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth';
 import { resolveTenantContext } from '../../middleware/tenant';
-import { requirePermission } from '../../middleware/permission';
+import { requireAnyPermission, requirePermission } from '../../middleware/permission';
 import * as controller from './invites.controller';
 
 const router: Router = Router();
@@ -38,6 +38,12 @@ router.post(
   '/purchase-invites/:token/subscription-drafts',
   authenticate,
   controller.createSubscriptionDraft,
+);
+router.post(
+  '/branches/:branch_id/plans/:plan_id/subscription-drafts',
+  ...context,
+  requireAnyPermission('SUBSCRIPTION_READ_SELF', 'PAYMENT_CREATE'),
+  controller.createDirectSubscriptionDraft,
 );
 
 export default router;

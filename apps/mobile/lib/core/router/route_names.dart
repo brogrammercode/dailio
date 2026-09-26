@@ -18,6 +18,7 @@ class AppRoutes {
   static const String attendance = '/home/attendance';
   static const String attendanceDetail = '/home/attendance/:session_id';
   static const String fees = '/home/fees';
+  static const String buyPlan = '/home/fees/buy-plan';
   static const String subscriptionPurchase = '/home/fees/purchase';
   static const String subscriptionDetail = '/home/fees/:subscription_id';
   static const String branch = '/home/branch';

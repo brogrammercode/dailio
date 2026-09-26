@@ -1,4 +1,4 @@
-# Gym Management Platform
+# Dailio
 
 A multi-tenant gym management platform for owners, admins/staff, and members.
 
@@ -47,6 +47,8 @@ docker compose up -d postgres redis minio
 pnpm db:migrate
 ```
 
+For an existing database created before Prisma migration tracking was introduced, do not mark these migrations as applied before creating their tables. Execute the additive migration SQL files first, then record them with `prisma migrate resolve --applied <migration_name>`. The exact procedure is tracked in `FEE_SUBSCRIPTION_FLOW_REPORT.md`; never use `db:reset` against shared or production data.
+
 ### 5. Seed demo data
 
 ```bash
@@ -69,6 +71,27 @@ cd apps/mobile
 flutter run
 ```
 
+### 8. Shorebird releases and patches
+
+The Flutter app is initialized as `Dailio` for Shorebird code-push releases.
+On a new development machine, sign in from `apps/mobile` and verify the setup:
+
+```bash
+shorebird login
+shorebird doctor
+```
+
+The committed `apps/mobile/shorebird.yaml` identifies the Dailio Shorebird app.
+Create a store release
+with `shorebird release --platforms android` or `shorebird release --platforms ios`.
+Dart-only fixes can be delivered with
+`shorebird patch --platforms android --release-version <version>` or the
+equivalent iOS command. Native changes require a new store release.
+
+The manual GitHub Actions workflow is documented in
+[`apps/mobile/SHOREBIRD.md`](apps/mobile/SHOREBIRD.md). It requires the
+repository secret `SHOREBIRD_TOKEN` and production signing configuration.
+
 ## Project Structure
 
 ```
@@ -87,3 +110,4 @@ gym/
 
 - [Product & Engineering Context](./CONTEXT.md) — authoritative spec
 - [API Docs](http://localhost:3000/api/docs) — Swagger UI (when running)
+- [Shorebird setup](./apps/mobile/SHOREBIRD.md) — release and patch workflow

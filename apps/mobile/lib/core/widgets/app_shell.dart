@@ -1,8 +1,10 @@
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../storage/preferences_storage.dart';
 import '../../features/attendance/pages/self_attendance_page.dart';
+import '../router/route_names.dart';
 
 import '../../features/attendance/pages/attendance_page.dart';
 import '../../features/fees/pages/fees_page.dart';
@@ -40,6 +42,7 @@ class _AppShellState extends State<AppShell> {
     final preferences = context.watch<PreferencesStorage>();
     final contextKey =
         '${preferences.activeOrganizationId}:${preferences.activeBranchId}';
+    final isFeesTab = _currentIndex == 1;
     final pages = [
       AttendancePage(key: ValueKey('attendance-$contextKey')),
       FeesPage(key: ValueKey('fees-$contextKey')),
@@ -58,15 +61,24 @@ class _AppShellState extends State<AppShell> {
             bottom: 90, // Above the custom bottom nav
             right: 24,
             child: FloatingActionButton(
-              heroTag: 'self_attendance_fab',
-              backgroundColor: const Color(0xFF8D490B),
+              heroTag: isFeesTab ? 'buy_plan_fab' : 'self_attendance_fab',
+              tooltip: isFeesTab ? 'Buy plan' : 'Self attendance',
+              backgroundColor:
+                  isFeesTab ? const Color(0xFF4F46E5) : const Color(0xFF8D490B),
               foregroundColor: Colors.white,
               shape: const CircleBorder(),
               onPressed: () {
+                if (isFeesTab) {
+                  context.push(AppRoutes.buyPlan);
+                  return;
+                }
                 Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => const SelfAttendancePage()));
               },
-              child: const Icon(Iconsax.finger_scan, size: 28),
+              child: Icon(
+                isFeesTab ? Iconsax.medal_star : Iconsax.finger_scan,
+                size: 28,
+              ),
             ),
           )
         ],

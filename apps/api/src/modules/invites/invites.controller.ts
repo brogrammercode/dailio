@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ValidationError } from '../../lib/errors';
 import {
-  CreateInviteSchema,
+  CreateDirectSubscriptionDraftSchema,
   CreateSubscriptionDraftSchema,
   JoinInviteRequestSchema,
 } from './invites.schema';
@@ -25,7 +25,6 @@ export async function createBranchInvite(req: Request, res: Response, next: Next
       req.user!.id,
       req.organization!.id,
       req.branch!.id,
-      CreateInviteSchema.parse(req.body),
     );
     res.status(201).json({ data: result });
   } catch (error) {
@@ -40,7 +39,6 @@ export async function createPlanInvite(req: Request, res: Response, next: NextFu
       req.organization!.id,
       req.branch!.id,
       req.params.plan_id,
-      CreateInviteSchema.parse(req.body),
     );
     res.status(201).json({ data: result });
   } catch (error) {
@@ -77,6 +75,26 @@ export async function createSubscriptionDraft(req: Request, res: Response, next:
       token(req),
       idempotencyKey(req),
       CreateSubscriptionDraftSchema.parse(req.body),
+    );
+    res.status(201).json({ data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createDirectSubscriptionDraft(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await service.createDirectSubscriptionDraft(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      req.params.plan_id,
+      idempotencyKey(req),
+      CreateDirectSubscriptionDraftSchema.parse(req.body),
     );
     res.status(201).json({ data: result });
   } catch (error) {

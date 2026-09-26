@@ -227,7 +227,14 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
         builder: (dialogContext) => AlertDialog(
           title: Text('Plan QR • ${plan['name'] ?? 'Plan'}'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
-            QrImageView(data: invite['qr_payload'].toString(), size: 220),
+            SizedBox(
+              width: 220,
+              height: 220,
+              child: QrImageView(
+                data: invite['qr_payload'].toString(),
+                size: 220,
+              ),
+            ),
             const SizedBox(height: 12),
             Text(
                 '${plan['duration_days'] ?? 0} days • ${plan['currency'] ?? 'INR'} ${(plan['amount_minor_unit'] as num? ?? 0) / 100}',
@@ -237,8 +244,8 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                 'Admission fee: ${plan['currency'] ?? 'INR'} ${((plan['joining_fee_minor'] as num? ?? 0) / 100).toStringAsFixed(2)}',
                 style: const TextStyle(color: Colors.grey, fontSize: 12)),
             const SizedBox(height: 6),
-            Text('Expires ${invite['expires_at'] ?? 'soon'}',
-                style: const TextStyle(color: Colors.grey)),
+            const Text('Permanent QR • active until revoked',
+                style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 8),
             const Text('Regenerating revokes the previous QR.',
                 textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),

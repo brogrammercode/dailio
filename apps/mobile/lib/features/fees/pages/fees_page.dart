@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../controllers/fees_repository.dart';
 import '../models/fee_models.dart';
@@ -69,8 +71,9 @@ class _FeesPageState extends State<FeesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final branchName =
-        context.watch<PreferencesStorage>().activeBranchName ?? 'Active branch';
+    final preferences = context.watch<PreferencesStorage>();
+    final branchName = preferences.activeBranchName ?? 'Active branch';
+    final canReadAll = preferences.canReadAllFees;
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -92,21 +95,63 @@ class _FeesPageState extends State<FeesPage> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                     children: [
-                      _buildSummary(),
-                      const SizedBox(height: 16),
-                      _buildPeriodTabs(),
-                      const SizedBox(height: 12),
-                      _buildStatusTabs(),
-                      const SizedBox(height: 16),
-                      if (_visibleCards.isEmpty)
-                        const _EmptyState()
-                      else
-                        ..._visibleCards.map(_buildCard),
+                      if (canReadAll) ...[
+                        _buildSummary(),
+                        const SizedBox(height: 16),
+                        _buildPeriodTabs(),
+                        const SizedBox(height: 12),
+                        _buildStatusTabs(),
+                        const SizedBox(height: 16),
+                        if (_visibleCards.isEmpty)
+                          const _EmptyState()
+                        else
+                          ..._visibleCards.map(_buildCard),
+                      ] else ...[
+                        _buildMemberHeader(),
+                        const SizedBox(height: 16),
+                        if (_cards.isEmpty)
+                          const _EmptyState()
+                        else
+                          _buildCard(_cards.first),
+                        const SizedBox(height: 4),
+                        _buildBuyPlanButton(),
+                      ],
                     ],
                   ),
                 ),
     );
   }
+
+  Widget _buildMemberHeader() => Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.indigo.shade50,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(children: [
+          Icon(Icons.account_balance_wallet_outlined,
+              color: Colors.indigo.shade700, size: 30),
+          const SizedBox(width: 12),
+          const Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Your plan',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              SizedBox(height: 4),
+              Text('View your coverage, balance, and payment status.'),
+            ]),
+          ),
+        ]),
+      );
+
+  Widget _buildBuyPlanButton() => SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: () => context.push(AppRoutes.buyPlan),
+          icon: const Icon(Icons.add_card),
+          label: const Text('Buy a plan'),
+        ),
+      );
 
   Widget _buildSummary() {
     final counts = <String, int>{
@@ -247,6 +292,8 @@ class _FeesPageState extends State<FeesPage> {
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
+              _avatar(card),
+              const SizedBox(width: 10),
               Expanded(
                   child: Text(card.memberName,
                       style: const TextStyle(
@@ -282,7 +329,8 @@ class _FeesPageState extends State<FeesPage> {
               const Text(
                   'Paid earlier; this payment covers the selected period.',
                   style: TextStyle(fontSize: 11, color: Colors.blue)),
-            if (card.pendingRequestId != null && context.read<PreferencesStorage>().canReviewPayments) ...[
+            if (card.pendingRequestId != null &&
+                context.read<PreferencesStorage>().canReviewPayments) ...[
               const Divider(height: 18),
               Align(
                   alignment: Alignment.centerRight,
@@ -295,6 +343,22 @@ class _FeesPageState extends State<FeesPage> {
           ]),
         ),
       ),
+    );
+  }
+
+  Widget _avatar(FeeCardModel card) {
+    final image = card.avatarUrl;
+    return CircleAvatar(
+      radius: 21,
+      backgroundColor: Colors.indigo.shade100,
+      backgroundImage:
+          image == null || image.isEmpty ? null : NetworkImage(image),
+      child: image == null || image.isEmpty
+          ? Text(
+              card.memberName.isEmpty ? '?' : card.memberName[0].toUpperCase(),
+              style: TextStyle(
+                  color: Colors.indigo.shade800, fontWeight: FontWeight.bold))
+          : null,
     );
   }
 
@@ -329,11 +393,21 @@ class _FeesPageState extends State<FeesPage> {
       reason = await showDialog<String>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: Text(action == 'reject' ? 'Rejection reason' : 'What information is needed?'),
-          content: TextField(controller: controller, maxLines: 3, decoration: const InputDecoration(hintText: 'Enter a reason')),
+          title: Text(action == 'reject'
+              ? 'Rejection reason'
+              : 'What information is needed?'),
+          content: TextField(
+              controller: controller,
+              maxLines: 3,
+              decoration: const InputDecoration(hintText: 'Enter a reason')),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, controller.text.trim()), child: const Text('Continue')),
+            TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel')),
+            FilledButton(
+                onPressed: () =>
+                    Navigator.pop(dialogContext, controller.text.trim()),
+                child: const Text('Continue')),
           ],
         ),
       );
@@ -341,7 +415,8 @@ class _FeesPageState extends State<FeesPage> {
       if (reason == null || reason.isEmpty || !mounted) return;
     }
     try {
-      await _repository.reviewPaymentRequest(branchId, requestId, action, reason: reason);
+      await _repository.reviewPaymentRequest(branchId, requestId, action,
+          reason: reason);
       await _load();
     } catch (error) {
       if (mounted) {

@@ -573,7 +573,7 @@ model InviteToken {
   plan_id         String?
   purpose         InvitePurpose
   token_hash      String        @unique
-  expires_at      DateTime
+  expires_at      DateTime?
   revoked_at      DateTime?
   created_by      String
   created_at      DateTime      @default(now())

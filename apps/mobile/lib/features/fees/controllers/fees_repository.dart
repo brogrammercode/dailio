@@ -102,8 +102,8 @@ class FeesRepository {
     return Map<String, dynamic>.from(response.data['data'] as Map);
   }
 
-  Future<Map<String, dynamic>> transitionSubscription(
-      String branchId, String subscriptionId, String action, String reason) async {
+  Future<Map<String, dynamic>> transitionSubscription(String branchId,
+      String subscriptionId, String action, String reason) async {
     final response = await apiClient.dio.post(
       '/branches/$branchId/subscriptions/$subscriptionId/$action',
       data: {'reason': reason},

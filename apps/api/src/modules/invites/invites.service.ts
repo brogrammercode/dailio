@@ -5,7 +5,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { ConflictError, ForbiddenError, NotFoundError, UnprocessableError } from '../../lib/errors';
 import type {
-  CreateInviteInput,
+  CreateDirectSubscriptionDraftInput,
   CreateSubscriptionDraftInput,
   JoinInviteRequestInput,
 } from './invites.schema';
@@ -50,7 +50,7 @@ function inviteResponse(invite: any, rawToken?: string) {
       : null,
     expires_at: invite.expires_at,
     revoked_at: invite.revoked_at,
-    active: !invite.revoked_at && invite.expires_at > new Date(),
+    active: !invite.revoked_at,
     ...(rawToken ? { token: rawToken, qr_payload: qrPayload(rawToken) } : {}),
   };
 }
@@ -80,10 +80,8 @@ async function createInvite(
   branchId: string,
   purpose: 'BRANCH_JOIN' | 'PLAN_PURCHASE',
   planId: string | null,
-  data: CreateInviteInput,
 ) {
   const rawToken = createOpaqueInviteToken();
-  const expiresAt = new Date(Date.now() + data.expires_in_hours * 60 * 60 * 1000);
   const invite = await prisma.$transaction(async (tx) => {
     const branch = await tx.branch.findFirst({
       where: { id: branchId, organization_id: organizationId, status: 'ACTIVE' },
@@ -121,7 +119,7 @@ async function createInvite(
         plan_id: planId,
         purpose,
         token_hash: hashInviteToken(rawToken),
-        expires_at: expiresAt,
+        expires_at: null,
         created_by: actorId,
       },
       include: inviteInclude,
@@ -135,7 +133,7 @@ async function createInvite(
         action: 'CREATE',
         target_type: 'InviteToken',
         target_id: created.id,
-        after_state: { purpose, expires_at: expiresAt, plan_id: planId },
+        after_state: { purpose, permanent: true, plan_id: planId },
       },
     });
     return created;
@@ -143,13 +141,8 @@ async function createInvite(
   return inviteResponse(invite, rawToken);
 }
 
-export function createBranchInvite(
-  actorId: string,
-  organizationId: string,
-  branchId: string,
-  data: CreateInviteInput,
-) {
-  return createInvite(actorId, organizationId, branchId, 'BRANCH_JOIN', null, data);
+export function createBranchInvite(actorId: string, organizationId: string, branchId: string) {
+  return createInvite(actorId, organizationId, branchId, 'BRANCH_JOIN', null);
 }
 
 export function createPlanInvite(
@@ -157,9 +150,8 @@ export function createPlanInvite(
   organizationId: string,
   branchId: string,
   planId: string,
-  data: CreateInviteInput,
 ) {
-  return createInvite(actorId, organizationId, branchId, 'PLAN_PURCHASE', planId, data);
+  return createInvite(actorId, organizationId, branchId, 'PLAN_PURCHASE', planId);
 }
 
 async function findActiveInvite(rawToken: string) {
@@ -167,7 +159,7 @@ async function findActiveInvite(rawToken: string) {
     where: { token_hash: hashInviteToken(rawToken) },
     include: inviteInclude,
   });
-  if (!invite || invite.revoked_at || invite.expires_at <= new Date()) {
+  if (!invite || invite.revoked_at) {
     throw new NotFoundError('Invite');
   }
   if (invite.branch.status !== 'ACTIVE') throw new ConflictError('Branch is not available');
@@ -380,7 +372,167 @@ export async function createSubscriptionDraftFromInvite(
       });
       return subscription;
     },
-    { isolationLevel: 'Serializable' },
+    {
+      isolationLevel: 'Serializable',
+      maxWait: 10_000,
+      timeout: 30_000,
+    },
+  );
+}
+
+export async function createDirectSubscriptionDraft(
+  userId: string,
+  organizationId: string,
+  branchId: string,
+  planId: string,
+  idempotencyKey: string,
+  data: CreateDirectSubscriptionDraftInput,
+) {
+  const startDate = new Date(data.start_date);
+  if (Number.isNaN(startDate.valueOf()))
+    throw new UnprocessableError('Subscription start date is invalid');
+
+  return prisma.$transaction(
+    async (tx) => {
+      const member = await tx.member.findFirst({
+        where: {
+          user_id: userId,
+          organization_id: organizationId,
+          branch_id: branchId,
+          status: 'ACTIVE',
+        },
+      });
+      if (!member) throw new ForbiddenError('An active membership in this branch is required');
+
+      const existing = await tx.subscription.findUnique({
+        where: { idempotency_key: idempotencyKey },
+      });
+      if (existing) {
+        if (
+          existing.organization_id !== organizationId ||
+          existing.branch_id !== branchId ||
+          existing.member_id !== member.id
+        ) {
+          throw new ConflictError('Idempotency key is already used for another subscription');
+        }
+        const existingPlan = await tx.plan.findUnique({ where: { id: existing.plan_id } });
+        return {
+          subscription: existing,
+          plan: existingPlan,
+          total_minor_unit: existingPlan
+            ? existingPlan.amount_minor_unit +
+              existingPlan.joining_fee_minor -
+              Math.round(
+                ((existingPlan.amount_minor_unit + existingPlan.joining_fee_minor) *
+                  existingPlan.discount_percent) /
+                  100,
+              )
+            : existing.agreed_amount_minor - existing.discount_minor,
+        };
+      }
+
+      const plan = await tx.plan.findFirst({
+        where: {
+          id: planId,
+          organization_id: organizationId,
+          is_active: true,
+          OR: [{ branch_id: branchId }, { branch_id: null }],
+        },
+      });
+      if (!plan) throw new NotFoundError('Active plan');
+
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + plan.duration_days);
+      const discount = Math.round(
+        ((plan.amount_minor_unit + plan.joining_fee_minor) * plan.discount_percent) / 100,
+      );
+      const overlap = await tx.subscription.findFirst({
+        where: {
+          organization_id: organizationId,
+          branch_id: branchId,
+          member_id: member.id,
+          status: { in: ['DRAFT', 'UPCOMING', 'ACTIVE', 'PAUSED'] },
+          start_date: { lte: endDate },
+          end_date: { gte: startDate },
+        },
+      });
+      if (overlap) throw new ConflictError('Member already has an overlapping subscription');
+
+      const subscription = await tx.subscription.create({
+        data: {
+          id: ulid(),
+          organization_id: organizationId,
+          branch_id: branchId,
+          member_id: member.id,
+          plan_id: plan.id,
+          plan_snapshot: plan as Prisma.InputJsonValue,
+          status: 'DRAFT',
+          start_date: startDate,
+          end_date: endDate,
+          agreed_amount_minor: plan.amount_minor_unit,
+          discount_minor: discount,
+          currency: plan.currency,
+          created_by: userId,
+          due_date: endDate,
+          idempotency_key: idempotencyKey,
+        },
+      });
+      const charge = plan.amount_minor_unit + plan.joining_fee_minor;
+      await tx.ledgerEntry.create({
+        data: {
+          id: ulid(),
+          organization_id: organizationId,
+          branch_id: branchId,
+          member_id: member.id,
+          subscription_id: subscription.id,
+          category: 'SUBSCRIPTION_CHARGE',
+          amount_minor_unit: charge,
+          currency: plan.currency,
+          description: `Subscription charge: ${plan.name}`,
+          created_by: userId,
+          idempotency_key: `subscription-charge:${subscription.id}`,
+        },
+      });
+      if (discount > 0) {
+        await tx.ledgerEntry.create({
+          data: {
+            id: ulid(),
+            organization_id: organizationId,
+            branch_id: branchId,
+            member_id: member.id,
+            subscription_id: subscription.id,
+            category: 'DISCOUNT_CREDIT',
+            amount_minor_unit: -discount,
+            currency: plan.currency,
+            description: `Discount: ${plan.name}`,
+            created_by: userId,
+            idempotency_key: `subscription-discount:${subscription.id}`,
+          },
+        });
+      }
+      await tx.member.update({
+        where: { id: member.id },
+        data: { subscription_id: subscription.id },
+      });
+      await tx.auditLog.create({
+        data: {
+          id: ulid(),
+          organization_id: organizationId,
+          branch_id: branchId,
+          actor_id: userId,
+          action: 'CREATE',
+          target_type: 'Subscription',
+          target_id: subscription.id,
+          after_state: { status: 'DRAFT', plan_id: plan.id, source: 'MEMBER_PLAN_PURCHASE' },
+        },
+      });
+      return { subscription, plan, total_minor_unit: charge - discount };
+    },
+    {
+      isolationLevel: 'Serializable',
+      maxWait: 10_000,
+      timeout: 30_000,
+    },
   );
 }
 

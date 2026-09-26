@@ -105,6 +105,10 @@ class _MemberSubscriptionDetailPageState
               child: Text('No active subscription found.')));
     }
     final plan = (data['plan'] as Map?)?.cast<String, dynamic>();
+    final member = (data['member'] as Map?)?.cast<String, dynamic>();
+    final user = (member?['user'] as Map?)?.cast<String, dynamic>();
+    final avatarUrl = user?['avatar_url']?.toString();
+    final memberName = user?['name']?.toString() ?? 'Member';
     final entries =
         (data['ledger_entries'] as List?)?.cast<Map>() ?? const <Map>[];
     final start = _date(data['start_date']);
@@ -115,6 +119,22 @@ class _MemberSubscriptionDetailPageState
         (sum, entry) =>
             sum + ((entry['amount_minor_unit'] as num?)?.toInt() ?? 0));
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        CircleAvatar(
+          radius: 24,
+          backgroundColor: Colors.indigo.shade100,
+          backgroundImage: avatarUrl == null || avatarUrl.isEmpty
+              ? null
+              : NetworkImage(avatarUrl),
+          child: avatarUrl == null || avatarUrl.isEmpty
+              ? Text(memberName.isEmpty ? '?' : memberName[0].toUpperCase())
+              : null,
+        ),
+        const SizedBox(width: 12),
+        Text(memberName,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      ]),
+      const SizedBox(height: 14),
       _section(
           'Plan',
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

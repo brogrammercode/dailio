@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:mobile/features/fees/models/fee_models.dart';
-import 'package:mobile/features/fees/models/financial_models.dart';
+import 'package:dailio/features/fees/models/fee_models.dart';
+import 'package:dailio/features/fees/models/financial_models.dart';
 
 void main() {
   test('fee card round-trips server financial fields', () {

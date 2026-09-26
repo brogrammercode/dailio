@@ -155,97 +155,104 @@ export async function createPaymentRequest(
     return existing;
   }
 
-  return prisma.$transaction(async (tx) => {
-    const member = await tx.member.findFirst({
-      where: {
-        user_id: actorId,
-        organization_id: organizationId,
-        branch_id: branchId,
-        status: 'ACTIVE',
-      },
-    });
-    if (!member)
-      throw new ForbiddenError('Only an active branch member can submit a payment request');
+  return prisma.$transaction(
+    async (tx) => {
+      const member = await tx.member.findFirst({
+        where: {
+          user_id: actorId,
+          organization_id: organizationId,
+          branch_id: branchId,
+          status: 'ACTIVE',
+        },
+      });
+      if (!member)
+        throw new ForbiddenError('Only an active branch member can submit a payment request');
 
-    const subscription = await tx.subscription.findFirst({
-      where: {
-        id: data.subscription_id,
-        organization_id: organizationId,
-        branch_id: branchId,
-        member_id: member.id,
-        status: { in: ['DRAFT', 'UPCOMING', 'ACTIVE', 'PAUSED', 'EXPIRED'] },
-      },
-      include: { plan: true },
-    });
-    if (!subscription) throw new NotFoundError('Subscription');
-    if (subscription.currency !== data.currency)
-      throw new UnprocessableError('Payment currency does not match the subscription');
-    if (data.method !== 'GATEWAY' && data.evidence.length === 0 && !data.reference) {
-      throw new UnprocessableError('Payment evidence or a payment reference is required');
-    }
-    for (const evidence of data.evidence) {
-      if (!/^(image\/(jpeg|png|webp)|application\/pdf)$/i.test(evidence.content_type)) {
-        throw new UnprocessableError('Payment evidence must be a JPEG, PNG, WebP, or PDF file');
+      const subscription = await tx.subscription.findFirst({
+        where: {
+          id: data.subscription_id,
+          organization_id: organizationId,
+          branch_id: branchId,
+          member_id: member.id,
+          status: { in: ['DRAFT', 'UPCOMING', 'ACTIVE', 'PAUSED', 'EXPIRED'] },
+        },
+        include: { plan: true },
+      });
+      if (!subscription) throw new NotFoundError('Subscription');
+      if (subscription.currency !== data.currency)
+        throw new UnprocessableError('Payment currency does not match the subscription');
+      if (data.method !== 'GATEWAY' && data.evidence.length === 0 && !data.reference) {
+        throw new UnprocessableError('Payment evidence or a payment reference is required');
       }
-      if (!evidence.storage_key.startsWith(`organizations/${organizationId}/payment-evidence/`)) {
-        throw new UnprocessableError(
-          'Payment evidence must use a private organization storage key',
-        );
+      for (const evidence of data.evidence) {
+        if (!/^(image\/(jpeg|png|webp)|application\/pdf)$/i.test(evidence.content_type)) {
+          throw new UnprocessableError('Payment evidence must be a JPEG, PNG, WebP, or PDF file');
+        }
+        if (!evidence.storage_key.startsWith(`organizations/${organizationId}/payment-evidence/`)) {
+          throw new UnprocessableError(
+            'Payment evidence must use a private organization storage key',
+          );
+        }
       }
-    }
 
-    const { balance } = await getMemberBalance(
-      tx,
-      organizationId,
-      branchId,
-      member.id,
-      subscription.id,
-    );
-    if (data.amount_minor_unit > balance)
-      throw new UnprocessableError('Payment exceeds the outstanding subscription balance');
+      const { balance } = await getMemberBalance(
+        tx,
+        organizationId,
+        branchId,
+        member.id,
+        subscription.id,
+      );
+      if (data.amount_minor_unit > balance)
+        throw new UnprocessableError('Payment exceeds the outstanding subscription balance');
 
-    const request = await tx.paymentRequest.create({
-      data: {
-        id: ulid(),
-        organization_id: organizationId,
-        branch_id: branchId,
-        member_id: member.id,
-        subscription_id: subscription.id,
-        amount_minor_unit: data.amount_minor_unit,
-        currency: data.currency,
-        method: data.method,
-        reference: data.reference,
-        note: data.note,
-        idempotency_key: idempotencyKey,
-        evidence: data.evidence.length
-          ? {
-              create: data.evidence.map((item) => ({
-                id: ulid(),
-                organization_id: organizationId,
-                branch_id: branchId,
-                uploaded_by: actorId,
-                ...item,
-              })),
-            }
-          : undefined,
-      },
-      include: { evidence: true, subscription: { include: { plan: true } } },
-    });
+      const request = await tx.paymentRequest.create({
+        data: {
+          id: ulid(),
+          organization_id: organizationId,
+          branch_id: branchId,
+          member_id: member.id,
+          subscription_id: subscription.id,
+          amount_minor_unit: data.amount_minor_unit,
+          currency: data.currency,
+          method: data.method,
+          reference: data.reference,
+          note: data.note,
+          idempotency_key: idempotencyKey,
+          evidence: data.evidence.length
+            ? {
+                create: data.evidence.map((item) => ({
+                  id: ulid(),
+                  organization_id: organizationId,
+                  branch_id: branchId,
+                  uploaded_by: actorId,
+                  ...item,
+                })),
+              }
+            : undefined,
+        },
+        include: { evidence: true, subscription: { include: { plan: true } } },
+      });
 
-    await tx.auditLog.create({
-      data: {
-        id: ulid(),
-        organization_id: organizationId,
-        branch_id: branchId,
-        actor_id: actorId,
-        action: 'CREATE',
-        target_type: 'PaymentRequest',
-        target_id: request.id,
-        after_state: { status: request.status, amount_minor_unit: request.amount_minor_unit },
-      },
-    });
-    return request;
-  });
+      await tx.auditLog.create({
+        data: {
+          id: ulid(),
+          organization_id: organizationId,
+          branch_id: branchId,
+          actor_id: actorId,
+          action: 'CREATE',
+          target_type: 'PaymentRequest',
+          target_id: request.id,
+          after_state: { status: request.status, amount_minor_unit: request.amount_minor_unit },
+        },
+      });
+      return request;
+    },
+    {
+      isolationLevel: 'Serializable',
+      maxWait: 10_000,
+      timeout: 30_000,
+    },
+  );
 }
 
 export async function listPaymentRequests(
@@ -449,7 +456,11 @@ export async function reviewPaymentRequest(
       });
       return updated;
     },
-    { isolationLevel: 'Serializable' },
+    {
+      isolationLevel: 'Serializable',
+      maxWait: 10_000,
+      timeout: 30_000,
+    },
   );
 }
 
@@ -514,7 +525,11 @@ export async function correctPayment(
       });
       return entry;
     },
-    { isolationLevel: 'Serializable' },
+    {
+      isolationLevel: 'Serializable',
+      maxWait: 10_000,
+      timeout: 30_000,
+    },
   );
 }
 
@@ -673,7 +688,12 @@ export async function listFees(
         warningDays,
       });
       return {
-        member: { id: member.id, name: member.user.name, member_number: member.member_number },
+        member: {
+          id: member.id,
+          name: member.user.name,
+          member_number: member.member_number,
+          avatar_url: member.user.avatar_url,
+        },
         subscription: subscription
           ? {
               id: subscription.id,

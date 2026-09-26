@@ -863,7 +863,7 @@ class _EditBranchPageState extends State<EditBranchPage> {
       icon: Iconsax.scan_barcode,
       children: [
         const Text(
-          'Create a short-lived invite QR. Members scan it to preview this branch and send a fast join request.',
+          'Create a permanent invite QR. Members can scan it to preview this branch and send a fast join request.',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 24),
@@ -893,15 +893,19 @@ class _EditBranchPageState extends State<EditBranchPage> {
         builder: (dialogContext) => AlertDialog(
           title: Text('Join QR • ${_branch?['name'] ?? 'Branch'}'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
-            QrImageView(data: payload, size: 220),
+            SizedBox(
+              width: 220,
+              height: 220,
+              child: QrImageView(data: payload, size: 220),
+            ),
             const SizedBox(height: 12),
             Text(
                 '${invite['organization']?['name'] ?? 'Organization'} • ${_branch?['name'] ?? 'Branch'}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-            Text('Expires ${invite['expires_at'] ?? 'soon'}',
-                style: const TextStyle(color: Colors.grey)),
+            const Text('Permanent QR • active until revoked',
+                style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 8),
             const Text('Regenerate this QR to revoke the previous one.',
                 textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),

@@ -35,6 +35,11 @@ class AuthCubit extends Cubit<AuthState> {
         serverClientId: dotenv.env['GOOGLE_SERVER_CLIENT_ID'],
       );
 
+      // Google Sign-In otherwise restores the last selected account without
+      // showing the account chooser. Sign out only from the Google picker so
+      // every login attempt can intentionally choose a different account.
+      // This does not sign the user out of Dailio or revoke Google access.
+      await googleSignIn.signOut();
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         emit(const AuthUnauthenticated()); // User canceled

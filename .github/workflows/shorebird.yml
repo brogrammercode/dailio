@@ -1,0 +1,70 @@
+name: Dailio Shorebird release or patch
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Shorebird operation to run
+        required: true
+        type: choice
+        options:
+          - release
+          - patch
+      platform:
+        description: Target platform
+        required: true
+        type: choice
+        options:
+          - android
+          - ios
+      release_version:
+        description: Existing version to patch, for example 1.0.0+1 (patch only)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  shorebird:
+    name: Shorebird ${{ inputs.operation }} (${{ inputs.platform }})
+    runs-on: ${{ inputs.platform == 'ios' && 'macos-latest' || 'ubuntu-latest' }}
+    env:
+      SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
+      SHOREBIRD_PLATFORM: ${{ inputs.platform }}
+      PATCH_RELEASE_VERSION: ${{ inputs.release_version }}
+
+    defaults:
+      run:
+        working-directory: apps/mobile
+
+    steps:
+      - name: Check Shorebird token
+        run: test -n "$SHOREBIRD_TOKEN"
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Shorebird
+        uses: shorebirdtech/setup-shorebird@v1
+        with:
+          cache: true
+
+      - name: Set up Java
+        if: inputs.platform == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Validate patch version
+        if: inputs.operation == 'patch'
+        run: test -n "$PATCH_RELEASE_VERSION"
+
+      - name: Create Shorebird release
+        if: inputs.operation == 'release'
+        run: shorebird release --platforms "$SHOREBIRD_PLATFORM"
+
+      - name: Create Shorebird patch
+        if: inputs.operation == 'patch'
+        run: shorebird patch --platforms "$SHOREBIRD_PLATFORM" --release-version "$PATCH_RELEASE_VERSION"

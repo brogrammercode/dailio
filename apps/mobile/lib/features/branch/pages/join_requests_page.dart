@@ -1,6 +1,9 @@
-import 'package:iconsax/iconsax.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:iconsax/iconsax.dart';
+
+import '../../../core/storage/preferences_storage.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/admission_repository.dart';
 import '../models/join_request_model.dart';
@@ -16,6 +19,7 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
   late final AdmissionRepository _repository;
   List<JoinRequestModel> _requests = [];
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -25,29 +29,32 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
   }
 
   Future<void> _loadRequests() async {
+    final branchId = context.read<PreferencesStorage>().activeBranchId;
+    if (branchId == null || branchId.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _requests = [];
+        _errorMessage = 'Select an active branch to view join requests.';
+      });
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
-      // Hardcode location check if we don't have context, but realistically this comes from tenant interceptor context
-      // For now we'll fetch for the currently selected location. The backend uses req.location.id when we call this!
-      // Wait, the API requires the locationId in the URL: /locations/:location_id/join-requests
-      // We will need the active location. Let's pull it from Auth/Context state if possible.
-      // But actually, we can just pass 'active' or the real ID if we have it.
-      // For the sake of this implementation, let's assume the router or a context provider gives us the active locationId.
-      // We will leave it as 'active' and ensure backend supports 'active' keyword, OR we get it from local storage.
-      // Wait, let's see how tenant interceptor works. The tenant interceptor already injects the X-Location-Id header.
-      // So the URL just needs the ID. We can retrieve it from preferences.
-      // Actually, since I must pass it in the URL, let's get it.
-      // For now, let's assume we can fetch it, or the API route can be modified to use `req.location.id` directly without URL param.
-      // Actually, the API route is `/locations/:location_id/join-requests`.
-      // Let's modify the repository to take locationId.
-      // Where do we get locationId? We'll leave a placeholder or 'current'.
-
-      final results = await _repository.getPendingRequests('current');
-      setState(() => _requests = results);
-    } catch (e) {
+      final results = await _repository.getPendingRequests(branchId);
+      if (!mounted) return;
+      setState(() {
+        _requests = results;
+        _errorMessage = null;
+      });
+    } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        setState(() {
+          _errorMessage = error is DioException &&
+                  error.response?.statusCode == 403
+              ? 'You do not have permission to view join requests for this branch.'
+              : 'We could not load join requests. Please try again.';
+        });
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -55,17 +62,28 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
   }
 
   Future<void> _handleAction(String requestId, bool approve) async {
+    final branchId = context.read<PreferencesStorage>().activeBranchId;
+    if (branchId == null || branchId.isEmpty) return;
+
     try {
       if (approve) {
-        await _repository.approveRequest('current', requestId);
+        await _repository.approveRequest(branchId, requestId);
       } else {
-        await _repository.rejectRequest('current', requestId);
+        await _repository.rejectRequest(branchId, requestId);
       }
-      _loadRequests();
-    } catch (e) {
+      await _loadRequests();
+    } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              error is DioException && error.response?.statusCode == 403
+                  ? 'You do not have permission to update this request.'
+                  : 'We could not update this request. Please try again.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
@@ -76,33 +94,125 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
       appBar: AppBar(title: const Text('Join Requests')),
       body: _isLoading
           ? ShimmerLoader.list()
-          : _requests.isEmpty
-              ? const Center(child: Text('No pending requests.'))
-              : ListView.builder(
-                  itemCount: _requests.length,
-                  itemBuilder: (context, index) {
-                    final req = _requests[index];
-                    return ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.person)),
-                      title: Text(req.user?.name ?? 'Unknown User'),
-                      subtitle: Text(req.user?.email ?? ''),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.close, color: Colors.red),
-                            onPressed: () => _handleAction(req.id, false),
-                          ),
-                          IconButton(
-                            icon: const Icon(Iconsax.tick_circle,
-                                color: Colors.green),
-                            onPressed: () => _handleAction(req.id, true),
-                          ),
+          : _errorMessage != null
+              ? _ErrorState(
+                  message: _errorMessage!,
+                  onRetry: _loadRequests,
+                )
+              : _requests.isEmpty
+                  ? RefreshIndicator(
+                      onRefresh: _loadRequests,
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: const [
+                          SizedBox(height: 180),
+                          _EmptyJoinRequestsState(),
                         ],
                       ),
-                    );
-                  },
-                ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _loadRequests,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: _requests.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final req = _requests[index];
+                          final displayName = req.user?.name.trim() ?? '';
+                          final initial = displayName.isEmpty
+                              ? 'U'
+                              : displayName.substring(0, 1).toUpperCase();
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 6,
+                            ),
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFFFFF7ED),
+                              foregroundColor: const Color(0xFFB45309),
+                              child: Text(initial),
+                            ),
+                            title: Text(
+                              req.user?.name ?? 'Unknown User',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            subtitle:
+                                Text(req.user?.email ?? 'No email available'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  tooltip: 'Reject request',
+                                  icon: const Icon(Icons.close,
+                                      color: Colors.red),
+                                  onPressed: () => _handleAction(req.id, false),
+                                ),
+                                IconButton(
+                                  tooltip: 'Approve request',
+                                  icon: const Icon(Iconsax.tick_circle,
+                                      color: Colors.green),
+                                  onPressed: () => _handleAction(req.id, true),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+    );
+  }
+}
+
+class _EmptyJoinRequestsState extends StatelessWidget {
+  const _EmptyJoinRequestsState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(Icons.group_outlined, size: 52, color: Colors.grey.shade400),
+        const SizedBox(height: 12),
+        const Text(
+          'No pending requests',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'New member requests will appear here.',
+          style: TextStyle(color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, size: 48, color: Colors.grey.shade500),
+            const SizedBox(height: 14),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try again'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

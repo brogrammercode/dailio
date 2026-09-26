@@ -40,12 +40,14 @@ Thumbs.db
 **/*.mocks.dart
 **/*.config.dart
 **/pubspec.lock
+!apps/mobile/pubspec.lock
 **/build/
 
 # Prisma
 **/prisma/migrations/*/migration.sql
 !apps/api/prisma/migrations/20260924120000_track_a_financial_foundation/migration.sql
 !apps/api/prisma/migrations/20260925100000_track_b_invite_tokens/migration.sql
+!apps/api/prisma/migrations/20260925130000_permanent_qr_invites/migration.sql
 
 # Docker volumes
 .postgres-data/
