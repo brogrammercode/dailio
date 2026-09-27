@@ -2,10 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 
 import { ForbiddenError, NotFoundError, UnauthorizedError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
-import {
-  getMemberForUser,
-  resolveEffectivePermissions,
-} from '../modules/authorization/authorization.service';
+import { permissionsForMember } from '../modules/authorization/authorization.service';
 
 /**
  * Resolves and validates the organization + branch context from request headers.
@@ -34,17 +31,38 @@ export async function resolveTenantContext(
       throw new ForbiddenError('Branch route does not match the active branch');
     }
 
-    const organization = await prisma.organization.findUnique({ where: { id: organization_id } });
+    // These lookups are independent. Keeping them in one round-trip group is
+    // important for hosted Postgres connections, where each query can have
+    // noticeable connection/network latency.
+    const [organization, branch] = await Promise.all([
+      prisma.organization.findUnique({ where: { id: organization_id } }),
+      prisma.branch.findUnique({ where: { id: branch_id, organization_id } }),
+    ]);
     if (!organization || organization.status === 'ARCHIVED')
       throw new NotFoundError('Organization');
-
-    const branch = await prisma.branch.findUnique({ where: { id: branch_id, organization_id } });
     if (!branch || branch.status === 'ARCHIVED') throw new NotFoundError('Branch');
 
-    const member = await getMemberForUser(req.user.id, organization_id, branch_id);
+    // Resolve the caller and their roles in one scoped query. This avoids a
+    // second member read just to calculate permissions, which is significant
+    // on hosted Postgres connections with non-trivial round-trip latency.
+    const member = await prisma.member.findFirst({
+      where: { organization_id, branch_id, user_id: req.user.id, status: 'ACTIVE' },
+      include: {
+        role: true,
+        role_assignments: {
+          where: {
+            organization_id,
+            branch_id,
+            effective_from: { lte: new Date() },
+            OR: [{ effective_to: null }, { effective_to: { gt: new Date() } }],
+          },
+          orderBy: [{ priority: 'asc' }, { effective_from: 'desc' }, { id: 'asc' }],
+          include: { role: true },
+        },
+      },
+    });
     if (!member) throw new ForbiddenError('No active membership in this branch');
-
-    const permissions = await resolveEffectivePermissions(req.user.id, organization_id, branch_id);
+    const permissions = permissionsForMember(member);
 
     req.organization = organization;
     req.branch = branch;

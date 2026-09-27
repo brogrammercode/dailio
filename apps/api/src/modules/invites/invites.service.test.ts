@@ -161,9 +161,7 @@ describe('permanent gate QR idempotency', () => {
 
     expect(result.attendance_action).toBe('ATTENDANCE_DISABLED');
     expect(result.attendance_available).toBe(false);
-    expect(result.attendance_policy).toEqual(
-      expect.objectContaining({ punch_required: false }),
-    );
+    expect(result.attendance_policy).toEqual(expect.objectContaining({ punch_required: false }));
   });
 
   it('keeps clock-out available for an existing open session after a disabled policy snapshot', async () => {

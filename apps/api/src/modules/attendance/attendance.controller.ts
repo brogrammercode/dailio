@@ -112,6 +112,10 @@ export async function listSessionsHandler(req: Request, res: Response, next: Nex
       req.branch!.id,
       query,
       permissions,
+      {
+        branch: { timezone: req.branch!.timezone, week_start: req.branch!.week_start },
+        actor_member_id: req.member?.id,
+      },
     );
     res.json({
       data: result.data,

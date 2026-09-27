@@ -25,7 +25,7 @@ describe('notification privacy and idempotent read actions', () => {
     );
   });
 
-  it('does not allow marking another user\'s notification as read', async () => {
+  it("does not allow marking another user's notification as read", async () => {
     prismaMock.notification.updateMany.mockResolvedValue({ count: 0 });
     prismaMock.notification.findFirst.mockResolvedValue(null);
 

@@ -57,8 +57,9 @@ every future page. New pages should not introduce a separate visual language.
 
 - Use a white page with a compact **Dailio** app bar and a horizontal ellipsis
   menu for secondary actions.
-- Keep every primary and secondary tab strip left-aligned. Scrollable tabs must
-  start from the same 16 px content edge; never center a tab row.
+- Keep every primary and secondary tab strip left-aligned from the same 16 px
+  content edge; the only approved exception is the centered period strip inside
+  Self Attendance → Attendance Record.
 - Give the first list tile a 12 px top inset and keep 8 px of vertical space
   between subsequent tiles.
 - Use compact, mostly flat rows: avatar or circular icon on the left, one-line
@@ -300,19 +301,25 @@ The list card must remain compact. Do not render the complete server timeline in
 
 #### Today tab content order
 
-1. Live branch-local clock card.
-2. Effective attendance policy card.
-3. Current open session card, if present.
-4. Server submission status card, when applicable.
-5. Main Clock in/Clock out button.
-6. Scan branch gate QR button.
+1. Large branch-local time and date.
+2. Concentric-ring action control that alternates between direct Clock in/Clock
+   out and Scan QR code every five seconds.
+3. Three compact metrics: Check in, Check out, and Total hrs.
+4. Compact policy-parameter row showing the evidence and grace rules applied.
+5. Live timeline when a session is ongoing.
+6. Server submission status immediately below the action control, when
+   applicable.
 
 **Clock card:**
 
-- Branch-local date.
-- Large but restrained time.
+- Branch-local date and time are authoritative display values.
 - “Server-synchronized clock” when server time is available.
 - Clear note that the server confirms every punch.
+
+The action control is intentionally illustrative but data-oriented: thin
+concentric rings surround one circular action surface. The direct-punch and QR
+states transition automatically, but each state has a distinct action and
+permission/evidence behavior.
 
 **Policy card:**
 
@@ -342,7 +349,7 @@ The list card must remain compact. Do not render the complete server timeline in
 
 #### Attendance record tab
 
-- Period chips: Today, Yesterday, This week, This month, This year, Custom.
+- Centered period tabs: Today, Yesterday, This week, This month, This year.
 - History rows show date, clock-in/out, duration, and open/closed marker.
 - Tapping a row opens Attendance Detail.
 

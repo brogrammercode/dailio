@@ -12,7 +12,9 @@ import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/utils/branch_time.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_compact_tile.dart';
 import '../../../core/widgets/dailio_tab_strip.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/attendance_repository.dart';
 import '../models/attendance_models.dart';
 import '../attendance_error.dart';
@@ -39,12 +41,12 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
   bool _actionLoading = false;
   String? _error;
   Timer? _timer;
+  Timer? _actionPromptTimer;
   DateTime _clock = DateTime.now();
   String? _punchIdempotencyKey;
   String? _punchStatus;
   String _historyPeriod = 'this_month';
-  DateTime? _customFrom;
-  DateTime? _customTo;
+  bool _showQrAction = false;
 
   @override
   void initState() {
@@ -57,12 +59,18 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _clock = _repository.serverNow);
     });
+    _actionPromptTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted && !_actionLoading) {
+        setState(() => _showQrAction = !_showQrAction);
+      }
+    });
     _load();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _actionPromptTimer?.cancel();
     _tabs.dispose();
     super.dispose();
   }
@@ -87,8 +95,6 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         _repository.getSessions(
           branchId,
           _historyPeriod,
-          dateFrom: _customFrom == null ? null : _dateOnly(_customFrom!),
-          dateTo: _customTo == null ? null : _dateOnly(_customTo!),
         ),
       ]);
       if (!mounted) return;
@@ -259,8 +265,6 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
           children: [
             Text('Dailio',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Text('Self attendance',
-                style: TextStyle(fontSize: 11, color: AttendanceUi.muted)),
           ],
         ),
         actions: [
@@ -294,7 +298,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? ShimmerLoader.compactList()
           : _error != null
               ? _errorView()
               : TabBarView(
@@ -328,19 +332,230 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
       onRefresh: _load,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
-          _clockCard(),
-          const SizedBox(height: 12),
-          _policyCard(),
-          const SizedBox(height: 12),
-          _sessionCard(_activeSession, open: open),
+          const SizedBox(height: 32),
+          _actionCard(open: open, attendanceEnabled: attendanceEnabled),
           if (_punchStatus != null) ...[
             const SizedBox(height: 12),
             _punchStatusCard(),
           ],
-          const SizedBox(height: 20),
-          FilledButton.icon(
+          const SizedBox(height: 52),
+          _policyParameters(),
+          if (open) ...[
+            const SizedBox(height: 12),
+            _ongoingTimeline(_activeSession!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _actionCard({
+    required bool open,
+    required bool attendanceEnabled,
+  }) {
+    final now = BranchTime.toBranch(_clock, _branchTimezone);
+    final record = _todayRecord(now);
+    final canPunch = open || attendanceEnabled;
+    final actionLabel = _showQrAction
+        ? 'Scan QR code'
+        : open
+            ? 'Clock out'
+            : attendanceEnabled
+                ? 'Clock in'
+                : 'Attendance off';
+    final actionIcon = _showQrAction
+        ? Icons.qr_code_scanner
+        : open
+            ? Icons.logout
+            : Icons.login;
+
+    return Column(
+      children: [
+        Text(
+          DateFormat('hh:mm a').format(now),
+          style: const TextStyle(
+            color: AttendanceUi.text,
+            fontSize: 34,
+            fontWeight: FontWeight.w400,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          DateFormat('MMM dd yyyy · EEEE').format(now),
+          style: const TextStyle(color: AttendanceUi.muted, fontSize: 11),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: 250,
+          height: 250,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              for (final size in const [220.0, 190.0, 160.0, 130.0, 100.0])
+                _dialRing(size),
+              Material(
+                color: Colors.white,
+                shape: const CircleBorder(),
+                elevation: 3,
+                shadowColor: Colors.black.withValues(alpha: 0.12),
+                child: InkWell(
+                  onTap: _actionLoading || (!_showQrAction && !canPunch)
+                      ? null
+                      : _showQrAction
+                          ? () => context.push(AppRoutes.qrScanner)
+                          : (open ? _clockOut : _clockIn),
+                  customBorder: const CircleBorder(),
+                  child: SizedBox(
+                    width: 108,
+                    height: 108,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: Column(
+                        key: ValueKey(actionLabel),
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (_actionLoading)
+                            const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          else
+                            Icon(actionIcon,
+                                color: AttendanceUi.accent, size: 24),
+                          const SizedBox(height: 7),
+                          Text(
+                            actionLabel,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AttendanceUi.text,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 2),
+        _dailyMetrics(record),
+      ],
+    );
+  }
+
+  Widget _dialRing(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: AttendanceUi.accent.withValues(alpha: 0.10),
+          width: 1.2,
+        ),
+      ),
+    );
+  }
+
+  AttendanceSessionModel? _todayRecord(DateTime now) {
+    final candidates = _history.where((session) {
+      final local = BranchTime.toBranch(
+          session.clockInServerTime, session.branchTimezone ?? _branchTimezone);
+      return local.year == now.year &&
+          local.month == now.month &&
+          local.day == now.day;
+    }).toList();
+    if (_activeSession != null) {
+      final activeLocal = BranchTime.toBranch(_activeSession!.clockInServerTime,
+          _activeSession!.branchTimezone ?? _branchTimezone);
+      if (activeLocal.year == now.year &&
+          activeLocal.month == now.month &&
+          activeLocal.day == now.day) {
+        return _activeSession;
+      }
+    }
+    if (candidates.isEmpty) return null;
+    candidates
+        .sort((a, b) => a.clockInServerTime.compareTo(b.clockInServerTime));
+    return candidates.last;
+  }
+
+  Widget _dailyMetrics(AttendanceSessionModel? session) {
+    final timezone = session?.branchTimezone ?? _branchTimezone;
+    final checkIn = session == null
+        ? '--:--'
+        : DateFormat('hh:mm a')
+            .format(BranchTime.toBranch(session.clockInServerTime, timezone));
+    final checkOut = session?.clockOutServerTime == null
+        ? '--:--'
+        : DateFormat('hh:mm a').format(
+            BranchTime.toBranch(session!.clockOutServerTime!, timezone));
+    final total = session == null
+        ? '--:--'
+        : session.clockOutServerTime == null
+            ? _liveDuration(session)
+            : session.durationLabel;
+
+    return Row(
+      children: [
+        _dailyMetric(Iconsax.login, 'Check in', checkIn),
+        _dailyMetric(Iconsax.logout, 'Check out', checkOut),
+        _dailyMetric(Iconsax.timer_1, 'Total hrs', total),
+      ],
+    );
+  }
+
+  Widget _dailyMetric(IconData icon, String label, String value) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: AttendanceUi.accent, size: 22),
+          const SizedBox(height: 5),
+          Text(value,
+              style: const TextStyle(
+                  color: AttendanceUi.muted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 3),
+          Text(label,
+              style: const TextStyle(color: AttendanceUi.text, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+
+  // ignore: unused_element
+  Widget _punchActionContent({
+    required bool open,
+    required bool attendanceEnabled,
+  }) {
+    final label = open
+        ? 'Clock out'
+        : attendanceEnabled
+            ? 'Clock in'
+            : 'Attendance not required';
+    return Column(
+      key: const ValueKey('punch_action'),
+      children: [
+        _actionIllustration(
+          icon: open ? Iconsax.logout : Iconsax.login,
+          title: open ? 'Finish your session' : 'Start your session',
+          subtitle: open
+              ? 'Submit your clock-out with the assigned policy.'
+              : 'Use direct punch or scan the branch gate QR.',
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
             onPressed: _actionLoading || (!open && !attendanceEnabled)
                 ? null
                 : (open ? _clockOut : _clockIn),
@@ -350,30 +565,305 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : Icon(open ? Icons.logout : Icons.login),
-            label: Text(open
-                ? 'Clock out'
-                : attendanceEnabled
-                    ? 'Clock in'
-                    : 'Attendance not required'),
+            label: Text(label),
             style: AttendanceUi.primaryButton().copyWith(
-              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(52)),
-            ),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed:
-                _actionLoading ? null : () => context.push(AppRoutes.qrScanner),
-            icon: const Icon(Icons.qr_code_scanner),
-            label: const Text('Scan branch gate QR'),
-            style: AttendanceUi.outlinedButton().copyWith(
               minimumSize: const WidgetStatePropertyAll(Size.fromHeight(48)),
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  // ignore: unused_element
+  Widget _qrActionContent() {
+    return Column(
+      key: const ValueKey('qr_action'),
+      children: [
+        _actionIllustration(
+          icon: Icons.qr_code_scanner,
+          title: 'Scan branch gate QR',
+          subtitle: 'Use the permanent QR at the branch entrance.',
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed:
+                _actionLoading ? null : () => context.push(AppRoutes.qrScanner),
+            icon: const Icon(Icons.qr_code_scanner),
+            label: const Text('Scan QR code'),
+            style: AttendanceUi.primaryButton().copyWith(
+              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(48)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _actionIllustration({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border:
+                Border.all(color: AttendanceUi.accent.withValues(alpha: .3)),
+          ),
+          child: Icon(icon, color: AttendanceUi.accent, size: 27),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 3),
+              Text(subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                      const TextStyle(color: AttendanceUi.muted, fontSize: 11)),
+            ],
+          ),
+        ),
+        Row(
+          children: [
+            _promptDot(!_showQrAction),
+            const SizedBox(width: 4),
+            _promptDot(_showQrAction),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _promptDot(bool active) => AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: active ? 7 : 5,
+        height: active ? 7 : 5,
+        decoration: BoxDecoration(
+          color: active ? AttendanceUi.accent : AttendanceUi.divider,
+          shape: BoxShape.circle,
+        ),
+      );
+
+  Widget _policyParameters() {
+    final locationRequired = _policy['location_on_clock_in'] == true ||
+        _policy['location_on_clock_out'] == true;
+    final selfieRequired = _policy['selfie_on_clock_in'] == true ||
+        _policy['selfie_on_clock_out'] == true;
+    final geofenceEnabled = _policy['geofence_enabled'] == true;
+    final grace = _policy['late_grace_minutes'] ?? 15;
+    return _card(Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Policy applied to this punch',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _policyParameter(Icons.location_on_outlined, 'Location',
+                locationRequired ? 'Required' : 'Optional', locationRequired),
+            _policyParameter(Icons.camera_alt_outlined, 'Selfie',
+                selfieRequired ? 'Required' : 'Optional', selfieRequired),
+            _policyParameter(Icons.radar, 'Geofence',
+                geofenceEnabled ? 'On' : 'Off', geofenceEnabled),
+            _policyParameter(Icons.schedule, 'Late grace', '$grace min', false),
+          ],
+        ),
+        if (_policy['shift_snapshot'] is Map) ...[
+          const SizedBox(height: 10),
+          Text(
+            'Shift: ${(_policy['shift_snapshot'] as Map)['name'] ?? 'Scheduled'} · ${(_policy['shift_snapshot'] as Map)['start_time'] ?? '--'}–${(_policy['shift_snapshot'] as Map)['end_time'] ?? '--'}',
+            style: const TextStyle(color: AttendanceUi.muted, fontSize: 11),
+          ),
+        ],
+      ],
+    ));
+  }
+
+  Widget _policyParameter(
+      IconData icon, String label, String value, bool emphasized) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon,
+              size: 19,
+              color: emphasized ? AttendanceUi.accent : AttendanceUi.muted),
+          const SizedBox(height: 5),
+          Text(label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AttendanceUi.muted, fontSize: 9)),
+          const SizedBox(height: 2),
+          Text(value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: emphasized ? AttendanceUi.accent : AttendanceUi.text,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700)),
         ],
       ),
     );
   }
 
+  // ignore: unused_element
+  Widget _todayStatusCard(bool open) {
+    final localNow = BranchTime.toBranch(_clock, _branchTimezone);
+    final title = open ? 'You are clocked in' : 'Ready for attendance';
+    final subtitle = open
+        ? 'Your current session is being tracked by the server.'
+        : 'Start your session when you arrive at the branch.';
+    final icon = open ? Iconsax.login : Iconsax.calendar_add;
+    return _card(Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: AttendanceUi.accentTint,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: AttendanceUi.accent, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 3),
+              Text(subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                      const TextStyle(color: AttendanceUi.muted, fontSize: 11)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(DateFormat('hh:mm a').format(localNow),
+                style: const TextStyle(
+                    color: AttendanceUi.text,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 3),
+            Text(
+              _repository.hasServerTime ? 'Server time' : 'Syncing time',
+              style: const TextStyle(color: AttendanceUi.muted, fontSize: 9),
+            ),
+          ],
+        ),
+      ],
+    ));
+  }
+
+  Widget _ongoingTimeline(AttendanceSessionModel session) {
+    final timezone = session.branchTimezone ?? _branchTimezone;
+    final clockIn = BranchTime.toBranch(session.clockInServerTime, timezone);
+    return _card(Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text('Today\'s timeline',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              decoration: BoxDecoration(
+                color: AttendanceUi.accentTint,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: const Text(
+                'ONGOING',
+                style: TextStyle(
+                  color: AttendanceUi.accent,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _timelinePoint(
+          icon: Iconsax.login,
+          title: 'Clocked in',
+          subtitle: DateFormat('hh:mm a').format(clockIn),
+          color: AttendanceUi.accent,
+        ),
+        Container(
+          margin: const EdgeInsets.only(left: 11),
+          height: 18,
+          width: 1,
+          color: AttendanceUi.divider,
+        ),
+        _timelinePoint(
+          icon: Iconsax.timer_1,
+          title: 'In progress',
+          subtitle: '${_liveDuration(session)} · awaiting clock-out',
+          color: AttendanceUi.accent,
+        ),
+      ],
+    ));
+  }
+
+  Widget _timelinePoint({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.10),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 13, color: color),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(title,
+              style:
+                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+        ),
+        Text(subtitle,
+            style: const TextStyle(color: AttendanceUi.muted, fontSize: 11)),
+      ],
+    );
+  }
+
+  String _liveDuration(AttendanceSessionModel session) {
+    final minutes =
+        _clock.toUtc().difference(session.clockInServerTime.toUtc()).inMinutes;
+    final safeMinutes = minutes < 0 ? 0 : minutes;
+    final hours = safeMinutes ~/ 60;
+    final remaining = safeMinutes % 60;
+    return hours > 0 ? '${hours}h ${remaining}m' : '${remaining}m';
+  }
+
+  // ignore: unused_element
   Widget _clockCard() =>
       _card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
@@ -384,13 +874,14 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         Text(
             DateFormat('hh:mm:ss a')
                 .format(BranchTime.toBranch(_clock, _branchTimezone)),
-            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         Text(
             '${_repository.hasServerTime ? 'Server-synchronized clock' : 'Device clock until server sync'} • server confirms every punch',
             style: const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
       ]));
 
+  // ignore: unused_element
   Widget _policyCard() {
     final requirements = <String>[
       if (_policy['location_on_clock_in'] == true ||
@@ -434,45 +925,52 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     ]));
   }
 
-  Widget _sessionCard(AttendanceSessionModel? session, {required bool open}) {
+  // ignore: unused_element
+  Widget _compactSessionCard(AttendanceSessionModel? session,
+      {required bool open}) {
     if (session == null) {
-      return _card(const ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(Icons.event_available, color: AttendanceUi.accent),
-        title: Text('No open attendance session'),
-        subtitle: Text('Clock in when you begin your session.'),
-      ));
+      return _card(
+        const Row(
+          children: [
+            Icon(Icons.event_available, color: AttendanceUi.accent, size: 20),
+            SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('No open attendance session',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  SizedBox(height: 3),
+                  Text('Clock in when you begin your session.',
+                      style:
+                          TextStyle(color: AttendanceUi.muted, fontSize: 11)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
     }
-    return InkWell(
+    final timezone = session.branchTimezone ?? _branchTimezone;
+    final eventTime = BranchTime.toBranch(session.clockInServerTime, timezone);
+    return DailioCompactTile(
+      avatar: _sessionAvatar(session, AttendanceUi.accent, Iconsax.login),
+      title: 'Current session',
+      statusBadge: 'In progress',
+      statusBadgeColor: AttendanceUi.accent,
+      subtitle:
+          'Clocked in at ${DateFormat('hh:mm a').format(eventTime)} · ${session.durationLabel}',
+      trailing: DateFormat('dd MMM').format(eventTime),
+      subtitleColor: AttendanceUi.accent,
       onTap: () => _openDetail(session),
-      borderRadius: BorderRadius.circular(16),
-      child:
-          _card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Expanded(
-              child: Text('Current session',
-                  style: TextStyle(fontWeight: FontWeight.bold))),
-          PopupMenuButton<String>(
-            padding: EdgeInsets.zero,
-            icon: const Icon(Icons.more_vert,
-                size: 20, color: AttendanceUi.muted),
-            onSelected: (_) => _openDetail(session),
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'details', child: Text('View details')),
-            ],
-          ),
-        ]),
-        const SizedBox(height: 10),
-        Text(
-            'Clock in: ${_time(session.clockInServerTime, session.branchTimezone)}'),
-        Text('Duration: ${session.durationLabel}'),
-        if (session.hasLocationEvidence)
-          Text('Location evidence recorded',
-              style: TextStyle(fontSize: 12, color: AttendanceUi.accent)),
-        const SizedBox(height: 4),
-        const Text('Tap for full details',
-            style: TextStyle(fontSize: 12, color: AttendanceUi.accent)),
-      ])),
+      menuItems: const [
+        DailioMenuItem(
+          value: 'details',
+          icon: Iconsax.document_text,
+          label: 'View details',
+        ),
+      ],
+      onMenuSelected: (_) => _openDetail(session),
     );
   }
 
@@ -535,12 +1033,12 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
       onRefresh: _load,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(top: 12, bottom: 96),
         itemCount: _history.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (_, index) {
           final session = _history[index];
-          return _historyTile(session);
+          return _compactHistoryTile(session);
           /*
             onTap: () => _openDetail(session),
             borderRadius: BorderRadius.circular(14),
@@ -580,6 +1078,93 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     );
   }
 
+  Widget _compactHistoryTile(AttendanceSessionModel session) {
+    final timezone = session.branchTimezone ?? _branchTimezone;
+    final clockIn = BranchTime.toBranch(session.clockInServerTime, timezone);
+    final clockOut = session.clockOutServerTime == null
+        ? null
+        : BranchTime.toBranch(session.clockOutServerTime!, timezone);
+    final open = clockOut == null;
+    final isLate = session.derivedStatus == 'LATE';
+    final statusColor =
+        open || isLate ? AttendanceUi.accent : AttendanceUi.text;
+    final statusIcon = open
+        ? Iconsax.login
+        : isLate
+            ? Iconsax.clock
+            : Iconsax.verify;
+    final eventTime = clockOut ?? clockIn;
+    final statusLabel = open
+        ? 'In progress'
+        : isLate
+            ? 'Late'
+            : 'Completed';
+
+    return DailioCompactTile(
+      avatar: _sessionAvatar(session, statusColor, statusIcon),
+      title: session.memberName ?? 'You',
+      titleBadge: session.memberRoleName,
+      statusBadge: statusLabel,
+      statusBadgeColor: statusColor,
+      subtitle:
+          '${open ? 'Clocked in at' : 'Clocked out at'} ${DateFormat('hh:mm a').format(eventTime)} · ${session.durationLabel}',
+      trailing: DateFormat('dd MMM').format(clockIn),
+      subtitleColor: statusColor,
+      onTap: () => _openDetail(session),
+      menuItems: const [
+        DailioMenuItem(
+          value: 'details',
+          icon: Iconsax.document_text,
+          label: 'View details',
+        ),
+      ],
+      onMenuSelected: (_) => _openDetail(session),
+    );
+  }
+
+  Widget _sessionAvatar(
+      AttendanceSessionModel session, Color color, IconData icon) {
+    final image = session.memberAvatar;
+    final initials = session.memberName?.isNotEmpty == true
+        ? session.memberName![0].toUpperCase()
+        : 'Y';
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        CircleAvatar(
+          radius: 24,
+          backgroundColor: AttendanceUi.accentTint,
+          backgroundImage:
+              image == null || image.isEmpty ? null : NetworkImage(image),
+          child: image == null || image.isEmpty
+              ? Text(
+                  initials,
+                  style: const TextStyle(
+                    color: AttendanceUi.accent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              : null,
+        ),
+        Positioned(
+          right: -2,
+          bottom: -2,
+          child: Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: Icon(icon, size: 9, color: Colors.white),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ignore: unused_element
   Widget _historyTile(AttendanceSessionModel session) {
     final timezone = session.branchTimezone ?? _branchTimezone;
     final clockIn = BranchTime.toBranch(session.clockInServerTime, timezone);
@@ -674,46 +1259,20 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     );
   }
 
-  Widget _historyFilter() => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final item in const [
-                ('today', 'Today'),
-                ('yesterday', 'Yesterday'),
-                ('this_week', 'This week'),
-                ('this_month', 'This month'),
-                ('this_year', 'This year'),
-                ('custom', 'Custom'),
-              ]) ...[
-                ChoiceChip(
-                  label: Text(item.$2),
-                  selected: _historyPeriod == item.$1,
-                  onSelected: (_) => _selectHistoryPeriod(item.$1),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ],
-          ),
-        ),
+  Widget _historyFilter() => DailioTabStrip<String>(
+        tabs: const [
+          DailioTabItem(value: 'today', label: 'Today'),
+          DailioTabItem(value: 'yesterday', label: 'Yesterday'),
+          DailioTabItem(value: 'this_week', label: 'This week'),
+          DailioTabItem(value: 'this_month', label: 'This month'),
+          DailioTabItem(value: 'this_year', label: 'This year'),
+        ],
+        selected: _historyPeriod,
+        centered: true,
+        onChanged: _selectHistoryPeriod,
       );
 
   Future<void> _selectHistoryPeriod(String period) async {
-    if (period == 'custom') {
-      final range = await showDateRangePicker(
-        context: context,
-        firstDate: DateTime(2020),
-        lastDate: DateTime.now(),
-        initialDateRange: _customFrom != null && _customTo != null
-            ? DateTimeRange(start: _customFrom!, end: _customTo!)
-            : null,
-      );
-      if (range == null) return;
-      _customFrom = range.start;
-      _customTo = range.end;
-    }
     if (!mounted) return;
     setState(() => _historyPeriod = period);
     await _load();
@@ -725,21 +1284,15 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
   }
 
   Widget _card(Widget child) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AttendanceUi.divider),
         ),
         child: child,
       );
 
-  String _time(DateTime value, [String? timezone]) => DateFormat('hh:mm a')
-      .format(BranchTime.toBranch(value, timezone ?? _branchTimezone));
-
   String _newPunchKey() =>
       'mobile-attendance-${DateTime.now().toUtc().microsecondsSinceEpoch}';
-
-  String _dateOnly(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }

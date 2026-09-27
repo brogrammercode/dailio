@@ -19,11 +19,7 @@ export async function listNotificationsHandler(req: Request, res: Response, next
   }
 }
 
-export async function markNotificationReadHandler(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
+export async function markNotificationReadHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await notificationsService.markNotificationRead(
       req.user!.id,

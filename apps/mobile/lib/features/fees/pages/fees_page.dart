@@ -100,7 +100,7 @@ class _FeesPageState extends State<FeesPage> {
             items: const [
               DailioMenuItem(
                 value: 'refresh',
-                icon: Icons.refresh,
+                icon: Iconsax.refresh,
                 label: 'Refresh',
               ),
             ],
@@ -182,8 +182,7 @@ class _FeesPageState extends State<FeesPage> {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(children: [
-          Icon(Icons.account_balance_wallet_outlined,
-              color: Colors.indigo.shade700, size: 30),
+          Icon(Iconsax.wallet, color: Colors.indigo.shade700, size: 30),
           const SizedBox(width: 12),
           const Expanded(
             child:
@@ -201,7 +200,7 @@ class _FeesPageState extends State<FeesPage> {
         width: double.infinity,
         child: FilledButton.icon(
           onPressed: () => context.push(AppRoutes.buyPlan),
-          icon: const Icon(Icons.add_card),
+          icon: const Icon(Iconsax.card_add),
           label: const Text('Buy a plan'),
         ),
       );
@@ -307,12 +306,12 @@ class _FeesPageState extends State<FeesPage> {
             ? AppColors.brandDark
             : AppColors.brandAccent;
     final statusIcon = statusBadge == 'Expired'
-        ? Icons.error_outline
+        ? Iconsax.warning_2
         : statusBadge == 'Expiring'
-            ? Icons.schedule
+            ? Iconsax.clock
             : statusBadge == 'Active'
-                ? Icons.check
-                : Icons.hourglass_empty;
+                ? Iconsax.tick_circle
+                : Iconsax.timer;
 
     return DailioCompactTile(
       avatar: _avatar(card, color, statusIcon),
@@ -332,13 +331,13 @@ class _FeesPageState extends State<FeesPage> {
       menuItems: [
         const DailioMenuItem(
           value: 'details',
-          icon: Icons.receipt_long_outlined,
+          icon: Iconsax.receipt_text,
           label: 'View fee details',
         ),
         if (card.pendingRequestId != null && canReview)
           const DailioMenuItem(
             value: 'review',
-            icon: Icons.fact_check_outlined,
+            icon: Iconsax.task,
             label: 'Review payment',
           ),
       ],
@@ -451,7 +450,7 @@ class _FeesPageState extends State<FeesPage> {
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
                     onPressed: () => _reviewPayment(card.pendingRequestId!),
-                    icon: const Icon(Icons.fact_check, size: 16),
+                    icon: const Icon(Iconsax.task, size: 16),
                     label: const Text('Review payment'),
                   )),
             ],
@@ -513,15 +512,15 @@ class _FeesPageState extends State<FeesPage> {
             title: Text('Review payment request'),
             subtitle: Text('Choose the server-side action')),
         ListTile(
-            leading: const Icon(Icons.check, color: Colors.green),
+            leading: const Icon(Iconsax.tick_circle, color: Colors.green),
             title: const Text('Approve'),
             onTap: () => Navigator.pop(sheetContext, 'approve')),
         ListTile(
-            leading: const Icon(Icons.close, color: Colors.red),
+            leading: const Icon(Iconsax.close_circle, color: Colors.red),
             title: const Text('Reject'),
             onTap: () => Navigator.pop(sheetContext, 'reject')),
         ListTile(
-            leading: const Icon(Icons.help_outline),
+            leading: const Icon(Iconsax.info_circle),
             title: const Text('Request information'),
             onTap: () => Navigator.pop(sheetContext, 'needs_information')),
       ])),
@@ -612,7 +611,7 @@ class _ErrorState extends StatelessWidget {
       child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 42),
+            const Icon(Iconsax.warning_2, color: Colors.red, size: 42),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 12),

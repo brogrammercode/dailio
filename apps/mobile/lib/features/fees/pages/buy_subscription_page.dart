@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/storage/preferences_storage.dart';
 import '../../../core/router/route_names.dart';
+import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 import '../../organization/controllers/organization_repository.dart';
 
 class BuySubscriptionPage extends StatefulWidget {
@@ -17,6 +20,7 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _plans = [];
+  Map<String, dynamic>? _selectedPlan;
 
   @override
   void initState() {
@@ -35,6 +39,10 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
       });
       return;
     }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final plans = await context
           .read<OrganizationRepository>()
@@ -42,6 +50,10 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
       if (!mounted) return;
       setState(() {
         _plans = plans.where((plan) => plan['is_active'] == true).toList();
+        if (_selectedPlan != null &&
+            !_plans.any((plan) => plan['id'] == _selectedPlan!['id'])) {
+          _selectedPlan = null;
+        }
         _loading = false;
       });
     } catch (error) {
@@ -55,104 +67,213 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
 
   @override
   Widget build(BuildContext context) {
-    final preferences = context.watch<PreferencesStorage>();
-    final branchName = preferences.activeBranchName ?? 'Active branch';
+    final showContinue = !_loading && _error == null && _selectedPlan != null;
     return Scaffold(
-      appBar: AppBar(
-        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Buy a plan'),
-          Text(branchName, style: const TextStyle(fontSize: 12)),
-        ]),
-      ),
+      backgroundColor: Colors.white,
+      appBar: _appBar(),
+      bottomNavigationBar: showContinue ? _continueBar() : null,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: ShimmerLoader.compactList(),
+            )
           : _error != null
               ? _ErrorState(message: _error!, onRetry: _load)
               : RefreshIndicator(
+                  color: _orange,
                   onRefresh: _load,
                   child: ListView(
-                    padding: const EdgeInsets.all(16),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 30),
                     children: [
-                      const Text('Choose the plan that works for you',
-                          style: TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
                       Text(
-                          'Your request will be sent to the branch for review.',
-                          style: TextStyle(color: Colors.grey.shade700)),
-                      const SizedBox(height: 18),
+                        'Select Plan',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: _ink,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Choose duration to renew or start subscription',
+                        style: const TextStyle(color: _muted, fontSize: 12),
+                      ),
+                      const SizedBox(height: 20),
                       if (_plans.isEmpty)
-                        const Card(
-                            child: Padding(
-                                padding: EdgeInsets.all(20),
-                                child: Text(
-                                    'No active plans are available right now.')))
+                        _emptyPlans()
                       else
-                        ..._plans.map(_planCard),
+                        ..._plans.map(_planRow),
                     ],
                   ),
                 ),
     );
   }
 
-  Widget _planCard(Map<String, dynamic> plan) {
-    final amount = (plan['amount_minor_unit'] as num?)?.toInt() ?? 0;
-    final joining = (plan['joining_fee_minor'] as num?)?.toInt() ?? 0;
-    final currency = plan['currency']?.toString() ?? 'INR';
-    final duration = plan['duration_days']?.toString() ?? '-';
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+  PreferredSizeWidget _appBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      foregroundColor: _ink,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.grey.shade200)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _openPurchase(plan),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(
-                  child: Text(plan['name']?.toString() ?? 'Plan',
+      title: const Text(
+        'Dailio',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+      ),
+      actions: [
+        DailioOverflowMenu<String>(
+          items: const [
+            DailioMenuItem(
+              value: 'refresh',
+              icon: Iconsax.refresh,
+              label: 'Refresh plans',
+            ),
+          ],
+          onSelected: (_) => _load(),
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
+  Widget _planRow(Map<String, dynamic> plan) {
+    final selected = _selectedPlan?['id'] == plan['id'];
+    final amount = (plan['amount_minor_unit'] as num?)?.toInt() ?? 0;
+    final duration = (plan['duration_days'] as num?)?.toInt() ?? 0;
+    final durationText = '$duration days';
+    return InkWell(
+      onTap: () => setState(() => _selectedPlan = plan),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFFFF9F3) : Colors.white,
+          border: Border(
+            left: BorderSide(
+              color: selected ? _orange : Colors.transparent,
+              width: 3,
+            ),
+            bottom: const BorderSide(color: Color(0xFFEDEDED)),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(
+                color: selected ? _orange : const Color(0xFFD9D9D9),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      plan['name']?.toString() ?? 'Plan',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold))),
-              const Icon(Icons.arrow_forward_ios, size: 16),
-            ]),
-            if ((plan['description']?.toString() ?? '').isNotEmpty) ...[
-              const SizedBox(height: 7),
-              Text(plan['description'].toString(),
-                  style: TextStyle(color: Colors.grey.shade700)),
+                        color: _ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    '· $durationText',
+                    style: const TextStyle(color: _muted, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            if (selected) ...[
+              _selectedBadge(),
+              const SizedBox(width: 8),
             ],
-            const SizedBox(height: 16),
-            Row(children: [
-              _detail('$duration days', 'Coverage'),
-              const Spacer(),
-              _detail(
-                  '$currency ${(amount / 100).toStringAsFixed(0)}', 'Plan fee'),
-            ]),
-            if (joining > 0) ...[
-              const SizedBox(height: 10),
-              Text(
-                  'Admission fee: $currency ${(joining / 100).toStringAsFixed(0)}',
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
-            ],
-          ]),
+            Text(
+              _money(amount),
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _detail(String value, String label) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _selectedBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFE9D6),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Text(
+        'SELECTED',
+        style: TextStyle(
+          color: _orange,
+          fontSize: 8,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _continueBar() {
+    final plan = _selectedPlan!;
+    final amount = (plan['amount_minor_unit'] as num?)?.toInt() ?? 0;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+        child: SizedBox(
+          height: 48,
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: () => _openPurchase(plan),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(9),
+              ),
+            ),
+            child: Text(
+              'Continue with ${plan['name'] ?? 'plan'}  ·  ${_money(amount)}',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyPlans() {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFE7E7E7)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Column(
         children: [
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
-          Text(label,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+          Icon(Iconsax.card_remove, size: 30, color: _muted),
+          SizedBox(height: 8),
+          Text(
+            'No active plans are available right now.',
+            style: TextStyle(color: _muted, fontSize: 12),
+          ),
         ],
-      );
+      ),
+    );
+  }
 
   void _openPurchase(Map<String, dynamic> plan) {
     final preferences = context.read<PreferencesStorage>();
@@ -167,6 +288,12 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
       },
     });
   }
+
+  String _money(int minor) => '₹${(minor / 100).toStringAsFixed(0)}';
+
+  static const _orange = Color(0xFFD95B00);
+  static const _ink = Color(0xFF171717);
+  static const _muted = Color(0xFF777777);
 }
 
 class _ErrorState extends StatelessWidget {
@@ -179,11 +306,21 @@ class _ErrorState extends StatelessWidget {
   Widget build(BuildContext context) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Iconsax.cloud_cross,
+                  size: 38, color: Color(0xFF777777)),
+              const SizedBox(height: 12),
+              Text(message, textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Iconsax.refresh, size: 16),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       );
 }

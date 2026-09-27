@@ -3,11 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const prismaMock = vi.hoisted(() => ({
   organization: { findUnique: vi.fn() },
   branch: { findUnique: vi.fn() },
+  member: { findFirst: vi.fn() },
 }));
 
 const authorizationMock = vi.hoisted(() => ({
-  getMemberForUser: vi.fn(),
-  resolveEffectivePermissions: vi.fn(),
+  permissionsForMember: vi.fn(),
 }));
 
 vi.mock('../lib/prisma', () => ({ prisma: prismaMock }));
@@ -42,20 +42,23 @@ describe('tenant context lifecycle boundaries', () => {
     expect(next).toHaveBeenCalledWith(
       expect.objectContaining({ statusCode: 404, code: 'NOT_FOUND' }),
     );
-    expect(authorizationMock.getMemberForUser).not.toHaveBeenCalled();
-    expect(authorizationMock.resolveEffectivePermissions).not.toHaveBeenCalled();
+    expect(prismaMock.member.findFirst).not.toHaveBeenCalled();
   });
 
   it('continues only for an active organization branch membership', async () => {
     const organization = { id: 'org-1', status: 'ACTIVE' };
     const branch = { id: 'branch-1', organization_id: 'org-1', status: 'ACTIVE' };
-    const member = { id: 'member-1', organization_id: 'org-1', branch_id: 'branch-1' };
+    const member = {
+      id: 'member-1',
+      organization_id: 'org-1',
+      branch_id: 'branch-1',
+      role: null,
+      role_assignments: [],
+    };
     prismaMock.organization.findUnique.mockResolvedValue(organization);
     prismaMock.branch.findUnique.mockResolvedValue(branch);
-    authorizationMock.getMemberForUser.mockResolvedValue(member);
-    authorizationMock.resolveEffectivePermissions.mockResolvedValue(
-      new Set(['ATTENDANCE_READ_SELF']),
-    );
+    prismaMock.member.findFirst.mockResolvedValue(member);
+    authorizationMock.permissionsForMember.mockReturnValue(new Set(['ATTENDANCE_READ_SELF']));
     const next = vi.fn();
     const request = {
       user: { id: 'user-1' },

@@ -12,10 +12,6 @@ const router: Router = Router();
 
 router.get('/notifications', authenticate, listNotificationsHandler);
 router.post('/notifications/read-all', authenticate, markAllNotificationsReadHandler);
-router.patch(
-  '/notifications/:notification_id/read',
-  authenticate,
-  markNotificationReadHandler,
-);
+router.patch('/notifications/:notification_id/read', authenticate, markNotificationReadHandler);
 
 export default router;

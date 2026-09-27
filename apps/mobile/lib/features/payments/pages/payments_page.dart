@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -113,7 +114,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
             items: const [
               DailioMenuItem(
                 value: 'refresh',
-                icon: Icons.refresh,
+                icon: Iconsax.refresh,
                 label: 'Refresh',
               ),
             ],
@@ -191,7 +192,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
     final displayAmount = _money(request.signedAmountMinorUnit.abs());
     final directionLabel = isDeduct ? 'Deduct' : 'Credit';
     final directionColor = isDeduct ? AppColors.error : AppColors.brandDark;
-    final directionIcon = isDeduct ? Icons.arrow_downward : Icons.arrow_upward;
+    final directionIcon = isDeduct ? Iconsax.arrow_down_1 : Iconsax.arrow_up_1;
     final subtitle = request.payment?.status == 'SUCCESS'
         ? 'Paid $amount · ${request.method}'
         : switch (request.status) {
@@ -218,23 +219,23 @@ class _PaymentsPageState extends State<PaymentsPage> {
       menuItems: [
         const DailioMenuItem(
           value: 'details',
-          icon: Icons.receipt_long_outlined,
+          icon: Iconsax.receipt_text,
           label: 'View payment details',
         ),
         if (canAct) ...[
           const DailioMenuItem(
             value: 'approve',
-            icon: Icons.check_circle_outline,
+            icon: Iconsax.tick_circle,
             label: 'Approve',
           ),
           const DailioMenuItem(
             value: 'needs_information',
-            icon: Icons.help_outline,
+            icon: Iconsax.info_circle,
             label: 'Need information',
           ),
           const DailioMenuItem(
             value: 'reject',
-            icon: Icons.cancel_outlined,
+            icon: Iconsax.close_circle,
             label: 'Reject',
             destructive: true,
           ),
@@ -342,13 +343,13 @@ class _PaymentsPageState extends State<PaymentsPage> {
             ]),
             const SizedBox(height: 14),
             Wrap(spacing: 8, runSpacing: 8, children: [
-              _infoChip(Icons.account_balance_wallet_outlined, request.method),
+              _infoChip(Iconsax.wallet, request.method),
               _infoChip(
-                  Icons.attach_file, '${request.evidence.length} evidence'),
+                  Iconsax.attach_circle, '${request.evidence.length} evidence'),
               if (request.reference != null && request.reference!.isNotEmpty)
-                _infoChip(Icons.tag, request.reference!),
+                _infoChip(Iconsax.tag, request.reference!),
               if (request.payment?.receipt != null)
-                _infoChip(Icons.receipt_long,
+                _infoChip(Iconsax.receipt_text,
                     request.payment!.receipt!.receiptNumber),
             ]),
             if (request.reason != null && request.reason!.isNotEmpty) ...[

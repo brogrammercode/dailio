@@ -49,6 +49,45 @@ describe('attendance tenant and branch authorization boundaries', () => {
     );
   });
 
+  it('returns precise location evidence only for an authorized session detail', async () => {
+    prismaMock.member.findFirst.mockResolvedValue({ id: 'member-1' });
+    prismaMock.attendanceSession.findFirst.mockResolvedValue({
+      id: 'session-1',
+      member: { user_id: 'member-user', user: { id: 'member-user', name: 'Member' } },
+      evidence: [
+        {
+          id: 'evidence-1',
+          type: 'LOCATION_IN',
+          latitude: 28.6139,
+          longitude: 77.209,
+          accuracy: 8,
+          device_metadata: { private: true },
+          ip_address: '192.0.2.1',
+        },
+      ],
+      corrections: [],
+    });
+
+    const result = await getSessionDetail(
+      'member-user',
+      'organization-a',
+      'branch-a',
+      'session-1',
+      new Set(['ATTENDANCE_READ_SELF', 'ATTENDANCE_EVIDENCE_READ_SELF']),
+    );
+
+    expect(result.evidence).toEqual([
+      expect.objectContaining({
+        id: 'evidence-1',
+        latitude: 28.6139,
+        longitude: 77.209,
+        accuracy: 8,
+      }),
+    ]);
+    expect(result.evidence[0]).not.toHaveProperty('device_metadata');
+    expect(result.evidence[0]).not.toHaveProperty('ip_address');
+  });
+
   it('rejects a target member that is not active in the requested organization and branch', async () => {
     prismaMock.member.findFirst
       .mockResolvedValueOnce({ id: 'actor-membership' })

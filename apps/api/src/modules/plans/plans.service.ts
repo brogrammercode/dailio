@@ -17,7 +17,10 @@ async function assertBranchAccess(
   if (branchId && branchId !== contextBranchId && !permissions.has('ALL')) {
     throw new ForbiddenError('Plan access is limited to the active branch');
   }
-  if (branchId && branchId !== 'none') {
+  // The tenant middleware has already loaded and validated the active branch.
+  // Avoid a second remote database round-trip for the common case where the
+  // client requests plans for that same branch.
+  if (branchId && branchId !== 'none' && branchId !== contextBranchId) {
     const branch = await prisma.branch.findFirst({
       where: { id: branchId, organization_id: organizationId },
     });

@@ -486,6 +486,17 @@ function sanitizeEvidence<T>(evidence: T) {
   );
 }
 
+// Precise coordinates remain private evidence. They are returned only from a
+// session detail response after the caller has passed the existing evidence
+// authorization check; list responses continue to omit them.
+function sanitizeEvidenceForAuthorizedDetail(evidence: any) {
+  return {
+    ...sanitizeEvidence(evidence),
+    latitude: evidence.latitude ?? null,
+    longitude: evidence.longitude ?? null,
+  };
+}
+
 function buildAttendanceTimeline(session: any, corrections: any[] = []) {
   const events = [
     {
@@ -756,6 +767,21 @@ export async function getEffectivePolicyForMember(
   });
   if (!member) return fallbackPolicy;
 
+  return resolveEffectivePolicyForMemberContext(organization_id, branch_id, member, now);
+}
+
+type EffectivePolicyMemberContext = {
+  id: string;
+  role_id: string | null;
+  role_assignments: Array<{ role_id: string }>;
+};
+
+async function resolveEffectivePolicyForMemberContext(
+  organization_id: string,
+  branch_id: string,
+  member: EffectivePolicyMemberContext,
+  now = new Date(),
+) {
   const assignments = member.role_assignments ?? [];
   const roleIds =
     assignments.length > 0
@@ -803,6 +829,7 @@ async function getAttendanceScopeMemberIds(
   organization_id: string,
   branch_id: string,
   permissions: Set<string>,
+  actor_member_id?: string,
 ) {
   if (
     permissions.has('ALL') ||
@@ -812,10 +839,12 @@ async function getAttendanceScopeMemberIds(
     return null;
   }
 
-  const actor = await prisma.member.findFirst({
-    where: { organization_id, branch_id, user_id: actor_id, status: 'ACTIVE' },
-    select: { id: true },
-  });
+  const actor = actor_member_id
+    ? { id: actor_member_id }
+    : await prisma.member.findFirst({
+        where: { organization_id, branch_id, user_id: actor_id, status: 'ACTIVE' },
+        select: { id: true },
+      });
   if (!actor) return [];
   if (!permissions.has('ATTENDANCE_READ_TEAM')) return [actor.id];
 
@@ -1452,10 +1481,23 @@ export async function listSessions(
   branch_id: string,
   query: ListSessionsQuery,
   permissions: Set<string>,
+  context?: AttendanceListContext,
 ) {
-  const result = await listSessionsPage(actor_id, organization_id, branch_id, query, permissions);
+  const result = await listSessionsPage(
+    actor_id,
+    organization_id,
+    branch_id,
+    query,
+    permissions,
+    context,
+  );
   return result.data;
 }
+
+type AttendanceListContext = {
+  branch?: { timezone: string; week_start: number };
+  actor_member_id?: string;
+};
 
 export async function listSessionsPage(
   actor_id: string,
@@ -1463,13 +1505,16 @@ export async function listSessionsPage(
   branch_id: string,
   query: ListSessionsQuery,
   permissions: Set<string>,
+  context?: AttendanceListContext,
 ) {
   const { period, date_from, date_to, member_id, status, role_id, limit, cursor } = query;
 
-  const branch = await prisma.branch.findFirst({
-    where: { id: branch_id, organization_id },
-    select: { timezone: true, week_start: true },
-  });
+  const branch =
+    context?.branch ??
+    (await prisma.branch.findFirst({
+      where: { id: branch_id, organization_id },
+      select: { timezone: true, week_start: true },
+    }));
   const timezone = branch?.timezone ?? 'UTC';
   const now = new Date();
   const today = localDate(now, timezone);
@@ -1532,6 +1577,7 @@ export async function listSessionsPage(
     organization_id,
     branch_id,
     permissions,
+    context?.actor_member_id,
   );
   if (scopeMemberIds === null) {
     if (member_id) {
@@ -1705,9 +1751,11 @@ export async function getSessionDetail(
       : session.member?.user_id === actor_id &&
         (permissions.has('ATTENDANCE_EVIDENCE_READ_SELF') ||
           permissions.has('ATTENDANCE_READ_SELF'));
-  const safeEvidence = session.evidence.map(sanitizeEvidence);
+  const safeEvidence = canReadEvidence
+    ? session.evidence.map(sanitizeEvidenceForAuthorizedDetail)
+    : [];
   const timeline = buildAttendanceTimeline(
-    { ...session, evidence: canReadEvidence ? safeEvidence : [] },
+    { ...session, evidence: safeEvidence },
     session.corrections,
   );
   return canReadEvidence
@@ -1770,10 +1818,12 @@ export async function getPolicy(
   target_member_id?: string,
 ) {
   if (actor_id) {
-    const actorMembership = await prisma.member.findFirst({
-      where: { organization_id, branch_id, user_id: actor_id, status: 'ACTIVE' },
-      select: { id: true },
-    });
+    const actorMembership = target_member_id
+      ? await prisma.member.findFirst({
+          where: { organization_id, branch_id, user_id: actor_id, status: 'ACTIVE' },
+          select: { id: true },
+        })
+      : null;
     const membership = await prisma.member.findFirst({
       where: {
         organization_id,
@@ -1781,27 +1831,50 @@ export async function getPolicy(
         status: 'ACTIVE',
         ...(target_member_id ? { id: target_member_id } : { user_id: actor_id }),
       },
-      include: { branch: true, shift: true },
+      include: {
+        branch: true,
+        shift: true,
+        role_assignments: {
+          where: {
+            organization_id,
+            branch_id,
+            effective_from: { lte: new Date() },
+            OR: [{ effective_to: null }, { effective_to: { gt: new Date() } }],
+          },
+          orderBy: [{ priority: 'asc' }, { effective_from: 'desc' }, { id: 'asc' }],
+          select: { role_id: true },
+        },
+      },
     });
     if (target_member_id && !membership) throw new NotFoundError('Member policy target');
-    if (target_member_id && membership && membership.id !== actorMembership?.id) {
-      const scopeMemberIds = await getAttendanceScopeMemberIds(
-        actor_id,
-        organization_id,
-        branch_id,
-        permissions,
-      );
-      const canManagePolicy =
-        permissions.has('ALL') ||
-        permissions.has('ATTENDANCE_POLICY_READ') ||
-        permissions.has('ATTENDANCE_POLICY_ASSIGN') ||
-        permissions.has('ATTENDANCE_POLICY_MANAGE');
-      if (!canManagePolicy && scopeMemberIds !== null && !scopeMemberIds.includes(membership.id)) {
-        throw new ForbiddenError('You cannot inspect this member attendance policy');
+    if (target_member_id && membership) {
+      if (membership.id !== actorMembership?.id) {
+        const scopeMemberIds = await getAttendanceScopeMemberIds(
+          actor_id,
+          organization_id,
+          branch_id,
+          permissions,
+        );
+        const canManagePolicy =
+          permissions.has('ALL') ||
+          permissions.has('ATTENDANCE_POLICY_READ') ||
+          permissions.has('ATTENDANCE_POLICY_ASSIGN') ||
+          permissions.has('ATTENDANCE_POLICY_MANAGE');
+        if (
+          !canManagePolicy &&
+          scopeMemberIds !== null &&
+          !scopeMemberIds.includes(membership.id)
+        ) {
+          throw new ForbiddenError('You cannot inspect this member attendance policy');
+        }
       }
     }
     if (membership) {
-      const policy = await getEffectivePolicyForMember(organization_id, branch_id, membership.id);
+      const policy = await resolveEffectivePolicyForMemberContext(
+        organization_id,
+        branch_id,
+        membership,
+      );
       return {
         ...policy,
         location_required:

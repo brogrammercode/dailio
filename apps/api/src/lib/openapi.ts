@@ -23,4 +23,3 @@ registry.registerComponent('securitySchemes', 'BearerAuth', {
   scheme: 'bearer',
   bearerFormat: 'JWT',
 });
-

@@ -485,6 +485,7 @@ model AttendanceSession {
   corrections AttendanceCorrection[]
 
   @@index([organization_id, branch_id])
+  @@index([organization_id, branch_id, clock_in_at, id])
   @@index([member_id])
   @@map("attendance_sessions")
 }
@@ -632,6 +633,7 @@ model Plan {
   invite_tokens InviteToken[]
 
   @@index([organization_id])
+  @@index([organization_id, branch_id, created_at])
   @@map("plans")
 }
 
