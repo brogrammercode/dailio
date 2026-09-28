@@ -335,7 +335,7 @@ model JoinRequest {
   organization_id  String
   branch_id        String
   user_id          String
-  member_id        String?           @unique
+  member_id        String?
   status           JoinRequestStatus @default(PENDING)
   message          String?
   rejection_reason String?
@@ -349,10 +349,12 @@ model JoinRequest {
   member Member? @relation(fields: [member_id], references: [id])
   user   User    @relation(fields: [user_id], references: [id])
 
-  @@unique([user_id, branch_id, status]) // only one PENDING per user+branch
+  // PostgreSQL partial unique index in the join-request migration enforces
+  // only one PENDING request per user and branch while preserving history.
   @@index([organization_id])
   @@index([branch_id])
   @@index([user_id])
+  @@index([member_id])
   @@map("join_requests")
 }
 

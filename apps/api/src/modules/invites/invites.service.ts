@@ -253,7 +253,7 @@ export async function resolveInvite(userId: string, rawToken: string) {
         ? 'ALREADY_MEMBER'
         : pending
           ? 'ALREADY_PENDING'
-          : member
+          : member?.status === 'SUSPENDED'
             ? 'MEMBERSHIP_INACTIVE'
             : 'JOINABLE',
     existing_request_id: pending?.id ?? null,

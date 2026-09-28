@@ -6,6 +6,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../auth/controllers/auth_cubit.dart';
@@ -54,26 +55,13 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _confirmSignOut() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Sign Out?',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text(
-            'This will end all your active kiosk sessions on this device.'),
-        actions: [
-          TextButton(
-              onPressed: () => ctx.pop(false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => ctx.pop(true),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade600,
-                foregroundColor: Colors.white),
-            child: const Text('Sign Out'),
-          ),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Sign out?',
+      message: 'This will end your active sessions on this device.',
+      confirmLabel: 'Sign out',
+      isDestructive: true,
+      icon: Iconsax.logout,
     );
     if (confirmed == true && mounted) {
       await context.read<AuthCubit>().signOut();

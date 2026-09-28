@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/dailio_compact_tile.dart';
+import '../../../core/widgets/dailio_member_profile_sheet.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_tab_strip.dart';
 import '../../../core/widgets/shimmer_loader.dart';
@@ -206,6 +208,19 @@ class _PaymentsPageState extends State<PaymentsPage> {
 
     return DailioCompactTile(
       avatar: _avatar(request, color, directionIcon),
+      onAvatarTap: request.memberId == null
+          ? null
+          : () => showDailioMemberProfileSheet(
+                context,
+                DailioMemberPreview(
+                  memberId: request.memberId!,
+                  name: memberName,
+                  role: request.memberRoleName ?? 'Member',
+                  status: request.status,
+                  avatarUrl: request.memberAvatarUrl,
+                  subscriptionLabel: request.planName,
+                ),
+              ),
       title: memberName,
       titleBadge: roleLabel,
       statusBadge: directionLabel,
@@ -465,37 +480,16 @@ class _PaymentsPageState extends State<PaymentsPage> {
     final repository = context.read<FeesRepository>();
     String? reason;
     if (action != 'approve') {
-      reason = await showDialog<String>(
-        context: context,
-        builder: (dialogContext) {
-          final controller = TextEditingController();
-          return AlertDialog(
-            title: Text(
-                action == 'reject' ? 'Reject payment' : 'Request information'),
-            content: TextField(
-              controller: controller,
-              autofocus: true,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Reason',
-                hintText: 'Explain what is needed',
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  final value = controller.text.trim();
-                  if (value.isNotEmpty) Navigator.pop(dialogContext, value);
-                },
-                child: const Text('Submit'),
-              ),
-            ],
-          );
-        },
+      reason = await showReasonDialog(
+        context,
+        title: action == 'reject' ? 'Reject payment' : 'Request information',
+        message: action == 'reject'
+            ? 'Add a reason for the member and payment history.'
+            : 'Explain what information the member needs to provide.',
+        confirmLabel: 'Submit',
+        hintText: 'Explain what is needed',
+        isDestructive: action == 'reject',
+        icon: action == 'reject' ? Iconsax.close_circle : Iconsax.message_text,
       );
       if (reason == null) return;
     }

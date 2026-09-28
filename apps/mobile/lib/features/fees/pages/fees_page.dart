@@ -8,6 +8,8 @@ import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/dailio_compact_tile.dart';
+import '../../../core/widgets/dailio_member_profile_sheet.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_tab_strip.dart';
 import '../../../core/widgets/shimmer_loader.dart';
@@ -315,6 +317,19 @@ class _FeesPageState extends State<FeesPage> {
 
     return DailioCompactTile(
       avatar: _avatar(card, color, statusIcon),
+      onAvatarTap: card.memberId.isEmpty
+          ? null
+          : () => showDailioMemberProfileSheet(
+                context,
+                DailioMemberPreview(
+                  memberId: card.memberId,
+                  name: card.memberName,
+                  role: roleLabel,
+                  status: card.status,
+                  avatarUrl: card.avatarUrl,
+                  subscriptionLabel: card.planName,
+                ),
+              ),
       title: card.memberName,
       titleBadge: roleLabel,
       statusBadge: statusBadge,
@@ -528,29 +543,16 @@ class _FeesPageState extends State<FeesPage> {
     if (action == null || !mounted) return;
     String? reason;
     if (action != 'approve') {
-      final controller = TextEditingController();
-      reason = await showDialog<String>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(action == 'reject'
-              ? 'Rejection reason'
-              : 'What information is needed?'),
-          content: TextField(
-              controller: controller,
-              maxLines: 3,
-              decoration: const InputDecoration(hintText: 'Enter a reason')),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel')),
-            FilledButton(
-                onPressed: () =>
-                    Navigator.pop(dialogContext, controller.text.trim()),
-                child: const Text('Continue')),
-          ],
-        ),
+      reason = await showReasonDialog(
+        context,
+        title: action == 'reject'
+            ? 'Rejection reason'
+            : 'What information is needed?',
+        confirmLabel: 'Continue',
+        hintText: 'Enter a reason',
+        isDestructive: action == 'reject',
+        icon: action == 'reject' ? Iconsax.close_circle : Iconsax.message_text,
       );
-      controller.dispose();
       if (reason == null || reason.isEmpty || !mounted) return;
     }
     try {

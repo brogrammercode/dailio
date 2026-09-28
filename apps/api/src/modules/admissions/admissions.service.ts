@@ -106,7 +106,6 @@ export async function approveJoinRequest(
           },
         },
       });
-      const memberId = ulid();
       const member = existingMember
         ? await txClient.member.update({
             where: { id: existingMember.id },
@@ -114,7 +113,7 @@ export async function approveJoinRequest(
           })
         : await txClient.member.create({
             data: {
-              id: memberId,
+              id: ulid(),
               user_id: request.user_id,
               organization_id,
               branch_id,
@@ -158,7 +157,7 @@ export async function approveJoinRequest(
       // Link member to request
       await txClient.joinRequest.update({
         where: { id: request_id },
-        data: { member_id: memberId },
+        data: { member_id: member.id },
       });
 
       // 4. Audit log

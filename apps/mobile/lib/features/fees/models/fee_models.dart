@@ -93,6 +93,7 @@ class PaymentRequestModel {
   final List<PaymentEvidenceModel> evidence;
   final PaymentModel? payment;
   final String? memberName;
+  final String? memberId;
   final String? memberAvatarUrl;
   final String? memberRoleName;
   final String? planName;
@@ -110,6 +111,7 @@ class PaymentRequestModel {
     this.evidence = const [],
     this.payment,
     this.memberName,
+    this.memberId,
     this.memberAvatarUrl,
     this.memberRoleName,
     this.planName,
@@ -142,6 +144,7 @@ class PaymentRequestModel {
               Map<String, dynamic>.from(json['payment_attempt'] as Map))
           : null,
       memberName: user?['name']?.toString(),
+      memberId: member?['id']?.toString(),
       memberAvatarUrl: user?['avatar_url']?.toString(),
       memberRoleName: (member?['role'] as Map?)?['name']?.toString(),
       planName: plan?['name']?.toString(),

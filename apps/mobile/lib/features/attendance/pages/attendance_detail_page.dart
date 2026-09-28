@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/utils/branch_time.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../attendance_error.dart';
 import '../attendance_ui.dart';
@@ -186,22 +187,35 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
 
   Widget _avatar(AttendanceSessionModel session) {
     final avatar = session.memberAvatar;
-    if (avatar != null && avatar.isNotEmpty) {
-      return CircleAvatar(
-        radius: 25,
-        backgroundColor: AttendanceUi.accentTint,
-        backgroundImage: NetworkImage(avatar),
-      );
-    }
     final name = session.memberName?.trim() ?? 'A';
-    return CircleAvatar(
-      radius: 25,
-      backgroundColor: AttendanceUi.accentTint,
-      foregroundColor: AttendanceUi.accent,
-      child: Text(
-        name.isEmpty ? 'A' : name.substring(0, 1).toUpperCase(),
-        style: const TextStyle(fontWeight: FontWeight.w700),
+    final child = avatar != null && avatar.isNotEmpty
+        ? CircleAvatar(
+            radius: 25,
+            backgroundColor: AttendanceUi.accentTint,
+            backgroundImage: NetworkImage(avatar),
+          )
+        : CircleAvatar(
+            radius: 25,
+            backgroundColor: AttendanceUi.accentTint,
+            foregroundColor: AttendanceUi.accent,
+            child: Text(
+              name.isEmpty ? 'A' : name.substring(0, 1).toUpperCase(),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          );
+    if (session.memberId == null) return child;
+    return GestureDetector(
+      onTap: () => showDailioMemberProfileSheet(
+        context,
+        DailioMemberPreview(
+          memberId: session.memberId!,
+          name: session.memberName ?? 'Member',
+          role: session.memberRoleName ?? 'Member',
+          status: session.state,
+          avatarUrl: session.memberAvatar,
+        ),
       ),
+      child: child,
     );
   }
 

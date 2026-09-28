@@ -72,6 +72,7 @@ class AttendanceSessionModel {
   final DateTime clockInServerTime;
   final DateTime? clockOutServerTime;
   final int? workedMinutes;
+  final String? memberId;
   final String? memberName; // populated from includes
   final String? memberAvatar; // populated from includes
   final String? memberRoleName; // populated from includes
@@ -98,6 +99,7 @@ class AttendanceSessionModel {
       required this.clockInServerTime,
       this.clockOutServerTime,
       this.workedMinutes,
+      this.memberId,
       this.memberName,
       this.memberAvatar,
       this.memberRoleName,
@@ -132,6 +134,7 @@ class AttendanceSessionModel {
       clockOutServerTime:
           j['clock_out_at'] != null ? DateTime.parse(j['clock_out_at']) : null,
       workedMinutes: j['worked_minutes'],
+      memberId: member?['id']?.toString(),
       memberName: user?['name'],
       memberAvatar: user?['avatar_url'],
       memberRoleName:

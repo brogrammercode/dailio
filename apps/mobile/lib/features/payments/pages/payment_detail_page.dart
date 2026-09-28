@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/dailio_receipt_sheet.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../fees/controllers/fees_repository.dart';
@@ -403,7 +404,7 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
   Widget _avatar(PaymentRequestModel request) {
     final image = request.memberAvatarUrl;
     final name = request.memberName ?? 'Member';
-    return CircleAvatar(
+    final child = CircleAvatar(
       radius: 24,
       backgroundColor: const Color(0xFFFFE2CC),
       backgroundImage:
@@ -413,6 +414,21 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
               style: const TextStyle(
                   color: AppColors.brandAccent, fontWeight: FontWeight.w800))
           : null,
+    );
+    if (request.memberId == null) return child;
+    return GestureDetector(
+      onTap: () => showDailioMemberProfileSheet(
+        context,
+        DailioMemberPreview(
+          memberId: request.memberId!,
+          name: name,
+          role: request.memberRoleName ?? 'Member',
+          status: request.status,
+          avatarUrl: request.memberAvatarUrl,
+          subscriptionLabel: request.planName,
+        ),
+      ),
+      child: child,
     );
   }
 

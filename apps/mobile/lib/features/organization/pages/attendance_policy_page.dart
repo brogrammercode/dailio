@@ -10,6 +10,7 @@ import '../../branch/controllers/members_repository.dart';
 import '../controllers/organization_repository.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_picker_field.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 
 String attendancePolicyErrorMessage(Object error) {
   if (error is DioException) {
@@ -196,21 +197,13 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
       ));
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Save attendance policy?'),
-        content: const Text(
-            'This creates a new policy version for future punches. Existing attendance sessions keep their original policy snapshot.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Save version')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Save attendance policy?',
+      message:
+          'A new policy version will apply to future punches. Existing sessions keep their current snapshot.',
+      confirmLabel: 'Save version',
+      icon: Iconsax.shield_tick,
     );
     if (confirmed != true || !mounted) return;
     setState(() => _isSaving = true);

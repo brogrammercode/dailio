@@ -3,10 +3,12 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:iconsax/iconsax.dart';
 
 import '../controllers/attendance_repository.dart';
 import '../attendance_error.dart';
 import '../attendance_ui.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import 'attendance_detail_page.dart';
 
@@ -118,24 +120,14 @@ class _GateAttendancePageState extends State<GateAttendancePage> {
           'For attendance safety, gate attendance must be scanned live with the camera. Return to the scanner and scan the printed QR directly.');
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(_action == 'CLOCK_OUT'
-            ? 'Clock out at gate?'
-            : 'Clock in at gate?'),
-        content: Text(
-          'Dailio will apply your assigned attendance policy, capture required evidence, and submit the server-confirmed attendance action for ${_branch['name'] ?? 'this branch'}.',
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Continue')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title:
+          _action == 'CLOCK_OUT' ? 'Clock out at gate?' : 'Clock in at gate?',
+      message:
+          'Dailio will apply your attendance policy, capture required evidence, and submit the confirmed action for ${_branch['name'] ?? 'this branch'}.',
+      confirmLabel: 'Continue',
+      icon: _action == 'CLOCK_OUT' ? Iconsax.logout : Iconsax.login,
     );
     if (confirmed != true || !mounted) return;
 

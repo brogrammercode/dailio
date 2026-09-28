@@ -12,6 +12,7 @@ import '../../../core/utils/branch_time.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/app_shell_toast.dart';
 import '../../../core/widgets/dailio_compact_tile.dart';
+import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_picker_field.dart';
 import '../../../core/widgets/dailio_tab_strip.dart';
@@ -424,6 +425,18 @@ class _AttendancePageState extends State<AttendancePage>
 
     return DailioCompactTile(
       avatar: _buildAttendanceAvatar(session, statusColor, statusIcon),
+      onAvatarTap: session.memberId == null
+          ? null
+          : () => showDailioMemberProfileSheet(
+                context,
+                DailioMemberPreview(
+                  memberId: session.memberId!,
+                  name: session.memberName ?? 'Member',
+                  role: roleLabel ?? 'Member',
+                  avatarUrl: session.memberAvatar,
+                  status: isOpen ? 'ACTIVE' : (isLate ? 'LATE' : 'COMPLETED'),
+                ),
+              ),
       title: session.memberName ?? 'You',
       titleBadge: roleLabel,
       subtitle:

@@ -7,6 +7,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../branch/models/member_model.dart';
 
@@ -153,23 +154,39 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
   Widget _memberHeader() {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 25,
-          backgroundColor: const Color(0xFFF2F2F2),
-          backgroundImage: widget.member.avatarUrl == null
-              ? null
-              : NetworkImage(widget.member.avatarUrl!),
-          child: widget.member.avatarUrl == null
-              ? Text(
-                  widget.member.name.isEmpty
-                      ? '?'
-                      : widget.member.name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.brandDark,
-                    fontWeight: FontWeight.w800,
-                  ),
-                )
-              : null,
+        GestureDetector(
+          onTap: () => showDailioMemberProfileSheet(
+            context,
+            DailioMemberPreview(
+              memberId: widget.member.id,
+              name: widget.member.name,
+              role: widget.member.role?.name ?? 'Member',
+              status: widget.member.status,
+              avatarUrl: widget.member.avatarUrl,
+              phone: widget.member.phone,
+              email: widget.member.email,
+              membershipNumber: widget.member.membershipNumber,
+              subscriptionLabel: widget.member.activeSubscription?.planName,
+            ),
+          ),
+          child: CircleAvatar(
+            radius: 25,
+            backgroundColor: const Color(0xFFF2F2F2),
+            backgroundImage: widget.member.avatarUrl == null
+                ? null
+                : NetworkImage(widget.member.avatarUrl!),
+            child: widget.member.avatarUrl == null
+                ? Text(
+                    widget.member.name.isEmpty
+                        ? '?'
+                        : widget.member.name.substring(0, 1).toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.brandDark,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  )
+                : null,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(

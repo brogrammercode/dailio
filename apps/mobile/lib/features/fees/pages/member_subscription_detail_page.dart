@@ -16,6 +16,7 @@ import '../../../core/network/interceptors/logging_interceptor.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/dailio_receipt_sheet.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/fees_repository.dart';
@@ -207,7 +208,7 @@ class _MemberSubscriptionDetailPageState
       children: [
         Row(
           children: [
-            _avatar(avatarUrl, memberName),
+            _avatar(avatarUrl, memberName, status: status, role: memberRole),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -592,9 +593,10 @@ class _MemberSubscriptionDetailPageState
     );
   }
 
-  Widget _avatar(String? avatarUrl, String name) {
+  Widget _avatar(String? avatarUrl, String name,
+      {required String status, required String role}) {
     final hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
-    return CircleAvatar(
+    final child = CircleAvatar(
       radius: 24,
       backgroundColor: const Color(0xFFFFE2CC),
       backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
@@ -607,6 +609,19 @@ class _MemberSubscriptionDetailPageState
                 fontWeight: FontWeight.w800,
               ),
             ),
+    );
+    return GestureDetector(
+      onTap: () => showDailioMemberProfileSheet(
+        context,
+        DailioMemberPreview(
+          memberId: widget.memberId,
+          name: name,
+          role: role,
+          status: status,
+          avatarUrl: avatarUrl,
+        ),
+      ),
+      child: child,
     );
   }
 

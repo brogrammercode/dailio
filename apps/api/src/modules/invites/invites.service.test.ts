@@ -110,7 +110,7 @@ describe('permanent gate QR idempotency', () => {
     );
   });
 
-  it('returns pending and inactive states without exposing attendance action', async () => {
+  it('allows inactive members to use fast join again but blocks suspended members', async () => {
     prismaMock.inviteToken.findUnique.mockResolvedValue(invite());
     prismaMock.member.findFirst.mockResolvedValueOnce(null);
     prismaMock.joinRequest.findFirst.mockResolvedValue({
@@ -130,8 +130,19 @@ describe('permanent gate QR idempotency', () => {
     prismaMock.joinRequest.findFirst.mockResolvedValue(null);
 
     const inactive = await resolveInvite('user-1', 'raw-token');
-    expect(inactive.joinability).toBe('MEMBERSHIP_INACTIVE');
+    expect(inactive.joinability).toBe('JOINABLE');
     expect(inactive.attendance_action).toBeNull();
+
+    prismaMock.member.findFirst.mockResolvedValueOnce({
+      id: 'member-1',
+      status: 'SUSPENDED',
+      shift: null,
+    });
+    prismaMock.joinRequest.findFirst.mockResolvedValue(null);
+
+    const suspended = await resolveInvite('user-1', 'raw-token');
+    expect(suspended.joinability).toBe('MEMBERSHIP_INACTIVE');
+    expect(suspended.attendance_action).toBeNull();
   });
 
   it('exposes a disabled attendance state when the effective policy does not require punches', async () => {

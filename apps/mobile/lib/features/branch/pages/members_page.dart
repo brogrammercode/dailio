@@ -9,6 +9,7 @@ import '../../../core/storage/preferences_storage.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/branch_filter_tabs.dart';
 import '../../../core/widgets/dailio_compact_tile.dart';
+import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_tab_strip.dart';
@@ -524,6 +525,20 @@ class _MembersPageState extends State<MembersPage> {
               ),
             ),
           ],
+        ),
+        onAvatarTap: () => showDailioMemberProfileSheet(
+          context,
+          DailioMemberPreview(
+            memberId: member.id,
+            name: member.name,
+            role: member.role?.name ?? 'Member',
+            status: member.status,
+            avatarUrl: member.avatarUrl,
+            phone: member.phone,
+            email: member.email,
+            membershipNumber: member.membershipNumber,
+            subscriptionLabel: member.activeSubscription?.planName,
+          ),
         ),
         title: member.name,
         titleBadge: member.role?.name ?? 'Member',

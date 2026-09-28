@@ -10,6 +10,7 @@ import '../../../core/widgets/dailio_compact_tile.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_picker_field.dart';
 import '../../../core/widgets/shimmer_loader.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../organization/controllers/organization_repository.dart';
 import '../controllers/shift_repository.dart';
 
@@ -240,32 +241,13 @@ class _ShiftManagementPageState extends State<ShiftManagementPage> {
 
   Future<void> _confirmDelete(
       BuildContext context, String title, VoidCallback onConfirm) async {
-    final bool? confirm = await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        content: const Text(
-            'Are you sure you want to delete this? This action cannot be undone.'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child:
-                  const Text('Cancel', style: TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                elevation: 0),
-            child: const Text('Delete',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
+    final confirm = await showConfirmDialog(
+      context,
+      title: title,
+      message: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      isDestructive: true,
+      icon: Iconsax.trash,
     );
     if (confirm == true) onConfirm();
   }

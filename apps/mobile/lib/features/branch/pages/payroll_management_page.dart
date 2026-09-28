@@ -11,6 +11,7 @@ import '../../../core/widgets/dailio_picker_field.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_tab_strip.dart';
 import '../../../core/widgets/shimmer_loader.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../organization/controllers/organization_repository.dart';
 import '../controllers/payroll_repository.dart';
 
@@ -86,26 +87,13 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
   }
 
   Future<void> _confirmDelete(Map<String, dynamic> structure) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete structure?',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-        content:
-            const Text('This salary structure will no longer be available.'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Delete structure?',
+      message: 'This salary structure will no longer be available.',
+      confirmLabel: 'Delete',
+      isDestructive: true,
+      icon: Iconsax.trash,
     );
     if (confirmed != true) return;
     try {

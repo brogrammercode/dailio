@@ -83,7 +83,6 @@ export async function getMemberDetail(
       },
       subscriptions: {
         orderBy: { end_date: 'desc' },
-        take: 5,
         include: { plan: true },
       },
     },

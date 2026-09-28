@@ -6,6 +6,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../../core/router/route_names.dart';
+import '../../../core/widgets/confirm_dialog.dart';
+import 'package:iconsax/iconsax.dart';
 import '../controllers/branch_repository.dart';
 import '../../attendance/pages/gate_attendance_page.dart';
 
@@ -187,25 +189,13 @@ class _QrScannerPageState extends State<QrScannerPage> {
     final organizationName = organization['name'] ?? 'this organization';
     final branchName = branch['name'] ?? 'this branch';
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Confirm fast join'),
-        content: Text(
-          'Send a membership request to $organizationName · $branchName?\n\n'
-          'The owner will review your request before you become an active member.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Send request'),
-          ),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Confirm fast join',
+      message:
+          'Send a membership request to $organizationName · $branchName?\n\nThe owner will review your request before you become an active member.',
+      confirmLabel: 'Send request',
+      icon: Iconsax.user_add,
     );
 
     if (confirmed != true || !mounted) return;
@@ -263,7 +253,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Scan to join'),
+        title: const Text('Scan QR'),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -304,7 +294,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     child: Text(
-                      'Dailio fast join',
+                      'Dailio QR',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 13,
@@ -358,10 +348,10 @@ class _ScannerActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 13),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.74),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
       ),
       child: Column(
@@ -371,20 +361,20 @@ class _ScannerActions extends StatelessWidget {
             'Scan a Dailio QR code',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 17,
+              fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            'Use your camera or select a saved QR image.',
+            'Use the camera or choose a saved QR image.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.72),
               fontSize: 13,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 11),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -392,12 +382,12 @@ class _ScannerActions extends StatelessWidget {
               icon: const Icon(Icons.photo_library_outlined),
               label: const Text('Choose from gallery'),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFFF8A00),
+                backgroundColor: const Color(0xFFCC5A00),
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: Colors.white24,
-                padding: const EdgeInsets.symmetric(vertical: 13),
+                padding: const EdgeInsets.symmetric(vertical: 11),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),

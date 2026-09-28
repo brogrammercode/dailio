@@ -54,6 +54,8 @@ Thumbs.db
 !apps/api/prisma/migrations/20260926170000_attendance_correction_history/migration.sql
 !apps/api/prisma/migrations/20260926180000_attendance_geofence_distance/migration.sql
 !apps/api/prisma/migrations/20260926190000_attendance_evidence_asset_relation/migration.sql
+!apps/api/prisma/migrations/20260928180000_pending_join_request_unique/migration.sql
+!apps/api/prisma/migrations/20260928183000_join_request_member_history/migration.sql
 !apps/api/prisma/migrations/20260926200000_admin_attendance_export_permission/migration.sql
 !apps/api/prisma/migrations/20260926210000_member_reporting_hierarchy/migration.sql
 !apps/api/prisma/migrations/20260926220000_member_role_assignments/migration.sql

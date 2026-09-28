@@ -15,6 +15,7 @@ import '../controllers/shift_repository.dart';
 import '../controllers/payroll_repository.dart';
 import '../../fees/pages/assign_subscription_page.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_picker_field.dart';
 import '../../../core/widgets/shimmer_loader.dart';
@@ -477,37 +478,53 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         children: [
           Row(
             children: [
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Colors.orange.shade100,
-                    backgroundImage: _member!.avatarUrl != null
-                        ? NetworkImage(_member!.avatarUrl!)
-                        : null,
-                    child: _member!.avatarUrl == null
-                        ? Text(_member!.name.substring(0, 1).toUpperCase(),
-                            style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange.shade800))
-                        : null,
+              GestureDetector(
+                onTap: () => showDailioMemberProfileSheet(
+                  context,
+                  DailioMemberPreview(
+                    memberId: _member!.id,
+                    name: _member!.name,
+                    role: _member!.role?.name ?? 'Member',
+                    status: _member!.status,
+                    avatarUrl: _member!.avatarUrl,
+                    phone: _member!.phone,
+                    email: _member!.email,
+                    membershipNumber: _member!.membershipNumber,
+                    subscriptionLabel: _member!.activeSubscription?.planName,
                   ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(
-                          color: Colors.white, shape: BoxShape.circle),
-                      child: CircleAvatar(
-                          radius: 8,
-                          backgroundColor: Colors.orange.shade600,
-                          child: const Icon(Icons.bolt,
-                              size: 10, color: Colors.white)),
+                ),
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: Colors.orange.shade100,
+                      backgroundImage: _member!.avatarUrl != null
+                          ? NetworkImage(_member!.avatarUrl!)
+                          : null,
+                      child: _member!.avatarUrl == null
+                          ? Text(_member!.name.substring(0, 1).toUpperCase(),
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange.shade800))
+                          : null,
                     ),
-                  )
-                ],
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(
+                            color: Colors.white, shape: BoxShape.circle),
+                        child: CircleAvatar(
+                            radius: 8,
+                            backgroundColor: Colors.orange.shade600,
+                            child: const Icon(Icons.bolt,
+                                size: 10, color: Colors.white)),
+                      ),
+                    )
+                  ],
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(

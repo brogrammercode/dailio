@@ -16,6 +16,7 @@ class DailioCompactTile extends StatelessWidget {
   final ValueChanged<String> onMenuSelected;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final VoidCallback? onAvatarTap;
   final Color subtitleColor;
 
   const DailioCompactTile({
@@ -31,6 +32,7 @@ class DailioCompactTile extends StatelessWidget {
     required this.onMenuSelected,
     this.onTap,
     this.onLongPress,
+    this.onAvatarTap,
     this.subtitleColor = const Color(0xFF6B6B6B),
   });
 
@@ -45,7 +47,7 @@ class DailioCompactTile extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 9, 8, 9),
           child: Row(
             children: [
-              avatar,
+              _avatarWithAction(),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -130,6 +132,22 @@ class DailioCompactTile extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _avatarWithAction() {
+    if (onAvatarTap == null) return avatar;
+    return Semantics(
+      button: true,
+      label: 'Open profile',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onAvatarTap,
+          customBorder: const CircleBorder(),
+          child: avatar,
         ),
       ),
     );
