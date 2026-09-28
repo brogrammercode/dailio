@@ -132,12 +132,65 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
     });
     try {
       final futures = await Future.wait([
-        _repo.getMember(_branchId, widget.memberId),
-        _orgRepo.getRoles(_orgId),
-        _orgRepo.getOrganizationBranches(_orgId),
-        context.read<ShiftRepository>().listShifts(_orgId),
-        context.read<PayrollRepository>().listSalaryStructures(_orgId),
-        _repo.listMembers(_branchId, limit: 100),
+        _repo.getMember(
+          _branchId,
+          widget.memberId,
+          onFresh: (freshData) {
+            if (!mounted) return;
+            final freshJson = freshData['data'] is Map
+                ? Map<String, dynamic>.from(freshData['data'] as Map)
+                : freshData;
+            final freshMember = MemberModel.fromJson(freshJson);
+            setState(() {
+              _member = freshMember;
+              _subscriptions =
+                  ((freshJson['subscriptions'] as List?) ?? const [])
+                      .whereType<Map>()
+                      .map((item) => Map<String, dynamic>.from(item))
+                      .toList();
+            });
+          },
+        ),
+        _orgRepo.getRoles(
+          _orgId,
+          onFresh: (freshRoles) {
+            if (mounted) {
+              setState(() => _roles =
+                  freshRoles.map((item) => RoleModel.fromJson(item)).toList());
+            }
+          },
+        ),
+        _orgRepo.getOrganizationBranches(
+          _orgId,
+          onFresh: (freshBranches) {
+            if (mounted) setState(() => _branches = freshBranches);
+          },
+        ),
+        context.read<ShiftRepository>().listShifts(
+          _orgId,
+          onFresh: (freshShifts) {
+            if (mounted) setState(() => _shifts = freshShifts);
+          },
+        ),
+        context.read<PayrollRepository>().listSalaryStructures(
+          _orgId,
+          onFresh: (freshStructures) {
+            if (mounted) setState(() => _salaryStructures = freshStructures);
+          },
+        ),
+        _repo.listMembers(
+          _branchId,
+          limit: 100,
+          onFresh: (freshData) {
+            if (!mounted) return;
+            final freshMembers = ((freshData['data'] as List?) ?? const [])
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .where((item) => item['id']?.toString() != widget.memberId)
+                .toList();
+            setState(() => _branchMembers = freshMembers);
+          },
+        ),
       ]);
 
       final memberData = futures[0] as Map<String, dynamic>;

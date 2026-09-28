@@ -91,11 +91,10 @@ stale-state completion.
 - [x] Plans and buy-plan pages receive fresh plan replacement.
 - [x] Shift management receives fresh shift replacement.
 - [x] Payroll management receives fresh salary-structure replacement.
-- [ ] Configure-member page updates each independently refreshed dependency;
-  it currently benefits from cached-first repository loading and applies the
-  complete result after its initial load.
-- [ ] Attendance policy management exposes fresh callbacks for every secondary
-  role/member collection and its stale/offline visual state.
+- [x] Configure-member page updates its member, role, branch, shift, payroll,
+  and manager collections when background refreshes complete.
+- [x] Attendance policy management updates policy, role, and member collections
+  when background refreshes complete.
 - [ ] Profile, announcements, notifications, and other read-only surfaces need
   a dedicated cache contract. Authentication `/auth/me` remains network
   authoritative and is intentionally not replaced with cached identity data.
@@ -141,7 +140,7 @@ stale-state completion.
 | Admission | Join requests | branch | Implemented |
 | Members | Directory | branch/org + filters | Implemented |
 | Members | Member detail | branch/member | Implemented |
-| Members | Configure member | member + supporting lists | Cached-first implemented; independent live replacement pending |
+| Members | Configure member | member + supporting lists | Implemented |
 | Attendance | Attendance list | branch + period/role/cursor | Implemented |
 | Attendance | Self attendance | branch + active/history/policy | Implemented |
 | Attendance | Attendance detail | branch/session | Implemented with sensitive fields removed from cache |
@@ -153,7 +152,7 @@ stale-state completion.
 | Payments | Official receipt/evidence URL | network-only | Intentionally not cached |
 | Settings | Roles/branches/plans | organization/branch | Implemented |
 | Operations | Shifts/payroll | organization/branch | Implemented |
-| Settings | Attendance policy | branch + policy collections | Repository implemented; page secondary refresh completion pending |
+| Settings | Attendance policy | branch + policy collections | Implemented |
 | Profile | Authenticated profile | user | Network-authoritative; dedicated profile cache pending |
 
 ## Runtime sequence

@@ -61,6 +61,24 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
     return attendancePolicyErrorMessage(error);
   }
 
+  void _applyPolicyFields(Map<String, dynamic> policy) {
+    _punchRequired = policy['punch_required'] ?? true;
+    _allowManualEntry = policy['allow_manual_entry'] ?? false;
+    _selfieOnClockIn = policy['selfie_on_clock_in'] ?? false;
+    _selfieOnClockOut = policy['selfie_on_clock_out'] ?? false;
+    _locationOnClockIn = policy['location_on_clock_in'] ?? false;
+    _locationOnClockOut = policy['location_on_clock_out'] ?? false;
+    _geofenceEnabled = policy['geofence_enabled'] ?? false;
+    _shiftEnforcementEnabled = policy['shift_enforcement_enabled'] ?? false;
+    _earlyArrivalMinutes = policy['early_arrival_minutes'] ?? 30;
+    _lateGraceMinutes = policy['late_grace_minutes'] ?? 15;
+    _maxOpenSessionHours = policy['max_open_session_hours'] ?? 24;
+    _geofenceRadiusMeters = policy['geofence_radius_meters'] ?? 100;
+    _geofenceAccuracyThreshold =
+        (policy['geofence_accuracy_threshold'] as num?)?.toInt() ?? 50;
+    _minSessionMinutes = policy['min_session_minutes'] ?? 0;
+  }
+
   Future<T?> _tryLoad<T>(Future<T> request) async {
     try {
       return await request;
@@ -87,12 +105,46 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
       final repo = context.read<AttendanceRepository>();
       final orgId = prefs.activeOrganizationId;
       final results = await Future.wait<dynamic>([
-        repo.getAttendancePolicies(branchId),
+        repo.getAttendancePolicies(
+          branchId,
+          onFresh: (freshPolicies) {
+            if (!mounted) return;
+            setState(() {
+              _policies = freshPolicies;
+              _applyPolicyFields(
+                _policyForScope(
+                  freshPolicies,
+                  _scope,
+                  _selectedRoleId,
+                  _selectedMemberId,
+                ),
+              );
+            });
+          },
+        ),
         if (orgId != null)
-          _tryLoad(context
-              .read<OrganizationRepository>()
-              .getRoles(orgId, branchId: branchId)),
-        _tryLoad(context.read<MembersRepository>().listMembers(branchId)),
+          _tryLoad(
+            context.read<OrganizationRepository>().getRoles(
+              orgId,
+              branchId: branchId,
+              onFresh: (freshRoles) {
+                if (mounted) setState(() => _roles = freshRoles);
+              },
+            ),
+          ),
+        _tryLoad(
+          context.read<MembersRepository>().listMembers(
+            branchId,
+            onFresh: (freshData) {
+              if (!mounted) return;
+              final freshMembers = ((freshData['data'] as List?) ?? const [])
+                  .whereType<Map>()
+                  .map((item) => Map<String, dynamic>.from(item))
+                  .toList();
+              setState(() => _members = freshMembers);
+            },
+          ),
+        ),
       ]);
       final policies = results[0] as List<Map<String, dynamic>>;
       final roles = orgId == null || results[1] is! List
@@ -111,22 +163,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
 
       if (mounted) {
         setState(() {
-          _punchRequired = policy['punch_required'] ?? true;
-          _allowManualEntry = policy['allow_manual_entry'] ?? false;
-          _selfieOnClockIn = policy['selfie_on_clock_in'] ?? false;
-          _selfieOnClockOut = policy['selfie_on_clock_out'] ?? false;
-          _locationOnClockIn = policy['location_on_clock_in'] ?? false;
-          _locationOnClockOut = policy['location_on_clock_out'] ?? false;
-          _geofenceEnabled = policy['geofence_enabled'] ?? false;
-          _shiftEnforcementEnabled =
-              policy['shift_enforcement_enabled'] ?? false;
-          _earlyArrivalMinutes = policy['early_arrival_minutes'] ?? 30;
-          _lateGraceMinutes = policy['late_grace_minutes'] ?? 15;
-          _maxOpenSessionHours = policy['max_open_session_hours'] ?? 24;
-          _geofenceRadiusMeters = policy['geofence_radius_meters'] ?? 100;
-          _geofenceAccuracyThreshold =
-              (policy['geofence_accuracy_threshold'] as num?)?.toInt() ?? 50;
-          _minSessionMinutes = policy['min_session_minutes'] ?? 0;
+          _applyPolicyFields(policy);
           _roles = roles;
           _members = members;
           _policies = policies;
@@ -150,21 +187,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
       _scope = scope;
       _selectedRoleId = scope == 'ROLE' ? roleId : null;
       _selectedMemberId = scope == 'MEMBER' ? memberId : null;
-      _punchRequired = policy['punch_required'] ?? true;
-      _allowManualEntry = policy['allow_manual_entry'] ?? false;
-      _selfieOnClockIn = policy['selfie_on_clock_in'] ?? false;
-      _selfieOnClockOut = policy['selfie_on_clock_out'] ?? false;
-      _locationOnClockIn = policy['location_on_clock_in'] ?? false;
-      _locationOnClockOut = policy['location_on_clock_out'] ?? false;
-      _geofenceEnabled = policy['geofence_enabled'] ?? false;
-      _shiftEnforcementEnabled = policy['shift_enforcement_enabled'] ?? false;
-      _earlyArrivalMinutes = policy['early_arrival_minutes'] ?? 30;
-      _lateGraceMinutes = policy['late_grace_minutes'] ?? 15;
-      _maxOpenSessionHours = policy['max_open_session_hours'] ?? 24;
-      _geofenceRadiusMeters = policy['geofence_radius_meters'] ?? 100;
-      _geofenceAccuracyThreshold =
-          (policy['geofence_accuracy_threshold'] as num?)?.toInt() ?? 50;
-      _minSessionMinutes = policy['min_session_minutes'] ?? 0;
+      _applyPolicyFields(policy);
     });
   }
 
