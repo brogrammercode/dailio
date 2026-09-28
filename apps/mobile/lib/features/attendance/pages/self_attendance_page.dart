@@ -298,7 +298,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         ),
       ),
       body: _loading
-          ? ShimmerLoader.compactList()
+          ? ShimmerLoader.selfAttendance()
           : _error != null
               ? _errorView()
               : TabBarView(

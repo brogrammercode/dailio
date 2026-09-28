@@ -88,7 +88,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
         ],
       ),
       body: _loading
-          ? ShimmerLoader.compactList()
+          ? ShimmerLoader.detailPage()
           : _error != null
               ? _errorView()
               : _session == null

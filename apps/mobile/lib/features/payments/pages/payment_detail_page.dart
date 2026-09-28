@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_receipt_sheet.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../fees/controllers/fees_repository.dart';
 import '../../fees/models/fee_models.dart';
@@ -101,7 +102,7 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
       body: _loading
           ? Padding(
               padding: EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: ShimmerLoader.compactList(),
+              child: ShimmerLoader.detailPage(),
             )
           : _error != null
               ? _errorView()
@@ -432,155 +433,26 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.brandDark,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  const Icon(Iconsax.receipt_text,
-                      color: Colors.white, size: 19),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                      child: Text('Official Receipt',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800))),
-                  IconButton(
-                    onPressed: () => Navigator.pop(sheetContext),
-                    icon:
-                        const Icon(Iconsax.close_circle, color: Colors.white70),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              RepaintBoundary(
-                key: _receiptKey,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: ClipPath(
-                    clipper: const _PaymentReceiptEdgeClipper(),
-                    child: Container(
-                      width: double.infinity,
-                      color: Colors.white,
-                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-                      child: Column(
-                        children: [
-                          const Text('Dailio',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.w900)),
-                          const SizedBox(height: 4),
-                          Text(
-                            context
-                                    .read<PreferencesStorage>()
-                                    .activeBranchName ??
-                                'Branch',
-                            style: const TextStyle(
-                                color: Color(0xFF777777), fontSize: 10),
-                          ),
-                          const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 13),
-                              child: Divider(height: 1)),
-                          _receiptLine('Receipt no', receipt.receiptNumber),
-                          _receiptLine('Issued', _dateTime(receipt.issuedAt)),
-                          _receiptLine(
-                              'Member', request.memberName ?? 'Member'),
-                          _receiptLine('Method',
-                              request.payment?.method ?? request.method),
-                          const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8),
-                              child: Divider(height: 1)),
-                          _receiptLine(
-                            'Total paid',
-                            _money(
-                                request.payment?.amountMinorUnit ??
-                                    request.amountMinorUnit,
-                                request.currency),
-                            emphasize: true,
-                          ),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                                border:
-                                    Border.all(color: AppColors.brandAccent),
-                                borderRadius: BorderRadius.circular(4)),
-                            child: const Text('PAID · CONFIRMED',
-                                style: TextStyle(
-                                    color: AppColors.brandAccent,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w800)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _sharingReceipt ? null : _shareReceipt,
-                      icon: _sharingReceipt
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Icon(Iconsax.share, size: 17),
-                      label: const Text('Share receipt'),
-                      style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white24)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () => Navigator.pop(sheetContext),
-                      style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF7600)),
-                      child: const Text('Done'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+      builder: (sheetContext) => DailioReceiptSheet(
+        receiptKey: _receiptKey,
+        organizationName:
+            context.read<PreferencesStorage>().activeOrganizationName ??
+                'Dailio',
+        branchName:
+            context.read<PreferencesStorage>().activeBranchName ?? 'Branch',
+        receiptNumber: receipt.receiptNumber,
+        issuedAt: _dateTime(receipt.issuedAt),
+        memberName: request.memberName ?? 'Member',
+        method: request.payment?.method ?? request.method,
+        totalPaid: _money(
+          request.payment?.amountMinorUnit ?? request.amountMinorUnit,
+          request.currency,
         ),
+        onShare: _shareReceipt,
+        onClose: () => Navigator.pop(sheetContext),
       ),
     );
   }
-
-  Widget _receiptLine(String label, String value, {bool emphasize = false}) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 9),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 74,
-              child: Text(label,
-                  style:
-                      const TextStyle(color: Color(0xFF777777), fontSize: 11)),
-            ),
-            Expanded(
-              child: Text(value,
-                  style: TextStyle(
-                      color: emphasize ? AppColors.brandAccent : Colors.black,
-                      fontSize: emphasize ? 15 : 11,
-                      fontWeight:
-                          emphasize ? FontWeight.w900 : FontWeight.w700)),
-            ),
-          ],
-        ),
-      );
 
   Future<void> _shareReceipt() async {
     if (_sharingReceipt) return;
@@ -639,34 +511,4 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
   String _dateTime(DateTime? value) => value == null
       ? 'Not available'
       : DateFormat('dd MMM yyyy, hh:mm a').format(value.toLocal());
-}
-
-class _PaymentReceiptEdgeClipper extends CustomClipper<Path> {
-  const _PaymentReceiptEdgeClipper();
-
-  @override
-  Path getClip(Size size) {
-    const height = 6.0;
-    const length = 16.0;
-    final path = Path()..moveTo(0, height);
-    for (double x = 0; x <= size.width; x += length) {
-      final end = (x + length).clamp(0, size.width).toDouble();
-      path.quadraticBezierTo(
-          x + length / 2, x % (length * 2) == 0 ? 0 : height * 2, end, height);
-    }
-    path.lineTo(size.width, size.height - height);
-    for (double x = size.width; x >= 0; x -= length) {
-      final end = (x - length).clamp(0, size.width).toDouble();
-      path.quadraticBezierTo(
-          x - length / 2,
-          x % (length * 2) == 0 ? size.height : size.height - height * 2,
-          end,
-          size.height - height);
-    }
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant _PaymentReceiptEdgeClipper oldClipper) => false;
 }

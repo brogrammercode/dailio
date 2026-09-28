@@ -6,6 +6,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../auth/controllers/auth_cubit.dart';
 import '../../auth/controllers/auth_state.dart';
@@ -104,37 +105,24 @@ class _SettingsPageState extends State<SettingsPage> {
 
         return Scaffold(
           backgroundColor: Colors.white,
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            foregroundColor: AppColors.brandDark,
-            surfaceTintColor: Colors.transparent,
-            elevation: 0,
-            title: const Text(
-              'Dailio',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            actions: [
-              DailioOverflowMenu<String>(
-                items: const [
-                  DailioMenuItem(
-                    value: 'refresh',
-                    icon: Icons.refresh,
-                    label: 'Refresh',
-                  ),
-                  DailioMenuItem(
-                    value: 'sign_out',
-                    icon: Iconsax.logout,
-                    label: 'Sign out',
-                    destructive: true,
-                  ),
-                ],
-                onSelected: (value) {
-                  if (value == 'refresh') _loadOrgData();
-                  if (value == 'sign_out') _confirmSignOut();
-                },
+          appBar: DailioSimpleAppBar(
+            menuItems: const [
+              DailioMenuItem(
+                value: 'refresh',
+                icon: Iconsax.refresh,
+                label: 'Refresh',
               ),
-              const SizedBox(width: 8),
+              DailioMenuItem(
+                value: 'sign_out',
+                icon: Iconsax.logout,
+                label: 'Sign out',
+                destructive: true,
+              ),
             ],
+            onMenuSelected: (value) {
+              if (value == 'refresh') _loadOrgData();
+              if (value == 'sign_out') _confirmSignOut();
+            },
           ),
           body: SafeArea(
             child: RefreshIndicator(

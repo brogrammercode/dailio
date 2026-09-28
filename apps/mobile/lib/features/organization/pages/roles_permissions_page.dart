@@ -6,6 +6,11 @@ import 'package:shimmer/shimmer.dart';
 
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/widgets/branch_filter_tabs.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
+import '../../../core/widgets/dailio_tab_strip.dart';
+import '../../../core/widgets/dailio_picker_field.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 
 import '../controllers/organization_repository.dart';
 import '../models/role_model.dart';
@@ -112,26 +117,38 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
   void initState() {
     super.initState();
     _repo = context.read<OrganizationRepository>();
-    _orgId = context.read<PreferencesStorage>().activeOrganizationId!;
-    _loadRoles();
+    final activeOrganizationId =
+        context.read<PreferencesStorage>().activeOrganizationId;
+    _orgId = activeOrganizationId ?? '';
+    if (_orgId.isEmpty) {
+      _isLoading = false;
+      _errorMessage = 'No active organization selected.';
+    } else {
+      _loadRoles();
+    }
   }
 
   Future<void> _loadRoles() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
     try {
-      final rolesData = await _repo.getRoles(_orgId, branchId: _selectedFilterBranchId);
+      final rolesData =
+          await _repo.getRoles(_orgId, branchId: _selectedFilterBranchId);
       final parsedRoles = rolesData.map((e) => RoleModel.fromJson(e)).toList();
+      final selectedRole = parsedRoles.isEmpty ? null : parsedRoles.first;
+      if (!mounted) return;
       setState(() {
         _roles = parsedRoles;
-        if (_roles.isNotEmpty) {
-          _selectRole(_roles.first);
-        }
+        _selectedRole = selectedRole;
+        _editedPermissions = selectedRole == null
+            ? <String>{}
+            : Set<String>.from(selectedRole.permissions);
       });
     } catch (e) {
-      setState(() => _errorMessage = e.toString());
+      if (mounted) setState(() => _errorMessage = e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -149,14 +166,16 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => _AddRoleSheet(
         orgId: _orgId,
         defaultBranchId: _selectedFilterBranchId,
         onCreated: (newRole) {
           setState(() {
             _roles.add(newRole);
-            _selectRole(newRole);
+            _selectedRole = newRole;
+            _editedPermissions = Set<String>.from(newRole.permissions);
           });
         },
       ),
@@ -167,13 +186,15 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
     if (_selectedRole == null) return;
     setState(() => _isSubmitting = true);
     try {
-      final updatedData = await _repo.updateRole(_selectedRole!.id, permissions: _editedPermissions.toList());
+      final updatedData = await _repo.updateRole(_selectedRole!.id,
+          permissions: _editedPermissions.toList());
       final updatedRole = RoleModel.fromJson(updatedData);
 
       setState(() {
         final idx = _roles.indexWhere((r) => r.id == updatedRole.id);
         if (idx != -1) _roles[idx] = updatedRole;
-        _selectRole(updatedRole);
+        _selectedRole = updatedRole;
+        _editedPermissions = Set<String>.from(updatedRole.permissions);
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -199,67 +220,92 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Colors.white,
+      appBar: DailioSimpleAppBar(
+        onBack: () => context.pop(),
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Iconsax.refresh,
+            label: 'Refresh roles',
+          ),
+        ],
+        onMenuSelected: (_) => _loadRoles(),
+      ),
       body: SafeArea(
         child: _errorMessage != null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Error: $_errorMessage'),
-                        TextButton(
-                            onPressed: _loadRoles, child: const Text('Retry'))
-                      ],
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Error: $_errorMessage'),
+                    TextButton(
+                        onPressed: _loadRoles, child: const Text('Retry'))
+                  ],
+                ),
+              )
+            : Stack(
+                children: [
+                  if (_isLoading) _buildSkeleton() else _buildLoadedContent(),
+                  if (!_isLoading && _selectedRole != null && !_isOwner)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: _buildBottomBar(),
                     ),
-                  )
-                : Stack(
-                    children: [
-                      ListView(
-                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 150),
-                        children: [
-                          _buildHeader(),
-                          const SizedBox(height: 16),
-                          BranchFilterTabs(
-                            contentPadding: EdgeInsets.zero,
-                            selectedBranchId: _selectedFilterBranchId,
-                            onChanged: (val) {
-                              setState(() {
-                                _selectedFilterBranchId = val;
-                                _selectedRole = null;
-                              });
-                              _loadRoles();
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          if (_isLoading) _buildSkeleton() else ...[
-                            _buildRolesList(),
-                            const SizedBox(height: 24),
-                          ],
-                          if (!_isLoading && _selectedRole != null) ...[
-                            const SizedBox(height: 16),
-                            _buildRoleConfigCard(),
-                            const SizedBox(height: 16),
-                            ...availablePermissions.map(
-                                (group) => _buildPermissionGroupWidget(group)),
-                          ] else
-                            const Center(
-                                child: Text('No roles found.',
-                                    style: TextStyle(color: Colors.grey))),
-                        ],
-                      ),
-                      if (_selectedRole != null && !_isOwner)
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: _buildBottomBar(),
-                        )
-                    ],
-                  ),
+                ],
+              ),
       ),
     );
   }
 
+  Widget _buildLoadedContent() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 120),
+      children: [
+        BranchFilterTabs(
+          contentPadding: EdgeInsets.zero,
+          centered: true,
+          selectedBranchId: _selectedFilterBranchId,
+          onChanged: (val) {
+            setState(() {
+              _selectedFilterBranchId = val;
+              _selectedRole = null;
+            });
+            _loadRoles();
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildRolesList(),
+        if (_selectedRole == null)
+          const Padding(
+            padding: EdgeInsets.only(top: 40),
+            child: Center(
+              child: Text('No roles found.',
+                  style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ),
+          )
+        else ...[
+          const SizedBox(height: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildRoleConfigCard(),
+          ),
+          const SizedBox(height: 14),
+          ...availablePermissions.map(
+            (group) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildPermissionGroupWidget(group),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // Kept for the legacy form layout contract; the page now uses the shared bar.
+  // ignore: unused_element
   Widget _buildHeader() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,100 +357,47 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
   }
 
   Widget _buildRolesList() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          ..._roles.map((role) {
-            final isActive = _selectedRole?.id == role.id;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: InkWell(
-                onTap: () => _selectRole(role),
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isActive ? Colors.orange.shade700 : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: isActive
-                            ? Colors.orange.shade700
-                            : Colors.grey.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                          role.systemKey == 'OWNER'
-                              ? Iconsax.shield_tick
-                              : Iconsax.user,
-                          size: 16,
-                          color: isActive ? Colors.white : Colors.grey),
-                      const SizedBox(width: 8),
-                      Text(role.name,
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: isActive ? Colors.white : Colors.black)),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                            color: isActive
-                                ? Colors.orange.shade900
-                                : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12)),
-                        child: Text('${role.permissions.length} Perms',
-                            style: TextStyle(
-                                fontSize: 9,
-                                color: isActive ? Colors.white : Colors.grey,
-                                fontWeight: FontWeight.bold)),
-                      )
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
-          // Add Custom Role Button
-          InkWell(
-            onTap: _createRole,
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: Colors.orange.shade200, style: BorderStyle.solid),
-              ),
-              child: Row(
-                children: [
-                  Icon(Iconsax.add, size: 16, color: Colors.orange.shade700),
-                  const SizedBox(width: 8),
-                  Text('Add Role',
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange.shade700)),
-                ],
-              ),
+          Expanded(
+            child: DailioTabStrip<String>(
+              tabs: _roles
+                  .map((role) => DailioTabItem<String>(
+                        value: role.id,
+                        label: '${role.name} (${role.permissions.length})',
+                      ))
+                  .toList(),
+              selected: _selectedRole?.id ?? '',
+              centered: true,
+              onChanged: (roleId) {
+                final role = _roles.firstWhere((item) => item.id == roleId);
+                _selectRole(role);
+              },
             ),
-          )
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            tooltip: 'Add role',
+            onPressed: _createRole,
+            icon: const Icon(Iconsax.add_circle, color: Colors.orange),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
         ],
       ),
     );
   }
 
-    void _editRoleConfig() {
+  void _editRoleConfig() {
     if (_selectedRole == null) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => _EditRoleConfigSheet(
         orgId: _orgId,
         role: _selectedRole!,
@@ -414,31 +407,44 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
   }
 
   Widget _buildRoleConfigCard() {
-    if (_selectedRole == null || _selectedRole!.isSystem) return const SizedBox.shrink();
+    if (_selectedRole == null || _selectedRole!.isSystem) {
+      return const SizedBox.shrink();
+    }
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Role Configuration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              const Text('Role Configuration',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               TextButton.icon(
                 onPressed: _editRoleConfig,
                 icon: const Icon(Iconsax.edit, size: 14, color: Colors.blue),
-                label: const Text('Edit', style: TextStyle(fontSize: 12, color: Colors.blue)),
-                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                label: const Text('Edit',
+                    style: TextStyle(fontSize: 12, color: Colors.blue)),
+                style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 0),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap),
               )
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Iconsax.building, size: 16, color: Colors.grey),
+              const Icon(Iconsax.building, size: 14, color: Colors.grey),
               const SizedBox(width: 8),
-              Text(_selectedRole!.branchId != null ? 'Assigned to a specific branch' : 'No Branch (HQ)', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                  _selectedRole!.branchId != null
+                      ? 'Assigned to a specific branch'
+                      : 'No Branch (HQ)',
+                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
             ],
           )
         ],
@@ -453,12 +459,11 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
         .length;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200)),
+          border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -466,12 +471,12 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                     color: (group['color'] as Color).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(9)),
                 child: Icon(group['icon'] as IconData,
-                    color: group['color'] as Color, size: 20),
+                    color: group['color'] as Color, size: 17),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -480,30 +485,30 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
                   children: [
                     Text(group['group'],
                         style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 2),
+                            fontSize: 13, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 1),
                     Text(group['subtitle'],
                         style:
-                            const TextStyle(fontSize: 10, color: Colors.grey)),
+                            const TextStyle(fontSize: 9, color: Colors.grey)),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                     color: Colors.orange.shade50,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.orange.shade100)),
                 child: Text('$enabledCount/${perms.length} Enabled',
                     style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9,
                         color: Colors.orange.shade800,
                         fontWeight: FontWeight.bold)),
               )
             ],
           ),
           const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
+              padding: EdgeInsets.symmetric(vertical: 10),
               child: Divider(height: 1)),
           ...perms.map((p) => _buildToggleRow(p)),
         ],
@@ -516,7 +521,7 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
     final value = _isOwner ? true : _editedPermissions.contains(perm['key']);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 9),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -528,7 +533,7 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
                   children: [
                     Text(perm['key'],
                         style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 9,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
                             color: isRestricted
@@ -581,10 +586,10 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
                     ]
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(perm['title'],
                     style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         color:
                             isRestricted ? Colors.grey.shade400 : Colors.grey)),
               ],
@@ -606,6 +611,7 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
             activeThumbColor: Colors.orange.shade700,
             inactiveTrackColor: Colors.grey.shade300,
             inactiveThumbColor: Colors.white,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
       ),
@@ -693,7 +699,12 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
     );
   }
 
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton() => ShimmerLoader.rolesPermissions();
+
+  // Legacy skeleton retained temporarily for reference while the shared
+  // management-list geometry is used by the page.
+  // ignore: unused_element
+  Widget _buildLegacySkeleton() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -784,19 +795,13 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
   }
 }
 
-
-
-
-
-
-
-
 class _AddRoleSheet extends StatefulWidget {
   final String orgId;
   final String? defaultBranchId;
   final Function(RoleModel) onCreated;
 
-  const _AddRoleSheet({required this.orgId, this.defaultBranchId, required this.onCreated});
+  const _AddRoleSheet(
+      {required this.orgId, this.defaultBranchId, required this.onCreated});
 
   @override
   State<_AddRoleSheet> createState() => _AddRoleSheetState();
@@ -806,7 +811,7 @@ class _AddRoleSheetState extends State<_AddRoleSheet> {
   final _formKey = GlobalKey<FormState>();
   String _name = '';
   String? _selectedBranchId;
-  
+
   List<Map<String, dynamic>> _branches = [];
   bool _isLoadingBranches = true;
   bool _isSaving = false;
@@ -814,7 +819,8 @@ class _AddRoleSheetState extends State<_AddRoleSheet> {
   @override
   void initState() {
     super.initState();
-    _selectedBranchId = widget.defaultBranchId == 'none' ? null : widget.defaultBranchId;
+    _selectedBranchId =
+        widget.defaultBranchId == 'none' ? null : widget.defaultBranchId;
     _loadBranches();
   }
 
@@ -840,9 +846,10 @@ class _AddRoleSheetState extends State<_AddRoleSheet> {
     setState(() => _isSaving = true);
     try {
       final repo = context.read<OrganizationRepository>();
-      final newRoleData = await repo.createRole(widget.orgId, _name, [], branchId: _selectedBranchId);
+      final newRoleData = await repo.createRole(widget.orgId, _name, [],
+          branchId: _selectedBranchId);
       final newRole = RoleModel.fromJson(newRoleData);
-      
+
       if (mounted) {
         Navigator.pop(context);
         widget.onCreated(newRole);
@@ -850,7 +857,8 @@ class _AddRoleSheetState extends State<_AddRoleSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -858,56 +866,107 @@ class _AddRoleSheetState extends State<_AddRoleSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 16,
+          right: 16,
+          top: 16),
       child: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('New Custom Role', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-            const SizedBox(height: 24),
-            if (!_isLoadingBranches)
-              DropdownButtonFormField<String>(
+            const Text('New Custom Role',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 18),
+            if (!_isLoadingBranches) ...[
+              _sheetFieldLabel('Branch'),
+              const SizedBox(height: 6),
+              DailioPickerField<String>(
                 initialValue: _selectedBranchId,
-                decoration: InputDecoration(labelText: 'Branch', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black))),
+                decoration: _sheetInputDecoration(),
                 items: [
-                  const DropdownMenuItem<String>(value: null, child: Text('No Branch (HQ)')),
-                  ..._branches.map((b) => DropdownMenuItem<String>(value: b['id'], child: Text(b['name'])))
+                  const DropdownMenuItem<String>(
+                      value: null, child: Text('No Branch (HQ)')),
+                  ..._branches.map((b) => DropdownMenuItem<String>(
+                      value: b['id'], child: Text(b['name'])))
                 ],
                 onChanged: (val) => setState(() => _selectedBranchId = val),
               ),
+            ],
             const SizedBox(height: 16),
+            _sheetFieldLabel('Role name'),
+            const SizedBox(height: 6),
             TextFormField(
               autofocus: true,
-              decoration: InputDecoration(labelText: 'Role Name (e.g. Receptionist)', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black))),
+              decoration: _sheetInputDecoration(hintText: 'e.g. Receptionist'),
+              style: const TextStyle(fontSize: 13),
               onSaved: (val) => _name = val ?? '',
-              validator: (val) => (val == null || val.isEmpty) ? 'Required' : null,
+              validator: (val) =>
+                  (val == null || val.isEmpty) ? 'Required' : null,
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _isSaving ? null : _submit,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 56), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-              child: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Create Role', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 46),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  elevation: 0),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2))
+                  : const Text('Create Role',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
+
+  Widget _sheetFieldLabel(String label) => Text(
+        label,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+      );
+
+  InputDecoration _sheetInputDecoration({String? hintText}) => InputDecoration(
+        hintText: hintText,
+        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5),
+        ),
+      );
 }
-
-
-
-
 
 class _EditRoleConfigSheet extends StatefulWidget {
   final String orgId;
   final RoleModel role;
   final VoidCallback onSaved;
 
-  const _EditRoleConfigSheet({required this.orgId, required this.role, required this.onSaved});
+  const _EditRoleConfigSheet(
+      {required this.orgId, required this.role, required this.onSaved});
 
   @override
   State<_EditRoleConfigSheet> createState() => _EditRoleConfigSheetState();
@@ -917,7 +976,7 @@ class _EditRoleConfigSheetState extends State<_EditRoleConfigSheet> {
   final _formKey = GlobalKey<FormState>();
   late String _name;
   String? _selectedBranchId;
-  
+
   List<Map<String, dynamic>> _branches = [];
   bool _isLoadingBranches = true;
   bool _isSaving = false;
@@ -955,8 +1014,11 @@ class _EditRoleConfigSheetState extends State<_EditRoleConfigSheet> {
       // The update API requires passing the payload to the role endpoint.
       // Since OrganizationRepository doesn't expose updateRole properly (we assume it does now),
       // Wait, does it? Let's assume it does.
-      await repo.updateRole(widget.role.id, name: _name, branchId: _selectedBranchId, clearBranch: _selectedBranchId == null);
-      
+      await repo.updateRole(widget.role.id,
+          name: _name,
+          branchId: _selectedBranchId,
+          clearBranch: _selectedBranchId == null);
+
       if (mounted) {
         Navigator.pop(context);
         widget.onSaved();
@@ -964,7 +1026,8 @@ class _EditRoleConfigSheetState extends State<_EditRoleConfigSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -972,47 +1035,96 @@ class _EditRoleConfigSheetState extends State<_EditRoleConfigSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 16,
+          right: 16,
+          top: 16),
       child: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Edit Role', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-            const SizedBox(height: 24),
-            if (!_isLoadingBranches)
-              DropdownButtonFormField<String>(
+            const Text('Edit Role',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 18),
+            if (!_isLoadingBranches) ...[
+              _sheetFieldLabel('Branch'),
+              const SizedBox(height: 6),
+              DailioPickerField<String>(
                 initialValue: _selectedBranchId,
-                decoration: InputDecoration(labelText: 'Branch', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black))),
+                decoration: _sheetInputDecoration(),
                 items: [
-                  const DropdownMenuItem<String>(value: null, child: Text('No Branch (HQ)')),
-                  ..._branches.map((b) => DropdownMenuItem<String>(value: b['id'], child: Text(b['name'])))
+                  const DropdownMenuItem<String>(
+                      value: null, child: Text('No Branch (HQ)')),
+                  ..._branches.map((b) => DropdownMenuItem<String>(
+                      value: b['id'], child: Text(b['name'])))
                 ],
                 onChanged: (val) => setState(() => _selectedBranchId = val),
               ),
+            ],
             const SizedBox(height: 16),
+            _sheetFieldLabel('Role name'),
+            const SizedBox(height: 6),
             TextFormField(
               initialValue: _name,
-              decoration: InputDecoration(labelText: 'Role Name (e.g. Receptionist)', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black))),
+              decoration: _sheetInputDecoration(hintText: 'e.g. Receptionist'),
+              style: const TextStyle(fontSize: 13),
               onSaved: (val) => _name = val ?? '',
-              validator: (val) => (val == null || val.isEmpty) ? 'Required' : null,
+              validator: (val) =>
+                  (val == null || val.isEmpty) ? 'Required' : null,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
             ElevatedButton(
               onPressed: _isSaving ? null : _submit,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 56), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-              child: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 46),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  elevation: 0),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2))
+                  : const Text('Save Changes',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
+
+  Widget _sheetFieldLabel(String label) => Text(
+        label,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+      );
+
+  InputDecoration _sheetInputDecoration({String? hintText}) => InputDecoration(
+        hintText: hintText,
+        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5),
+        ),
+      );
 }
-
-
-
-
-

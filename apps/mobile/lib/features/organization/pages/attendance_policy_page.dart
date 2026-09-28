@@ -9,6 +9,7 @@ import '../../attendance/controllers/attendance_repository.dart';
 import '../../branch/controllers/members_repository.dart';
 import '../controllers/organization_repository.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_picker_field.dart';
 
 String attendancePolicyErrorMessage(Object error) {
   if (error is DioException) {
@@ -344,22 +345,21 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AttendanceUi.canvas,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Dailio',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Text('Attendance policy',
-                style: TextStyle(fontSize: 11, color: AttendanceUi.muted)),
-          ],
+        title: const Text(
+          'Dailio',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
         foregroundColor: AttendanceUi.text,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          tooltip: 'Back',
+          onPressed: () => Navigator.maybePop(context),
+          icon: const Icon(Iconsax.arrow_left_2),
+        ),
         actions: [
           if (_isSaving)
             const Center(
@@ -380,7 +380,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
               items: const [
                 DailioMenuItem(
                   value: 'refresh',
-                  icon: Icons.refresh,
+                  icon: Iconsax.refresh,
                   label: 'Refresh',
                 ),
               ],
@@ -424,7 +424,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                       title: 'Policy assignment',
                       icon: Iconsax.user_tag,
                       children: [
-                        DropdownButtonFormField<String>(
+                        DailioPickerField<String>(
                           initialValue: _scope,
                           decoration: const InputDecoration(
                               labelText: 'Apply policy to'),
@@ -443,7 +443,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                           const Text(
                               'No roles are available with the current permissions.')
                         else if (_scope == 'ROLE')
-                          DropdownButtonFormField<String>(
+                          DailioPickerField<String>(
                             initialValue: _selectedRoleId,
                             decoration:
                                 const InputDecoration(labelText: 'Role'),
@@ -461,7 +461,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                           const Text(
                               'No members are available with the current permissions.')
                         else if (_scope == 'MEMBER')
-                          DropdownButtonFormField<String>(
+                          DailioPickerField<String>(
                             initialValue: _selectedMemberId,
                             decoration:
                                 const InputDecoration(labelText: 'Member'),

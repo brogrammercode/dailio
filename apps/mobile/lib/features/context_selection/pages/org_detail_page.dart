@@ -47,7 +47,7 @@ class _OrgDetailPageState extends State<OrgDetailPage> {
     final org = primaryLoc.organization;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,

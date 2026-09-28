@@ -110,7 +110,7 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
       body: _isLoading
           ? Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: ShimmerLoader.compactList(),
+              child: ShimmerLoader.planList(),
             )
           : _error != null
               ? _errorView()

@@ -75,7 +75,7 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
       body: _loading
           ? Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: ShimmerLoader.compactList(),
+              child: ShimmerLoader.planList(),
             )
           : _error != null
               ? _ErrorState(message: _error!, onRetry: _load)

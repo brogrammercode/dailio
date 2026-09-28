@@ -1,10 +1,11 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/router/route_names.dart';
+import '../../../core/widgets/dailio_picker_field.dart';
 import '../models/create_organization_models.dart';
 
 class CreateOrganizationPage extends StatefulWidget {
@@ -63,7 +64,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -377,27 +378,37 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
                 fontWeight: FontWeight.bold,
                 color: Colors.black87)),
         const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300)),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: value,
-              items: options
-                  .map((e) => DropdownMenuItem(
-                      value: e,
-                      child: Text(e, style: const TextStyle(fontSize: 13))))
-                  .toList(),
-              onChanged: onChanged,
+        DailioPickerField<String>(
+          initialValue: value,
+          decoration: InputDecoration(
+            hintText: label,
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE7E7E7)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE7E7E7)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide:
+                  const BorderSide(color: Color(0xFFFF8A00), width: 1.4),
             ),
           ),
+          items: options
+              .map((e) => DropdownMenuItem<String>(
+                    value: e,
+                    child: Text(e, style: const TextStyle(fontSize: 13)),
+                  ))
+              .toList(),
+          onChanged: onChanged,
         ),
       ],
     );
   }
 }
-

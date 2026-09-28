@@ -2019,7 +2019,7 @@ Every implemented page must document/encode:
 ### 26.1a QR-first branch admission
 
 1. Owner/admin creates a permanent branch join invite.
-2. The server stores only a SHA-256 hash of the opaque invite token; regeneration revokes the prior active invite for that purpose. The invite remains valid until explicitly revoked.
+2. The server stores only a SHA-256 hash of the opaque invite token. Every generated invite remains permanently valid; generating another QR never invalidates an existing QR, and invite revocation is not supported.
 3. A signed-in user scans the Dailio invite QR and receives a server-resolved organization/branch preview.
 4. After explicit confirmation, the server derives the organization, branch, and user identity from the invite/session and creates one idempotent `PENDING` join request.
 5. Owner/admin approves the request transactionally; the server reuses or creates the branch membership, assigns the protected default `MEMBER` role, and emits audit/notification records.
@@ -2061,7 +2061,7 @@ Every implemented page must document/encode:
 
 ### 26.4a Permanent branch QR attendance
 
-The permanent branch join QR is also the branch gate QR. It remains reusable until the owner/admin explicitly revokes or replaces it; raw tokens are never stored.
+The permanent branch join QR is also the branch gate QR. It remains reusable permanently; generating another QR never invalidates an existing printed QR, and raw tokens are never stored.
 
 1. Owner/admin opens the branch QR display, prints the permanent QR, and posts it at the entrance.
 2. A signed-in person scans the QR with the Dailio camera. Gallery QR selection may resolve the branch for discovery, but a QR punch must follow the configured anti-spoof/evidence policy and may require a live camera scan.
@@ -2074,7 +2074,7 @@ The permanent branch join QR is also the branch gate QR. It remains reusable unt
 
 ### 26.5 Subscription purchase with evidence
 
-QR plan purchase is also supported: the owner/admin creates a permanent purpose-bound plan invite, the member scans it, and the server rejects revoked, inactive, or incompatible invites. The server confirms active branch membership, creates an idempotent `DRAFT` subscription using snapshotted authoritative plan terms and server-calculated dates, and pre-fills the purchase form. The member submits evidence/reference as `REQUESTED`; only authorized review can create the confirmed payment, immutable ledger allocation, receipt, and active subscription.
+QR plan purchase is also supported: the owner/admin creates a permanent purpose-bound plan invite, the member scans it, and the server rejects inactive or incompatible invites. The server confirms active branch membership, creates an idempotent `DRAFT` subscription using snapshotted authoritative plan terms and server-calculated dates, and pre-fills the purchase form. The member submits evidence/reference as `REQUESTED`; only authorized review can create the confirmed payment, immutable ledger allocation, receipt, and active subscription.
 
 1. Member opens Buy Subscription.
 2. Select plan card.
@@ -2124,7 +2124,7 @@ QR plan purchase is also supported: the owner/admin creates a permanent purpose-
 | Currency | INR, paise for first release. |
 | Subscription overlap | Only non-overlapping future renewal by default. |
 | Partial payment | Supported. |
-| QR invite lifetime/reuse | QR join and plan invites are permanent and reusable until explicitly revoked; regeneration revokes the previous token; raw tokens are never persisted. |
+| QR invite lifetime/reuse | QR join and plan invites are permanent and reusable. No expiry, replacement invalidation, automatic invalidation, or revocation is supported; generating another QR leaves all previous QRs valid. |
 | Overpayment | Reject by default unless account-credit behavior is approved. |
 | Payment evidence | Supported; manual evidence creates Requested state until reviewed. |
 | Pending fee definition | Active/recently attending member without valid renewed subscription coverage for period. |
@@ -2315,8 +2315,8 @@ A feature is complete only when all applicable items are true:
 | 2026-09-09 | Fees period tabs use Paid / Requested / Pending; Requested is evidence-backed unconfirmed payment; Pending includes active/recently attending members without renewed coverage. | Latest Fees direction. |
 | 2026-09-09 | Multiple attendance policies managed in Settings and assigned to employees. | Replaces branch-wide attendance configuration. |
 | 2026-09-09 | Reporting hierarchy is modeled independently from role permissions; team access requires both hierarchy and suitable permission. | Required to support hierarchy safely without implicit admin power. |
-| 2026-09-25 | Branch admission and plan purchase use purpose-bound opaque QR invites, permanent and reusable until explicitly revoked or replaced. | Supports the approved fast-join/customer journey while preserving tenant derivation, server pricing, idempotency, and auditability. |
-| 2026-09-25 | QR codes are lifetime permanent by product decision; expiry inputs and expiry checks are removed. Manual revocation remains available for security/operational control. | QR displays can remain posted for recurring customer use without requiring regeneration every 24 hours. |
+| 2026-09-25 | Branch admission and plan purchase use purpose-bound opaque QR invites that are permanently reusable; generating another QR never replaces or invalidates a previous one. | Supports the approved fast-join/customer journey while preserving tenant derivation, server pricing, idempotency, and auditability. |
+| 2026-09-25 | QR codes are lifetime permanent by product decision; expiry inputs, expiry checks, replacement invalidation, and revocation are removed. | Printed QR displays remain valid for recurring customer use without regeneration or operator maintenance. |
 | 2026-09-26 | Attendance policy applies to every active branch member, with precedence direct member override > effective role policy > branch default. | Supports different rules for people and roles without making employee status a prerequisite; sessions snapshot the resolved policy. |
 | 2026-09-26 | The permanent branch join QR is also the reusable physical gate QR. Active members use it to trigger the server-determined next punch (clock-in or clock-out); non-members retain the fast-join flow. | One printed branch QR supports admission and attendance while preserving server-side membership, policy, evidence, geofence, idempotency, and tenant checks. |
 | 2026-09-26 | Attendance operations use branch-local time, stable cursor pagination, live activity refresh, and deduplicated in-app/push alerts for late, incomplete, evidence-failure, and missing-clock-out events. | Keeps reporting consistent across timezones and makes operational exceptions visible without allowing notification delivery to affect attendance state. |

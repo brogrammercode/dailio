@@ -17,8 +17,6 @@ const attendanceMock = vi.hoisted(() => ({
 vi.mock('../../lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('../attendance/attendance.service', () => attendanceMock);
 
-import { NotFoundError } from '../../lib/errors';
-
 import { punchAttendanceFromInvite, resolveInvite } from './invites.service';
 
 describe('permanent gate QR idempotency', () => {
@@ -196,13 +194,15 @@ describe('permanent gate QR idempotency', () => {
     expect(result.attendance_available).toBe(true);
   });
 
-  it('rejects revoked and expired gate credentials', async () => {
+  it('keeps legacy revoked and expired rows permanently usable', async () => {
     prismaMock.inviteToken.findUnique.mockResolvedValue(invite({ revoked_at: new Date() }));
-    await expect(resolveInvite('user-1', 'raw-token')).rejects.toBeInstanceOf(NotFoundError);
+    const revoked = await resolveInvite('user-1', 'raw-token');
+    expect(revoked.joinability).toBe('JOINABLE');
 
     prismaMock.inviteToken.findUnique.mockResolvedValue(
       invite({ expires_at: new Date(Date.now() - 1_000) }),
     );
-    await expect(resolveInvite('user-1', 'raw-token')).rejects.toBeInstanceOf(NotFoundError);
+    const expired = await resolveInvite('user-1', 'raw-token');
+    expect(expired.joinability).toBe('JOINABLE');
   });
 });

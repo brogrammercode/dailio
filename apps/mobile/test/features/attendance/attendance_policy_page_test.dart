@@ -13,6 +13,7 @@ import 'package:dailio/features/attendance/controllers/attendance_repository.dar
 import 'package:dailio/features/organization/controllers/organization_repository.dart';
 import 'package:dailio/features/organization/pages/attendance_policy_page.dart';
 import 'package:dailio/features/branch/controllers/members_repository.dart';
+import 'package:dailio/core/widgets/dailio_picker_field.dart';
 
 ApiClient _apiClient(PreferencesStorage preferences) => ApiClient(
       baseUrl: 'https://test.invalid',
@@ -125,7 +126,7 @@ void main() {
     expect(find.text('Policy assignment'), findsOneWidget);
     expect(find.text('Branch default'), findsOneWidget);
 
-    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+    await tester.tap(find.byType(DailioPickerField<String>).first);
     await tester.pumpAndSettle();
     expect(find.text('A role'), findsOneWidget);
     expect(find.text('One member'), findsOneWidget);

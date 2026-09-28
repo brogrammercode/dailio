@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/admission_repository.dart';
 import '../models/join_request_model.dart';
@@ -91,9 +93,19 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Join Requests')),
+      appBar: DailioSimpleAppBar(
+        onBack: () => Navigator.maybePop(context),
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Iconsax.refresh,
+            label: 'Refresh requests',
+          ),
+        ],
+        onMenuSelected: (_) => _loadRequests(),
+      ),
       body: _isLoading
-          ? ShimmerLoader.list()
+          ? ShimmerLoader.compactList()
           : _errorMessage != null
               ? _ErrorState(
                   message: _errorMessage!,

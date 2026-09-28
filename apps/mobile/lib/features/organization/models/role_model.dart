@@ -1,4 +1,4 @@
-﻿class RoleModel {
+class RoleModel {
   final String id;
   final String organizationId;
   final String name;
@@ -21,11 +21,11 @@
 
   factory RoleModel.fromJson(Map<String, dynamic> json) {
     return RoleModel(
-      id: json['id'],
-      organizationId: json['organization_id'],
-      name: json['name'],
-      branchId: json['branch_id'],
-      systemKey: json['system_key'],
+      id: json['id']?.toString() ?? '',
+      organizationId: json['organization_id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Role',
+      branchId: json['branch_id']?.toString(),
+      systemKey: json['system_key']?.toString(),
       isProtected: json['is_protected'] ?? false,
       isSystem: json['is_system'] ?? false,
       permissions: List<String>.from(json['permissions'] ?? []),
@@ -45,4 +45,3 @@
     };
   }
 }
-

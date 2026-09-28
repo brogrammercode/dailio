@@ -16,6 +16,7 @@ import '../../../core/network/interceptors/logging_interceptor.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_receipt_sheet.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/fees_repository.dart';
 import '../models/fee_models.dart';
@@ -120,7 +121,7 @@ class _MemberSubscriptionDetailPageState
       body: _loading
           ? Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: ShimmerLoader.compactList(),
+              child: ShimmerLoader.detailPage(),
             )
           : _error != null
               ? _buildError()
@@ -672,6 +673,52 @@ class _MemberSubscriptionDetailPageState
   }
 
   Future<void> _viewReceipt(PaymentRequestModel request) async {
+    final paymentId = request.payment?.id;
+    final branchId = context.read<PreferencesStorage>().activeBranchId;
+    if (paymentId == null || branchId == null) return;
+    try {
+      final data =
+          await context.read<FeesRepository>().getReceipt(branchId, paymentId);
+      if (!mounted) return;
+      final receipt = (data['receipt'] as Map?)?.cast<String, dynamic>() ?? {};
+      final payment = (data['payment'] as Map?)?.cast<String, dynamic>() ?? {};
+      final preferences = context.read<PreferencesStorage>();
+      final member =
+          (_subscription?['member'] as Map?)?.cast<String, dynamic>();
+      final user = (member?['user'] as Map?)?.cast<String, dynamic>();
+      final plan = (_subscription?['plan'] as Map?)?.cast<String, dynamic>();
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: AppColors.brandDark,
+        builder: (sheetContext) => DailioReceiptSheet(
+          receiptKey: _receiptKey,
+          organizationName: preferences.activeOrganizationName ?? 'Dailio',
+          branchName: preferences.activeBranchName ?? 'Branch',
+          receiptNumber: receipt['receipt_number']?.toString() ?? '',
+          issuedAt: _dateTime(receipt['issued_at']),
+          memberName: user?['name']?.toString() ?? 'Member',
+          planName: plan?['name']?.toString(),
+          method: payment['method']?.toString() ?? request.method,
+          totalPaid: _money((payment['amount_minor_unit'] as num?)?.toInt() ??
+              request.payment?.amountMinorUnit ??
+              request.amountMinorUnit),
+          onShare: _shareReceipt,
+          onClose: () => Navigator.pop(sheetContext),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Receipt unavailable: $error')),
+      );
+    }
+  }
+
+  // Kept temporarily so older deep links compiled against the previous
+  // receipt layout remain source-compatible while the shared sheet is used.
+  // ignore: unused_element
+  Future<void> _legacyViewReceipt(PaymentRequestModel request) async {
     final paymentId = request.payment?.id;
     final branchId = context.read<PreferencesStorage>().activeBranchId;
     if (paymentId == null || branchId == null) return;

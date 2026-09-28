@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -10,6 +10,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../auth/controllers/auth_cubit.dart';
 import '../../auth/controllers/auth_state.dart';
 import '../../auth/models/user_model.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -161,7 +163,23 @@ class _ProfilePageState extends State<ProfilePage> {
           final user = state is AuthAuthenticated ? state.user : null;
 
           return Scaffold(
-            backgroundColor: const Color(0xFFF9FAFB),
+            backgroundColor: Colors.white,
+            appBar: DailioSimpleAppBar(
+              onBack: () => context.pop(),
+              menuItems: [
+                DailioMenuItem(
+                  value: 'discard',
+                  icon: Iconsax.refresh,
+                  label: 'Discard changes',
+                  enabled: _isDirty && user != null,
+                ),
+              ],
+              onMenuSelected: (value) {
+                if (value == 'discard' && user != null) {
+                  _discardChanges(user);
+                }
+              },
+            ),
             body: SafeArea(
               child: Stack(
                 children: [
@@ -173,62 +191,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       _isDirty ? 140 : 40,
                     ),
                     children: [
-                      //  Header (consistent with Settings page) 
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          GestureDetector(
-                            onTap: () => context.pop(),
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey.shade300),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Iconsax.arrow_left, size: 18),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Edit Profile',
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold)),
-                                Text(
-                                  'Update your identity & contact details',
-                                  style: TextStyle(
-                                      fontSize: 11, color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (_isDirty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border:
-                                    Border.all(color: Colors.orange.shade200),
-                              ),
-                              child: Text(
-                                'Unsaved',
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.orange.shade800,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
-
-                      //  Avatar 
+                      //  Avatar
                       Center(
                         child: Column(
                           children: [
@@ -312,7 +275,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 24),
 
-                      //  Google Account Badge 
+                      //  Google Account Badge
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
@@ -372,7 +335,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 28),
 
-                      //  Identity Fields 
+                      //  Identity Fields
                       _buildSectionHeader('Identity', 'REQUIRED'),
                       const SizedBox(height: 14),
                       _buildFieldLabel('Full Name'),
@@ -395,7 +358,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 28),
 
-                      //  Notification Preferences 
+                      //  Notification Preferences
                       _buildSectionHeader('Notifications & Privacy', null),
                       const SizedBox(height: 6),
                       const Text(
@@ -423,7 +386,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
 
-                  //  Save / Discard bar (only when dirty) 
+                  //  Save / Discard bar (only when dirty)
                   if (_isDirty)
                     Positioned(
                       bottom: 0,
@@ -509,7 +472,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  //  Helpers 
+  //  Helpers
 
   Widget _buildSectionHeader(String title, String? badge) {
     return Row(
@@ -646,5 +609,3 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 }
-
-

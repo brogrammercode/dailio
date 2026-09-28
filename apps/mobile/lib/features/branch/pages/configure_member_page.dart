@@ -14,6 +14,10 @@ import '../models/member_model.dart';
 import '../controllers/shift_repository.dart';
 import '../controllers/payroll_repository.dart';
 import '../../fees/pages/assign_subscription_page.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
+import '../../../core/widgets/dailio_picker_field.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 
 /// Returns unique, selectable subscription records for the member selector.
 ///
@@ -249,7 +253,18 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Colors.white,
+      appBar: DailioSimpleAppBar(
+        onBack: () => context.pop(),
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Iconsax.refresh,
+            label: 'Refresh member',
+          ),
+        ],
+        onMenuSelected: (_) => _loadData(),
+      ),
       body: SafeArea(
         child: _isLoading
             ? _buildSkeleton()
@@ -269,10 +284,8 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                     : Stack(
                         children: [
                           ListView(
-                            padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
                             children: [
-                              _buildHeader(),
-                              const SizedBox(height: 24),
                               _buildProfileInfo(),
                               const SizedBox(height: 16),
                               _buildRoleAndFacility(),
@@ -338,7 +351,12 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
     );
   }
 
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton() => ShimmerLoader.settingsForm(withAvatar: true);
+
+  // Legacy skeleton retained temporarily for reference while the shared
+  // settings-form geometry is used by the page.
+  // ignore: unused_element
+  Widget _buildLegacySkeleton() {
     return Shimmer.fromColors(
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
@@ -389,6 +407,8 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
     );
   }
 
+  // Kept for the legacy layout contract; the page now uses the shared bar.
+  // ignore: unused_element
   Widget _buildHeader() {
     final statusColor = _member!.status == 'ACTIVE'
         ? Colors.green
@@ -648,26 +668,16 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         ),
         const SizedBox(height: 16),
         _buildLabel('Assigned Branch'),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200)),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              hint: const Text('No Branch Assigned'),
-              value: _selectedBranchId,
-              items: [
-                const DropdownMenuItem<String>(
-                    value: null, child: Text('No Branch (HQ)')),
-                ..._branches.map((b) => DropdownMenuItem<String>(
-                    value: b['id'], child: Text(b['name'])))
-              ],
-              onChanged: (val) => setState(() => _selectedBranchId = val),
-            ),
-          ),
+        DailioPickerField<String>(
+          initialValue: _selectedBranchId,
+          decoration: _pickerDecoration('No Branch Assigned'),
+          items: [
+            const DropdownMenuItem<String>(
+                value: null, child: Text('No Branch (HQ)')),
+            ..._branches.map((b) => DropdownMenuItem<String>(
+                value: b['id'], child: Text(b['name'])))
+          ],
+          onChanged: (val) => setState(() => _selectedBranchId = val),
         ),
       ],
     );
@@ -679,34 +689,24 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       icon: Iconsax.hierarchy,
       children: [
         _buildLabel('Direct manager'),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200)),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              hint: const Text('No manager assigned'),
-              value: _selectedManagerId,
-              items: [
-                const DropdownMenuItem<String>(
-                    value: null, child: Text('No manager assigned')),
-                ..._branchMembers.map((member) => DropdownMenuItem<String>(
-                      value: member['id']?.toString(),
-                      child: Text(
-                        (member['user'] is Map
-                                    ? member['user']['name']
-                                    : member['name'])
-                                ?.toString() ??
-                            'Member',
-                      ),
-                    )),
-              ],
-              onChanged: (value) => setState(() => _selectedManagerId = value),
-            ),
-          ),
+        DailioPickerField<String>(
+          initialValue: _selectedManagerId,
+          decoration: _pickerDecoration('No manager assigned'),
+          items: [
+            const DropdownMenuItem<String>(
+                value: null, child: Text('No manager assigned')),
+            ..._branchMembers.map((member) => DropdownMenuItem<String>(
+                  value: member['id']?.toString(),
+                  child: Text(
+                    (member['user'] is Map
+                                ? member['user']['name']
+                                : member['name'])
+                            ?.toString() ??
+                        'Member',
+                  ),
+                )),
+          ],
+          onChanged: (value) => setState(() => _selectedManagerId = value),
         ),
         const SizedBox(height: 6),
         Text(
@@ -723,26 +723,16 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       icon: Iconsax.clock,
       children: [
         _buildLabel('Primary Shift'),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200)),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              hint: const Text('No Shift Assigned'),
-              value: _selectedShiftId,
-              items: [
-                const DropdownMenuItem<String>(
-                    value: null, child: Text('No Shift Assigned')),
-                ..._shifts.map((s) => DropdownMenuItem<String>(
-                    value: s['id'], child: Text(s['name'])))
-              ],
-              onChanged: (val) => setState(() => _selectedShiftId = val),
-            ),
-          ),
+        DailioPickerField<String>(
+          initialValue: _selectedShiftId,
+          decoration: _pickerDecoration('No Shift Assigned'),
+          items: [
+            const DropdownMenuItem<String>(
+                value: null, child: Text('No Shift Assigned')),
+            ..._shifts.map((s) => DropdownMenuItem<String>(
+                value: s['id'], child: Text(s['name'])))
+          ],
+          onChanged: (val) => setState(() => _selectedShiftId = val),
         ),
       ],
     );
@@ -764,28 +754,18 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       icon: Iconsax.card,
       children: [
         _buildLabel('Allotted Plan'),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200)),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              hint: const Text('No Plan Assigned'),
-              value: selectedSubscriptionId,
-              items: [
-                const DropdownMenuItem<String>(
-                    value: null, child: Text('No Plan Assigned')),
-                ...subscriptionOptions.map((subscription) =>
-                    DropdownMenuItem<String>(
-                        value: subscription['id'],
-                        child: Text(subscription['label'] ?? 'Subscription')))
-              ],
-              onChanged: (val) => setState(() => _selectedPlanId = val),
-            ),
-          ),
+        DailioPickerField<String>(
+          initialValue: selectedSubscriptionId,
+          decoration: _pickerDecoration('No Plan Assigned'),
+          items: [
+            const DropdownMenuItem<String>(
+                value: null, child: Text('No Plan Assigned')),
+            ...subscriptionOptions.map((subscription) =>
+                DropdownMenuItem<String>(
+                    value: subscription['id'],
+                    child: Text(subscription['label'] ?? 'Subscription')))
+          ],
+          onChanged: (val) => setState(() => _selectedPlanId = val),
         ),
         const SizedBox(height: 10),
         Align(
@@ -893,29 +873,18 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       icon: Iconsax.money_3,
       children: [
         _buildLabel('Salary Structure'),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200)),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              hint: const Text('No Salary Structure'),
-              value: _selectedSalaryStructureId,
-              items: [
-                const DropdownMenuItem<String>(
-                    value: null, child: Text('No Salary Structure')),
-                ..._salaryStructures.map((s) => DropdownMenuItem<String>(
-                      value: s['id'],
-                      child: Text(s['name']),
-                    )),
-              ],
-              onChanged: (val) =>
-                  setState(() => _selectedSalaryStructureId = val),
-            ),
-          ),
+        DailioPickerField<String>(
+          initialValue: _selectedSalaryStructureId,
+          decoration: _pickerDecoration('No Salary Structure'),
+          items: [
+            const DropdownMenuItem<String>(
+                value: null, child: Text('No Salary Structure')),
+            ..._salaryStructures.map((s) => DropdownMenuItem<String>(
+                  value: s['id'],
+                  child: Text(s['name']),
+                )),
+          ],
+          onChanged: (val) => setState(() => _selectedSalaryStructureId = val),
         ),
       ],
     );
@@ -1043,4 +1012,25 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
+
+  InputDecoration _pickerDecoration(String hint) => InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF777777)),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFE7E7E7)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFE7E7E7)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFFF8A00), width: 1.4),
+        ),
+      );
 }

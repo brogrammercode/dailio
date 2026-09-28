@@ -167,8 +167,8 @@ The server-side invite record/token must resolve to:
 - branch ID;
 - invite purpose `BRANCH_JOIN`;
 - issuer/member ID;
-- created timestamp; QR lifetime is permanent until revocation;
-- revoked/active status;
+- created timestamp; QR lifetime is permanent with no revocation;
+- permanent active status;
 - optional usage policy.
 
 The scanner must display a safe preview: organization name, branch name, locality, and joinability. It must not display private member lists, salaries, attendance, or payment data.
@@ -190,7 +190,7 @@ The server must resolve and validate:
 - invite purpose `SUBSCRIPTION_PLAN`;
 - active/public plan status;
 - plan availability in the memberÃ¢â‚¬â„¢s branch;
-- token revocation;
+- permanent token validity;
 - current membership and user authorization.
 
 The app may prefill the plan, but the server remains authoritative for amount, joining fee, currency, duration, and terms.
@@ -199,16 +199,16 @@ The app may prefill the plan, but the server remains authoritative for amount, j
 
 - Never trust a QR-provided organization, branch, member, price, discount, or state.
 - Do not place payment evidence or private member data in the QR.
-- Support permanent reuse and explicit revocation.
-- Return a safe `not found`, `revoked`, or `not available` state.
+- Support permanent reuse without revocation.
+- Return a safe `not found` or `not available` state.
 - Rate-limit scan resolution and join/payment submission endpoints.
-- Add audit events for invite creation, revocation, join confirmation, payment submission, approval, and rejection.
+- Add audit events for invite creation, join confirmation, payment submission, approval, and rejection.
 
 ## 7. Track A Ã¢â‚¬â€ finish the fee/subscription foundation
 
 ### Track A implementation record (2026-09-25)
 
-Track A is implemented with these safe defaults: fee expiry warning is 7 days; approving a payment request activates a draft/upcoming subscription; evidence accepts JPEG, PNG, WebP, or PDF metadata up to 20 MB; joining fee is charged for each assigned subscription; and plans can be organization-wide or branch-specific. QR lifetime is resolved in the QR track: join and plan QRs are permanent until explicitly revoked.
+Track A is implemented with these safe defaults: fee expiry warning is 7 days; approving a payment request activates a draft/upcoming subscription; evidence accepts JPEG, PNG, WebP, or PDF metadata up to 20 MB; joining fee is charged for each assigned subscription; and plans can be organization-wide or branch-specific. QR lifetime is resolved in the QR track: join and plan QRs are permanent and cannot be revoked.
 
 The API migration is additive and must be applied against the existing base schema. The repository previously ignored migration SQL files, so the Track A migration is explicitly unignored in `.gitignore`.
 
@@ -217,7 +217,7 @@ The API migration is additive and must be applied against the existing base sche
 Status: `DONE WITH SAFE DEFAULTS`  
 Dependencies: none
 
-- [x] Confirm QR links are permanent and reusable until explicitly revoked or replaced.
+- [x] Confirm QR links are permanent and reusable; generating another QR never invalidates existing QR links.
 - [x] Confirm the default expiry warning window for Fees: 7 days.
 - [x] Confirm whether payment approval activates the subscription automatically: yes for draft/upcoming subscriptions.
 - [x] Confirm supported evidence types and maximum size: JPEG, PNG, WebP, PDF, 20 MB.
@@ -378,10 +378,10 @@ Dependencies: A0, existing branch/member permissions
 
 - [x] Add server command to create/retrieve a branch join invite.
 - [x] Store only a hashed opaque token.
-- [x] Add permanent lifetime, revoke, active status, issuer, and purpose.
+- [x] Add permanent lifetime, active status, issuer, and purpose; revocation is not supported.
 - [x] Add owner/admin screen action: `Show Join QR`.
-- [x] Display branch name, organization name, permanent status, and revoke/regenerate action.
-- [x] Add audit event for QR creation/revocation.
+- [x] Display branch name, organization name, permanent status, and a reusable QR display action.
+- [x] Add audit event for QR creation.
 
 Done when: Harsh can show a QR for `Fitness Gym Ã¢â€ â€™ Barari` and revoke it without changing the branch itself.
 
@@ -394,7 +394,7 @@ Dependencies: B0
 - [x] Scan QR and resolve token through the API.
 - [x] Show organization, branch, locality, and joinability.
 - [x] Show an explicit confirmation dialog before creating the request.
-- [x] Handle revoked, invalid, already-member, already-pending, and network-error states.
+- [x] Handle invalid, already-member, already-pending, and network-error states.
 
 Done when: Adarsh and Vikram can scan HarshÃ¢â‚¬â„¢s QR and reach a confirmation screen without manually searching.
 
@@ -438,7 +438,7 @@ Dependencies: A2, B0
 - [x] Encode an opaque plan invite token.
 - [x] Bind the invite to organization, branch, plan, and purpose.
 - [x] Display plan name, duration, current price, joining fee, and permanent status to the owner.
-- [x] Add revoke/regenerate support.
+- [x] Keep every generated plan QR permanently reusable; no revoke/regenerate invalidation.
 - [x] Prevent use of inactive or archived plans.
 
 Done when: Harsh can display separate QR codes for the INR 1,000 one-month plan and INR 2,500 three-month plan.
@@ -504,7 +504,7 @@ Dependencies: A7, B7
 
 Done when: after simulated time passes, Adarsh and Vikram cards show different urgency based on their actual plan coverage, not hard-coded UI values.
 
-Track B implementation note: invite tokens are 32-byte opaque values represented in QR payloads as `dailio://invite?token=...`; only SHA-256 hashes are persisted. Join and plan invites are permanent and reusable until explicitly revoked, while regeneration replaces and revokes the previous active invite for the same branch/purpose. Expiry inputs, expiry checks, and temporary QR copy were removed. The API and mobile surfaces are implemented and compile/test cleanly; real database transaction/concurrency, Cloudinary, and physical camera-flow verification remain deployment/device checks because this workspace has no running PostgreSQL/Redis fixture.
+Track B implementation note: invite tokens are 32-byte opaque values represented in QR payloads as `dailio://invite?token=...`; only SHA-256 hashes are persisted. Join and plan invites are permanent and reusable; generating another QR never invalidates an existing QR. Expiry inputs, expiry checks, replacement invalidation, and revoke actions were removed. The API and mobile surfaces are implemented and compile/test cleanly; real database transaction/concurrency, Cloudinary, and physical camera-flow verification remain deployment/device checks because this workspace has no running PostgreSQL/Redis fixture.
 
 ## 9. Track C Ã¢â‚¬â€ settings and operational controls
 
@@ -528,8 +528,8 @@ Track C implementation note: `PreferencesStorage` now notifies on context change
 
 Track B implemented routes:
 
-- `POST /branches/{branchId}/join-invites` and `POST /branches/{branchId}/join-invites/{inviteId}/revoke`
-- `POST /branches/{branchId}/plans/{planId}/purchase-invites` and its revoke route
+- `POST /branches/{branchId}/join-invites`
+- `POST /branches/{branchId}/plans/{planId}/purchase-invites`
 - `GET /invites/{opaqueToken}` for authenticated preview/resolution
 - `POST /join-invites/{opaqueToken}/requests` for idempotent fast join
 - `POST /purchase-invites/{opaqueToken}/subscription-drafts` for idempotent server-priced draft creation
@@ -541,7 +541,6 @@ The exact route names must follow existing API conventions, but the behavior sho
 - `POST /branches/{branchId}/join-invites`
 - `GET /join-invites/{token}`
 - `POST /join-invites/{token}/confirm`
-- `POST /join-invites/{id}/revoke`
 
 ### Subscription-plan invites
 
@@ -606,7 +605,7 @@ Execution tracking: the scenario checkboxes below are intentionally reserved for
 - [ ] Creates one-month plan: INR 1,000 + INR 100 joining fee.
 - [ ] Creates three-month plan: INR 2,500 + INR 0 joining fee.
 - [ ] Sees both plans in the active branch.
-- [ ] Can display/revoke a branch QR.
+- [ ] Can display a permanent branch QR.
 - [ ] Can display separate plan QRs.
 
 ### Scenario 2 Ã¢â‚¬â€ Customer branch join
@@ -671,7 +670,7 @@ Use this table after every implementation session. Change the task status only w
 | A7 Fees page                    | DONE                    | 2026-09-25     | Live cards, periods, status, urgency                        |                                                              |
 | A8 Detail/review screens        | DONE                    | 2026-09-25     | Live detail, receipt view, evidence URL, and review actions |                                                              |
 | A9 Track A tests                | DONE WITH SCOPE NOTE    | 2026-09-25     | 13 API tests and 2 Flutter model tests pass                 | DB transaction/concurrency/E2E fixture remains               |
-| B0 Branch QR                    | DONE                    | 2026-09-25     | Hashed permanent invite token, revoke/regenerate, audit, owner UI | DB-backed QR display remains to be exercised                 |
+| B0 Branch QR                    | DONE                    | 2026-09-25     | Hashed permanent invite token, audit, reusable owner UI | DB-backed QR display remains to be exercised                 |
 | B1 Fast join scanner            | DONE                    | 2026-09-25     | Token resolve, preview, confirmation, error states             | Flutter device-camera check remains                          |
 | B2 Join request creation        | DONE                    | 2026-09-25     | Token-derived branch/org, idempotency, pending screen          | DB-backed retry test remains                                 |
 | B3 Approval/default role        | DONE                    | 2026-09-25     | Serializable approval, MEMBER role, unique ULID member number  | DB-backed concurrency test remains                           |
@@ -699,7 +698,7 @@ Allowed statuses: `TODO`, `IN PROGRESS`, `PARTIAL`, `BLOCKED`, `DONE`, `DONE WIT
 | 2026-09-25 | Settings permission hydration fix | Reloaded the saved organization/branch role and permissions during mobile startup so management cards are visible after restart | Flutter analyze; 2 Flutter model tests | Confirm cards on the target device |
 | 2026-09-25 | Branch QR dialog layout fix | Constrained the QR widget inside the AlertDialog so Flutter does not request unsupported intrinsic dimensions from its internal LayoutBuilder | Flutter analyze; 2 Flutter model tests | Confirm QR dialog on Android device |
 | 2026-09-25 | Plan QR dialog layout fix | Applied the same fixed QR bounds to the subscription-plan purchase QR dialog | Flutter analyze; 2 Flutter model tests | Confirm plan QR dialog on Android device |
-| 2026-09-25 | Permanent QR lifetime decision | Removed invite expiry inputs/checks, made branch and plan QR invites permanent until revoked, migrated existing invite rows, and updated mobile copy | API type-check; 17 API tests; Prisma validate/migrate status; Flutter analyze; 2 Flutter model tests; live invite rows verified with zero expirations | Confirm permanent QR reuse on Android device |
+| 2026-09-25 | Permanent QR lifetime decision | Removed invite expiry inputs/checks and revoke/replacement invalidation; made branch and plan QR invites permanently reusable, migrated existing invite rows, and updated mobile copy | API type-check; invite tests; Prisma validate/migrate status; Flutter analyze; mobile tests | Confirm permanent QR reuse on Android device |
 | 2026-09-25 | Shorebird/Dailio integration | Initialized the Dailio Shorebird app, committed its public app configuration, renamed the Flutter package to `dailio`, and added a manual Android/iOS release-or-patch GitHub Actions workflow | Shorebird configuration is present; Flutter dependencies resolve; workflow commands verified against Shorebird 1.6.116 CLI help | Configure production signing and add `SHOREBIRD_TOKEN` before publishing |
 | 2026-09-26 | Gallery QR scanning | Added saved-image QR decoding to the shared Dailio scanner, with the same permanent invite validation and navigation as the camera flow; polished loading, invalid-code, gallery, and permission states | Flutter analyze; 4 Flutter tests; Dailio iOS camera/photo permission copy | Verify camera and gallery scanning on physical Android/iOS devices |
 | 2026-09-26 | Join request branch context fix | Replaced the mobile `current` placeholder with the persisted active branch ID, so list/approve/reject requests use the authenticated tenant context; added permission-aware retry and empty states | Flutter analyze; 4 Flutter tests; diff validation | Verify Harsh can see pending requests on the target device |
@@ -724,7 +723,7 @@ This flow is complete only when:
 - Fees is server-driven and shows real expiry, urgency, coverage, balance, and payment state.
 - Self, branch, organization, and reviewer permissions are enforced on the API.
 - Cross-organization and cross-branch identifiers cannot leak data or mutate records.
-- Retry, duplicate approval, overlap, partial payment, rejection, refund, and revoked QR cases are tested.
+- Retry, duplicate approval, overlap, partial payment, rejection, refund, and permanent QR reuse cases are tested.
 - Migrations, API contracts, UI states, audits, notifications, and documentation are complete.
 
 Implementation completion note: the application and documentation requirements above are implemented in this workspace. The remaining follow-up is environment verification: apply the additive migrations, run PostgreSQL-backed transaction/concurrency tests, exercise Cloudinary/private evidence URLs, and verify the physical QR camera flow on Android/iOS with Harsh, Adarsh, and Vikram test accounts.

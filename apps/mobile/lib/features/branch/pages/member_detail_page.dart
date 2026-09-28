@@ -1,7 +1,9 @@
-﻿import 'package:iconsax/iconsax.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/members_repository.dart';
 import '../models/member_model.dart';
@@ -103,9 +105,19 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Member Detail')),
+      appBar: DailioSimpleAppBar(
+        onBack: () => Navigator.maybePop(context),
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Iconsax.refresh,
+            label: 'Refresh member',
+          ),
+        ],
+        onMenuSelected: (_) => _loadMember(),
+      ),
       body: _isLoading
-          ? ShimmerLoader.profile()
+          ? ShimmerLoader.settingsForm(withAvatar: true)
           : _error != null
               ? Center(child: Text('Error: $_error'))
               : _member == null
@@ -173,4 +185,3 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     );
   }
 }
-

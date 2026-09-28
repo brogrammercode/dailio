@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/interceptors/logging_interceptor.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_picker_field.dart';
 import '../../context_selection/controllers/branch_repository.dart';
 import '../controllers/fees_repository.dart';
 
@@ -89,7 +90,7 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
           const SizedBox(height: 22),
           _sectionLabel('PAYMENT DETAILS', 'Submit proof for verification'),
           const SizedBox(height: 10),
-          DropdownButtonFormField<String>(
+          DailioPickerField<String>(
             initialValue: _method,
             decoration: _inputDecoration(
               'UPI (Google Pay, PhonePe, Paytm)',
@@ -326,19 +327,24 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
 
   InputDecoration _inputDecoration(String label, IconData icon) =>
       InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, size: 18, color: const Color(0xFF6B6B6B)),
+        hintText: label,
+        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+        prefixIcon: Icon(icon, size: 16, color: Colors.grey),
         filled: true,
         fillColor: Colors.white,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+            const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFE7E7E7)),
+          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFD97706), width: 1.3),
+          borderSide: const BorderSide(color: Color(0xFFFF8A00), width: 1.5),
         ),
       );
 

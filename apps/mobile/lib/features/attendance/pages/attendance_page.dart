@@ -13,6 +13,7 @@ import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/app_shell_toast.dart';
 import '../../../core/widgets/dailio_compact_tile.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_picker_field.dart';
 import '../../../core/widgets/dailio_tab_strip.dart';
 import '../controllers/attendance_repository.dart';
 import '../attendance_error.dart';
@@ -301,7 +302,7 @@ class _AttendancePageState extends State<AttendancePage>
           _buildRoleFilters(),
           Expanded(
             child: _isLoading && _sessions.isEmpty
-                ? ShimmerLoader.list()
+                ? ShimmerLoader.compactList()
                 : _error != null && _sessions.isEmpty
                     ? Center(child: Text('Error: $_error'))
                     : _sessions.isEmpty
@@ -828,7 +829,7 @@ class _CorrectionModalState extends State<_CorrectionModal> {
             ],
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
+          DailioPickerField<String>(
             initialValue: _status,
             decoration: InputDecoration(
               labelText: 'Status',
@@ -1031,7 +1032,7 @@ class _ManualRecordModalState extends State<_ManualRecordModal> {
             Text('Times use branch timezone: ${widget.branchTimezone}',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            DailioPickerField<String>(
               initialValue: _memberId,
               decoration: InputDecoration(
                 labelText: 'Member',

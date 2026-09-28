@@ -43,60 +43,75 @@ class DailioTabStrip<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 44,
+    final tabRow = Row(
+      // Keep the centered strip intrinsic so its baseline ends with the last
+      // tab instead of stretching across the viewport.
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment:
+          centered ? MainAxisAlignment.center : MainAxisAlignment.start,
+      children: tabs.asMap().entries.map((entry) {
+        final index = entry.key;
+        final tab = entry.value;
+        final active = tab.value == selected;
+        return InkWell(
+          onTap: () => onChanged(tab.value),
+          child: Container(
+            height: 44,
+            margin: EdgeInsets.only(
+              left: index == 0 ? 0 : 4,
+              right: 4,
+            ),
+            padding: DailioTabStyles.tabPadding,
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: active ? AppColors.brandAccent : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              tab.label,
+              style: active
+                  ? DailioTabStyles.selectedText
+                  : DailioTabStyles.unselectedText,
+            ),
+          ),
+        );
+      }).toList(),
+    );
+
+    if (centered) {
+      return SizedBox(
+        height: 44,
+        child: ColoredBox(
+          color: Colors.white,
+          child: Center(
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Color(0xFFE9E9E9)),
+                ),
+              ),
+              child: tabRow,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return DecoratedBox(
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFE9E9E9))),
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
+      child: SizedBox(
+        height: 44,
+        child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          padding:
-              centered ? EdgeInsets.zero : DailioTabStyles.horizontalPadding,
-          child: ConstrainedBox(
-            constraints: centered
-                ? BoxConstraints(minWidth: constraints.maxWidth)
-                : const BoxConstraints(),
-            child: Row(
-              mainAxisSize: centered ? MainAxisSize.max : MainAxisSize.min,
-              mainAxisAlignment:
-                  centered ? MainAxisAlignment.center : MainAxisAlignment.start,
-              children: tabs.asMap().entries.map((entry) {
-                final index = entry.key;
-                final tab = entry.value;
-                final active = tab.value == selected;
-                return InkWell(
-                  onTap: () => onChanged(tab.value),
-                  child: Container(
-                    height: 44,
-                    margin: EdgeInsets.only(
-                      left: index == 0 ? 0 : 4,
-                      right: 4,
-                    ),
-                    padding: DailioTabStyles.tabPadding,
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: active
-                              ? AppColors.brandAccent
-                              : Colors.transparent,
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      tab.label,
-                      style: active
-                          ? DailioTabStyles.selectedText
-                          : DailioTabStyles.unselectedText,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
+          padding: DailioTabStyles.horizontalPadding,
+          child: tabRow,
         ),
       ),
     );
