@@ -11,7 +11,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../../core/network/api_client.dart';
 import '../../../core/network/interceptors/logging_interceptor.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
@@ -53,7 +52,6 @@ class _MemberSubscriptionDetailPageState
   }
 
   Future<void> _load() async {
-    final apiClient = context.read<ApiClient>();
     if (widget.subscriptionId == null) {
       setState(() => _loading = false);
       return;
@@ -71,18 +69,16 @@ class _MemberSubscriptionDetailPageState
       _error = null;
     });
     try {
-      final response = await apiClient.dio
-          .get('/branches/$branchId/subscriptions/${widget.subscriptionId}');
+      final response = await context.read<FeesRepository>().getSubscription(
+        branchId,
+        widget.subscriptionId!,
+        onFresh: (freshData) {
+          if (mounted) _applySubscription(freshData);
+        },
+      );
       if (!mounted) return;
-      setState(() {
-        _subscription = Map<String, dynamic>.from(response.data['data'] as Map);
-        final requests = (_subscription?['payment_requests'] as List?) ?? [];
-        _paymentRequests = requests
-            .map((item) => PaymentRequestModel.fromJson(
-                Map<String, dynamic>.from(item as Map)))
-            .toList();
-        _loading = false;
-      });
+      _applySubscription(response);
+      setState(() => _loading = false);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -90,6 +86,22 @@ class _MemberSubscriptionDetailPageState
         _loading = false;
       });
     }
+  }
+
+  void _applySubscription(Map<String, dynamic> response) {
+    final raw = response['data'];
+    final subscription = raw is Map ? Map<String, dynamic>.from(raw) : response;
+    final requests = (subscription['payment_requests'] as List?) ?? [];
+    final parsedRequests = requests
+        .whereType<Map>()
+        .map((item) =>
+            PaymentRequestModel.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+    if (!mounted) return;
+    setState(() {
+      _subscription = subscription;
+      _paymentRequests = parsedRequests;
+    });
   }
 
   @override

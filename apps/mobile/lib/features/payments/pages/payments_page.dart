@@ -83,9 +83,13 @@ class _PaymentsPageState extends State<PaymentsPage> {
       _error = null;
     });
     try {
-      final requests = await context
-          .read<FeesRepository>()
-          .listPaymentRequests(branchId, period: _period);
+      final requests = await context.read<FeesRepository>().listPaymentRequests(
+        branchId,
+        period: _period,
+        onFresh: (freshRequests) {
+          if (mounted) setState(() => _requests = freshRequests);
+        },
+      );
       if (!mounted) return;
       setState(() {
         _requests = requests;

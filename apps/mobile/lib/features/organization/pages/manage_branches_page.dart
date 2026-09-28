@@ -38,7 +38,13 @@ class _ManageBranchesPageState extends State<ManageBranchesPage> {
       final repository = context.read<OrganizationRepository>();
       final prefs = context.read<PreferencesStorage>();
       final orgId = prefs.activeOrganizationId!;
-      final branches = await repository.getOrganizationBranches(orgId);
+      final branches = await repository.getOrganizationBranches(
+        orgId,
+        onFresh: (freshBranches) {
+          if (!mounted) return;
+          setState(() => _branches = freshBranches);
+        },
+      );
 
       if (mounted) {
         setState(() {

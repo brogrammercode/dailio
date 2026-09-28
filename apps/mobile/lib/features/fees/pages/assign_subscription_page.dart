@@ -10,6 +10,7 @@ import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../branch/models/member_model.dart';
+import '../../organization/controllers/organization_repository.dart';
 
 class AssignSubscriptionPage extends StatefulWidget {
   final MemberModel member;
@@ -46,15 +47,27 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
       if (orgId == null || branchId == null) {
         throw Exception('Select an active branch before assigning a plan.');
       }
-      final response = await context.read<ApiClient>().dio.get(
-        '/organizations/$orgId/plans',
-        queryParameters: {'branch_id': branchId},
+      final response =
+          await context.read<OrganizationRepository>().getOrganizationPlans(
+        orgId,
+        branchId: branchId,
+        onFresh: (freshPlans) {
+          if (!mounted) return;
+          final activePlans =
+              freshPlans.where((plan) => plan['is_active'] != false).toList();
+          setState(() {
+            _plans = activePlans;
+            if (_selectedPlanId == null ||
+                !_plans
+                    .any((plan) => plan['id']?.toString() == _selectedPlanId)) {
+              _selectedPlanId =
+                  _plans.isEmpty ? null : _plans.first['id']?.toString();
+            }
+          });
+        },
       );
-      final plans = ((response.data['data'] as List?) ?? const [])
-          .whereType<Map>()
-          .map((plan) => Map<String, dynamic>.from(plan))
-          .where((plan) => plan['is_active'] != false)
-          .toList();
+      final plans =
+          response.where((plan) => plan['is_active'] != false).toList();
       if (!mounted) return;
       setState(() {
         _plans = plans;

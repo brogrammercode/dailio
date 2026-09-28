@@ -45,10 +45,14 @@ class _ShiftManagementPageState extends State<ShiftManagementPage> {
       _error = null;
     });
     try {
-      final data = await _repo.listShifts(_orgId,
-          branchId: _selectedFilterBranchId == 'none'
-              ? null
-              : _selectedFilterBranchId);
+      final data = await _repo.listShifts(
+        _orgId,
+        branchId:
+            _selectedFilterBranchId == 'none' ? null : _selectedFilterBranchId,
+        onFresh: (freshShifts) {
+          if (mounted) setState(() => _shifts = freshShifts);
+        },
+      );
       if (mounted) setState(() => _shifts = data);
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());

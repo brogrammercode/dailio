@@ -90,11 +90,24 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     });
     try {
       final result = await Future.wait<dynamic>([
-        _repository.getAttendancePolicy(branchId),
-        _repository.getActiveSession(branchId),
+        _repository.getAttendancePolicy(
+          branchId,
+          onFresh: (freshPolicy) {
+            if (mounted) setState(() => _policy = freshPolicy);
+          },
+        ),
+        _repository.getActiveSession(
+          branchId,
+          onFresh: (freshSession) {
+            if (mounted) setState(() => _activeSession = freshSession);
+          },
+        ),
         _repository.getSessions(
           branchId,
           _historyPeriod,
+          onFresh: (freshSessions) {
+            if (mounted) setState(() => _history = freshSessions);
+          },
         ),
       ]);
       if (!mounted) return;

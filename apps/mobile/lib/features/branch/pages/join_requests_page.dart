@@ -51,7 +51,12 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
       _errorMessage = null;
     });
     try {
-      final results = await _repository.getPendingRequests(branchId);
+      final results = await _repository.getPendingRequests(
+        branchId,
+        onFresh: (freshRequests) {
+          if (mounted) setState(() => _requests = freshRequests);
+        },
+      );
       if (!mounted) return;
       setState(() => _requests = results);
     } catch (error) {

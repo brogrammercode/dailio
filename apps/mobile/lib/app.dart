@@ -7,6 +7,7 @@ import 'core/network/api_client.dart';
 import 'core/router/app_router.dart';
 import 'core/router/route_names.dart';
 import 'core/storage/preferences_storage.dart';
+import 'core/storage/json_cache_store.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/controllers/auth_cubit.dart';
@@ -34,6 +35,7 @@ class MainApp extends StatefulWidget {
   final PayrollRepository payrollRepository;
   final AttendanceRepository attendanceRepository;
   final FeesRepository feesRepository;
+  final JsonCacheStore cacheStore;
   final String initialRoute;
 
   const MainApp({
@@ -50,6 +52,7 @@ class MainApp extends StatefulWidget {
     required this.payrollRepository,
     required this.attendanceRepository,
     required this.feesRepository,
+    required this.cacheStore,
     required this.initialRoute,
   });
 
@@ -73,6 +76,7 @@ class _MainAppState extends State<MainApp> {
       providers: [
         RepositoryProvider.value(value: widget.apiClient),
         ChangeNotifierProvider.value(value: widget.preferencesStorage),
+        ChangeNotifierProvider.value(value: widget.cacheStore),
         RepositoryProvider.value(value: widget.branchRepository),
         RepositoryProvider.value(value: widget.admissionRepository),
         RepositoryProvider.value(value: widget.organizationRepository),

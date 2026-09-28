@@ -48,8 +48,17 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       });
     }
     try {
-      final result =
-          await _repository.getMember(_branchId, widget.membershipId);
+      final result = await _repository.getMember(
+        _branchId,
+        widget.membershipId,
+        onFresh: (freshData) {
+          final rawFresh = freshData['member'];
+          if (!mounted || rawFresh is! Map) return;
+          setState(() => _member = MemberModel.fromJson(
+                Map<String, dynamic>.from(rawFresh),
+              ));
+        },
+      );
       final raw = result['member'];
       if (raw is! Map) throw Exception('Member data was not returned');
       if (mounted) {

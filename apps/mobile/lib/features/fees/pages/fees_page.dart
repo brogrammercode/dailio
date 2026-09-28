@@ -53,7 +53,13 @@ class _FeesPageState extends State<FeesPage> {
       _error = null;
     });
     try {
-      final cards = await _repository.listFees(branchId, period: _period);
+      final cards = await _repository.listFees(
+        branchId,
+        period: _period,
+        onFresh: (freshCards) {
+          if (mounted) setState(() => _cards = freshCards);
+        },
+      );
       if (mounted) {
         setState(() {
           _cards = cards;

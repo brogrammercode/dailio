@@ -103,8 +103,13 @@ class _AttendancePageState extends State<AttendancePage>
 
   Future<void> _loadRoles() async {
     try {
-      final roles =
-          await _orgRepository.getRoles(_orgId, branchId: _locationId);
+      final roles = await _orgRepository.getRoles(
+        _orgId,
+        branchId: _locationId,
+        onFresh: (freshRoles) {
+          if (mounted) setState(() => _roles = freshRoles);
+        },
+      );
       if (mounted) {
         setState(() {
           _roles = roles;
@@ -143,6 +148,14 @@ class _AttendancePageState extends State<AttendancePage>
         _locationId,
         period,
         roleId: _selectedRoleId,
+        onFresh: (freshPage) {
+          if (!mounted) return;
+          setState(() {
+            _sessions = freshPage.sessions;
+            _nextCursor = freshPage.nextCursor;
+            _error = null;
+          });
+        },
       );
       if (mounted) {
         setState(() {

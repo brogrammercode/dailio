@@ -1,18 +1,36 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/storage/json_cache_store.dart';
 import '../models/fee_models.dart';
 
 class FeesRepository {
   final ApiClient apiClient;
+  final JsonCacheStore? cache;
 
-  FeesRepository({required this.apiClient});
+  FeesRepository({required this.apiClient, this.cache});
 
   Future<Map<String, dynamic>> _getContext(String branchId, String path,
-      {Map<String, dynamic>? query}) async {
-    final response = await apiClient.dio
-        .get('/branches/$branchId/$path', queryParameters: query);
-    return Map<String, dynamic>.from(response.data as Map);
+      {Map<String, dynamic>? query,
+      void Function(Map<String, dynamic> freshData)? onFresh}) async {
+    final queryKey = query == null
+        ? ''
+        : query.entries.map((entry) => '${entry.key}=${entry.value}').join('&');
+    final key = 'branch:$branchId:$path:$queryKey';
+    if (cache == null) {
+      final response = await apiClient.dio
+          .get('/branches/$branchId/$path', queryParameters: query);
+      return Map<String, dynamic>.from(response.data as Map);
+    }
+    return cache!.load<Map<String, dynamic>>(
+      key: cache!.scopedKey(key),
+      scope: 'branch:$branchId',
+      fetch: () async => (await apiClient.dio
+              .get('/branches/$branchId/$path', queryParameters: query))
+          .data,
+      decode: (payload) => Map<String, dynamic>.from(payload as Map),
+      onFresh: onFresh,
+    );
   }
 
   Future<List<FeeCardModel>> listFees(
@@ -21,37 +39,58 @@ class FeesRepository {
     DateTime? from,
     DateTime? to,
     String? status,
+    void Function(List<FeeCardModel> freshCards)? onFresh,
   }) async {
-    final data = await _getContext(branchId, 'fees', query: {
-      'period': period,
-      if (from != null) 'from': _dateOnly(from),
-      if (to != null) 'to': _dateOnly(to),
-      if (status != null) 'status': status,
-    });
-    return ((data['data'] as List?) ?? const [])
-        .map((item) =>
-            FeeCardModel.fromJson(Map<String, dynamic>.from(item as Map)))
-        .toList();
+    List<FeeCardModel> parse(Map<String, dynamic> data) =>
+        ((data['data'] as List?) ?? const [])
+            .map((item) =>
+                FeeCardModel.fromJson(Map<String, dynamic>.from(item as Map)))
+            .toList();
+    final data = await _getContext(branchId, 'fees',
+        query: {
+          'period': period,
+          if (from != null) 'from': _dateOnly(from),
+          if (to != null) 'to': _dateOnly(to),
+          if (status != null) 'status': status,
+        },
+        onFresh: (freshData) => onFresh?.call(parse(freshData)));
+    return parse(data);
   }
 
   String _dateOnly(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 
   Future<List<PaymentRequestModel>> listPaymentRequests(String branchId,
-      {String? status, String? period}) async {
-    final data = await _getContext(branchId, 'payment-requests', query: {
-      if (status != null) 'status': status,
-      if (period != null) 'period': period,
-    });
-    return ((data['data'] as List?) ?? const [])
-        .map((item) => PaymentRequestModel.fromJson(
-            Map<String, dynamic>.from(item as Map)))
-        .toList();
+      {String? status,
+      String? period,
+      void Function(List<PaymentRequestModel> freshRequests)? onFresh}) async {
+    List<PaymentRequestModel> parse(Map<String, dynamic> data) =>
+        ((data['data'] as List?) ?? const [])
+            .map((item) => PaymentRequestModel.fromJson(
+                Map<String, dynamic>.from(item as Map)))
+            .toList();
+    final data = await _getContext(branchId, 'payment-requests',
+        query: {
+          if (status != null) 'status': status,
+          if (period != null) 'period': period,
+        },
+        onFresh: (freshData) => onFresh?.call(parse(freshData)));
+    return parse(data);
   }
 
   Future<Map<String, dynamic>> getPaymentRequest(
       String branchId, String requestId) async {
     return _getContext(branchId, 'payment-requests/$requestId');
+  }
+
+  Future<Map<String, dynamic>> getSubscription(
+      String branchId, String subscriptionId,
+      {void Function(Map<String, dynamic> freshData)? onFresh}) async {
+    return _getContext(
+      branchId,
+      'subscriptions/$subscriptionId',
+      onFresh: onFresh,
+    );
   }
 
   Future<Map<String, dynamic>> createPaymentRequest(
@@ -64,6 +103,7 @@ class FeesRepository {
       data: data,
       options: Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
+    await cache?.clearScope('branch:$branchId');
     return Map<String, dynamic>.from(response.data as Map);
   }
 
@@ -86,6 +126,7 @@ class FeesRepository {
       '/branches/$branchId/payment-requests/$requestId/$action',
       data: {if (reason != null) 'reason': reason},
     );
+    await cache?.clearScope('branch:$branchId');
     return Map<String, dynamic>.from(response.data as Map);
   }
 
@@ -109,6 +150,7 @@ class FeesRepository {
       '/branches/$branchId/subscriptions/$subscriptionId/$action',
       data: {'reason': reason},
     );
+    await cache?.clearScope('branch:$branchId');
     return Map<String, dynamic>.from(response.data['data'] as Map);
   }
 
@@ -120,6 +162,7 @@ class FeesRepository {
       data: {'start_date': startDate},
       options: Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
+    await cache?.clearScope('branch:$branchId');
     return Map<String, dynamic>.from(response.data['data'] as Map);
   }
 }

@@ -17,9 +17,9 @@ class _FakeOrganizationRepository extends OrganizationRepository {
       : super(apiClient: apiClient);
 
   @override
-  Future<List<Map<String, dynamic>>> getOrganizationBranches(
-    String orgId,
-  ) async {
+  Future<List<Map<String, dynamic>>> getOrganizationBranches(String orgId,
+      {void Function(List<Map<String, dynamic>> freshBranches)?
+          onFresh}) async {
     return [
       {'id': 'branch-1', 'name': 'Barari'},
     ];
@@ -29,6 +29,7 @@ class _FakeOrganizationRepository extends OrganizationRepository {
   Future<List<Map<String, dynamic>>> getRoles(
     String orgId, {
     String? branchId,
+    void Function(List<Map<String, dynamic>> freshRoles)? onFresh,
   }) async {
     return [
       {

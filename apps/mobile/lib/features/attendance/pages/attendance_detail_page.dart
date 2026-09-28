@@ -48,9 +48,14 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
       _error = null;
     });
     try {
-      final session = await context
-          .read<AttendanceRepository>()
-          .getSessionDetail(branchId, widget.sessionId);
+      final session =
+          await context.read<AttendanceRepository>().getSessionDetail(
+        branchId,
+        widget.sessionId,
+        onFresh: (freshSession) {
+          if (mounted) setState(() => _session = freshSession);
+        },
+      );
       if (mounted) setState(() => _session = session);
     } catch (error) {
       if (mounted) setState(() => _error = attendanceErrorMessage(error));

@@ -135,8 +135,29 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
       _errorMessage = null;
     });
     try {
-      final rolesData =
-          await _repo.getRoles(_orgId, branchId: _selectedFilterBranchId);
+      final rolesData = await _repo.getRoles(
+        _orgId,
+        branchId: _selectedFilterBranchId,
+        onFresh: (freshRoles) {
+          if (!mounted) return;
+          final parsed = freshRoles.map(RoleModel.fromJson).toList();
+          setState(() {
+            _roles = parsed;
+            if (_selectedRole != null) {
+              final selectedId = _selectedRole!.id;
+              RoleModel? matchingRole;
+              for (final role in parsed) {
+                if (role.id == selectedId) {
+                  matchingRole = role;
+                  break;
+                }
+              }
+              _selectedRole =
+                  matchingRole ?? (parsed.isEmpty ? null : parsed.first);
+            }
+          });
+        },
+      );
       final parsedRoles = rolesData.map((e) => RoleModel.fromJson(e)).toList();
       final selectedRole = parsedRoles.isEmpty ? null : parsedRoles.first;
       if (!mounted) return;

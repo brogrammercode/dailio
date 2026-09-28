@@ -4,14 +4,17 @@ import '../../../core/error/app_exception.dart';
 import '../../../core/error/error_handler.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
+import '../../../core/storage/json_cache_store.dart';
 import '../models/auth_tokens_model.dart';
 import '../models/user_model.dart';
 
 class AuthRepository {
   final ApiClient _apiClient;
   final SecureStorage _secureStorage;
+  final JsonCacheStore? _cache;
 
-  AuthRepository(this._apiClient, this._secureStorage);
+  AuthRepository(this._apiClient, this._secureStorage, {JsonCacheStore? cache})
+      : _cache = cache;
 
   Future<({AuthTokensModel tokens, UserModel user})> signInWithGoogle(
     String idToken,
@@ -28,6 +31,7 @@ class AuthRepository {
       final user = UserModel.fromJson(
         response.data['user'] as Map<String, dynamic>,
       );
+      _cache?.setUserId(user.id);
       await _secureStorage.saveTokens(
         access: tokens.accessToken,
         refresh: tokens.refreshToken,
@@ -41,9 +45,11 @@ class AuthRepository {
   Future<UserModel?> getMe() async {
     try {
       final response = await _apiClient.dio.get('/auth/me');
-      return UserModel.fromJson(
+      final user = UserModel.fromJson(
         response.data['user'] as Map<String, dynamic>,
       );
+      _cache?.setUserId(user.id);
+      return user;
     } on DioException catch (e) {
       final ex = handleDioException(e);
       if (ex is UnauthorizedException) return null;
@@ -87,6 +93,8 @@ class AuthRepository {
       // Best-effort or handle error if needed
     } finally {
       await _secureStorage.clearTokens();
+      await _cache?.clearAll();
+      _cache?.setUserId(null);
     }
   }
 
@@ -101,6 +109,8 @@ class AuthRepository {
       // Best-effort
     } finally {
       await _secureStorage.clearTokens();
+      await _cache?.clearAll();
+      _cache?.setUserId(null);
     }
   }
 }

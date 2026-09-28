@@ -8,6 +8,7 @@ import 'app.dart';
 import 'core/bloc/app_bloc_observer.dart';
 import 'core/di/injection.dart';
 import 'core/storage/preferences_storage.dart';
+import 'core/storage/json_cache_store.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/network/api_client.dart';
 import 'core/network/interceptors/auth_interceptor.dart';
@@ -86,6 +87,7 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final secureStorage = SecureStorage(const FlutterSecureStorage());
   final preferencesStorage = PreferencesStorage(prefs);
+  final cacheStore = JsonCacheStore();
 
   final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:3000';
   final String apiEndpoint = '$baseUrl/api/v1';
@@ -96,15 +98,22 @@ void main() async {
     tenantInterceptor: TenantInterceptor(preferencesStorage),
   );
 
-  final authRepository = AuthRepository(apiClient, secureStorage);
-  final branchRepository = BranchRepository(apiClient: apiClient);
-  final admissionRepository = AdmissionRepository(apiClient: apiClient);
-  final organizationRepository = OrganizationRepository(apiClient: apiClient);
-  final membersRepository = MembersRepository(apiClient: apiClient);
-  final shiftRepository = ShiftRepository(apiClient);
-  final payrollRepository = PayrollRepository(apiClient);
-  final attendanceRepository = AttendanceRepository(apiClient: apiClient);
-  final feesRepository = FeesRepository(apiClient: apiClient);
+  final authRepository =
+      AuthRepository(apiClient, secureStorage, cache: cacheStore);
+  final branchRepository =
+      BranchRepository(apiClient: apiClient, cache: cacheStore);
+  final admissionRepository =
+      AdmissionRepository(apiClient: apiClient, cache: cacheStore);
+  final organizationRepository =
+      OrganizationRepository(apiClient: apiClient, cache: cacheStore);
+  final membersRepository =
+      MembersRepository(apiClient: apiClient, cache: cacheStore);
+  final shiftRepository = ShiftRepository(apiClient, cache: cacheStore);
+  final payrollRepository = PayrollRepository(apiClient, cache: cacheStore);
+  final attendanceRepository =
+      AttendanceRepository(apiClient: apiClient, cache: cacheStore);
+  final feesRepository =
+      FeesRepository(apiClient: apiClient, cache: cacheStore);
 
   String initialRoute = AppRoutes.onboarding;
 
@@ -155,6 +164,7 @@ void main() async {
       payrollRepository: payrollRepository,
       attendanceRepository: attendanceRepository,
       feesRepository: feesRepository,
+      cacheStore: cacheStore,
       initialRoute: initialRoute,
     ),
   );

@@ -3,14 +3,16 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/interceptors/logging_interceptor.dart';
+import '../../../core/storage/json_cache_store.dart';
 import '../models/attendance_models.dart';
 
 class AttendanceRepository {
   final ApiClient apiClient;
+  final JsonCacheStore? cache;
   DateTime? _serverTime;
   DateTime? _serverTimeCapturedAt;
 
-  AttendanceRepository({required this.apiClient});
+  AttendanceRepository({required this.apiClient, this.cache});
 
   DateTime get serverNow {
     if (_serverTime == null || _serverTimeCapturedAt == null) {
@@ -90,26 +92,55 @@ class AttendanceRepository {
       options: Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
     _captureServerTime(response.data['server_time']);
+    // A confirmed clock-out ends the current session and intentionally resets
+    // the local read-model cache. The next authenticated visit rebuilds it
+    // from the server one page at a time.
+    await cache?.clearAll();
     return AttendanceSessionModel.fromJson(response.data['data']);
   }
 
-  Future<AttendanceSessionModel?> getActiveSession(String locationId) async {
-    final response = await apiClient.dio
-        .get('/branches/$locationId/attendance/active-session');
-    _captureServerTime(response.data['server_time']);
-    if (response.data['session'] == null) return null;
-    return AttendanceSessionModel.fromJson(response.data['session']);
+  Future<AttendanceSessionModel?> getActiveSession(String locationId,
+      {void Function(AttendanceSessionModel?)? onFresh}) async {
+    AttendanceSessionModel? decode(dynamic payload) {
+      _captureServerTime((payload as Map)['server_time']);
+      final session = payload['session'];
+      return session == null
+          ? null
+          : AttendanceSessionModel.fromJson(
+              Map<String, dynamic>.from(session as Map));
+    }
+
+    if (cache == null) {
+      final response = await apiClient.dio
+          .get('/branches/$locationId/attendance/active-session');
+      return decode(response.data);
+    }
+    return cache!.load<AttendanceSessionModel?>(
+      key: cache!.scopedKey('attendance-active:$locationId'),
+      scope: 'branch:$locationId',
+      fetch: () async => (await apiClient.dio
+              .get('/branches/$locationId/attendance/active-session'))
+          .data,
+      decode: decode,
+      cacheTransform: _safeAttendancePayload,
+      onFresh: onFresh,
+    );
   }
 
   Future<List<AttendanceSessionModel>> getSessions(
       String locationId, String period,
-      {String? roleId, String? dateFrom, String? dateTo}) async {
+      {String? roleId,
+      String? dateFrom,
+      String? dateTo,
+      void Function(List<AttendanceSessionModel> freshSessions)?
+          onFresh}) async {
     final page = await getSessionPage(
       locationId,
       period,
       roleId: roleId,
       dateFrom: dateFrom,
       dateTo: dateTo,
+      onFresh: (page) => onFresh?.call(page.sessions),
     );
     return page.sessions;
   }
@@ -118,25 +149,48 @@ class AttendanceRepository {
       {String? roleId,
       String? dateFrom,
       String? dateTo,
-      String? cursor}) async {
-    final response = await apiClient.dio.get(
-      '/branches/$locationId/attendance',
-      queryParameters: {
-        'period': period,
-        if (dateFrom != null) 'date_from': dateFrom,
-        if (dateTo != null) 'date_to': dateTo,
-        if (roleId != null) 'role_id': roleId,
-        if (cursor != null) 'cursor': cursor,
-      },
-    );
-    _captureServerTime(response.data['server_time']);
-    final data = response.data['data'] as List? ?? [];
-    return AttendanceSessionPage(
-      sessions: data
-          .map(
-              (e) => AttendanceSessionModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      nextCursor: (response.data['meta'] as Map?)?['next_cursor']?.toString(),
+      String? cursor,
+      void Function(AttendanceSessionPage freshPage)? onFresh}) async {
+    final query = <String, dynamic>{
+      'period': period,
+      if (dateFrom != null) 'date_from': dateFrom,
+      if (dateTo != null) 'date_to': dateTo,
+      if (roleId != null) 'role_id': roleId,
+      if (cursor != null) 'cursor': cursor,
+    };
+    AttendanceSessionPage decode(dynamic payload) {
+      final map = payload as Map;
+      _captureServerTime(map['server_time']);
+      final data = map['data'] as List? ?? [];
+      return AttendanceSessionPage(
+        sessions: data
+            .map((e) => AttendanceSessionModel.fromJson(
+                Map<String, dynamic>.from(e as Map)))
+            .toList(),
+        nextCursor: (map['meta'] as Map?)?['next_cursor']?.toString(),
+      );
+    }
+
+    if (cache == null) {
+      final response = await apiClient.dio.get(
+        '/branches/$locationId/attendance',
+        queryParameters: query,
+      );
+      return decode(response.data);
+    }
+    final key =
+        'attendance:$locationId:${query.entries.map((e) => '${e.key}=${e.value}').join('&')}';
+    return cache!.load<AttendanceSessionPage>(
+      key: cache!.scopedKey(key),
+      scope: 'branch:$locationId',
+      fetch: () async => (await apiClient.dio.get(
+        '/branches/$locationId/attendance',
+        queryParameters: query,
+      ))
+          .data,
+      decode: decode,
+      cacheTransform: _safeAttendancePayload,
+      onFresh: onFresh,
     );
   }
 
@@ -153,11 +207,24 @@ class AttendanceRepository {
     return response.data ?? '';
   }
 
-  Future<Map<String, dynamic>> getAttendancePolicy(String locationId) async {
-    final response =
-        await apiClient.dio.get('/branches/$locationId/attendance/policy');
-    _captureServerTime(response.data['server_time']);
-    return response.data['data'] as Map<String, dynamic>;
+  Future<Map<String, dynamic>> getAttendancePolicy(String locationId,
+      {void Function(Map<String, dynamic> freshPolicy)? onFresh}) async {
+    if (cache == null) {
+      final response =
+          await apiClient.dio.get('/branches/$locationId/attendance/policy');
+      _captureServerTime(response.data['server_time']);
+      return response.data['data'] as Map<String, dynamic>;
+    }
+    return cache!.load<Map<String, dynamic>>(
+      key: cache!.scopedKey('attendance-policy:$locationId'),
+      scope: 'branch:$locationId',
+      fetch: () async =>
+          (await apiClient.dio.get('/branches/$locationId/attendance/policy'))
+              .data,
+      decode: (payload) =>
+          Map<String, dynamic>.from((payload as Map)['data'] as Map),
+      onFresh: onFresh,
+    );
   }
 
   Future<Map<String, dynamic>> uploadAttendanceSelfie(
@@ -193,20 +260,48 @@ class AttendanceRepository {
     };
   }
 
-  Future<List<Map<String, dynamic>>> getAttendancePolicies(
-      String locationId) async {
-    final response =
-        await apiClient.dio.get('/branches/$locationId/attendance/policies');
-    return ((response.data['data'] as List?) ?? const [])
-        .map((item) => Map<String, dynamic>.from(item as Map))
-        .toList();
+  Future<List<Map<String, dynamic>>> getAttendancePolicies(String locationId,
+      {void Function(List<Map<String, dynamic>> freshPolicies)?
+          onFresh}) async {
+    List<Map<String, dynamic>> decode(dynamic payload) =>
+        ((payload as Map)['data'] as List? ?? const [])
+            .map((item) => Map<String, dynamic>.from(item as Map))
+            .toList();
+    if (cache == null) {
+      final response =
+          await apiClient.dio.get('/branches/$locationId/attendance/policies');
+      return decode(response.data);
+    }
+    return cache!.load<List<Map<String, dynamic>>>(
+      key: cache!.scopedKey('attendance-policies:$locationId'),
+      scope: 'branch:$locationId',
+      fetch: () async =>
+          (await apiClient.dio.get('/branches/$locationId/attendance/policies'))
+              .data,
+      decode: decode,
+      onFresh: onFresh,
+    );
   }
 
   Future<AttendanceSessionModel> getSessionDetail(
-      String locationId, String sessionId) async {
-    final response =
-        await apiClient.dio.get('/branches/$locationId/attendance/$sessionId');
-    return AttendanceSessionModel.fromJson(response.data['data']);
+      String locationId, String sessionId,
+      {void Function(AttendanceSessionModel freshSession)? onFresh}) async {
+    if (cache == null) {
+      final response = await apiClient.dio
+          .get('/branches/$locationId/attendance/$sessionId');
+      return AttendanceSessionModel.fromJson(response.data['data']);
+    }
+    return cache!.load<AttendanceSessionModel>(
+      key: cache!.scopedKey('attendance-detail:$locationId:$sessionId'),
+      scope: 'branch:$locationId',
+      fetch: () async => (await apiClient.dio
+              .get('/branches/$locationId/attendance/$sessionId'))
+          .data,
+      decode: (payload) => AttendanceSessionModel.fromJson(
+          Map<String, dynamic>.from((payload as Map)['data'] as Map)),
+      cacheTransform: _safeAttendancePayload,
+      onFresh: onFresh,
+    );
   }
 
   Future<Map<String, dynamic>> getEvidenceDownloadUrl(
@@ -221,6 +316,7 @@ class AttendanceRepository {
       String locationId, Map<String, dynamic> data) async {
     final response = await apiClient.dio
         .patch('/branches/$locationId/attendance/policy', data: data);
+    await cache?.clearScope('branch:$locationId');
     return response.data['data'] as Map<String, dynamic>;
   }
 
@@ -256,7 +352,9 @@ class AttendanceRepository {
       options: Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
     _captureServerTime(response.data['server_time']);
-    return AttendanceSessionModel.fromJson(response.data['data']);
+    final session = AttendanceSessionModel.fromJson(response.data['data']);
+    if (session.state == 'CLOSED') await cache?.clearAll();
+    return session;
   }
 
   Future<Map<String, dynamic>> correctSession(
@@ -264,6 +362,7 @@ class AttendanceRepository {
     final response = await apiClient.dio.patch(
         '/branches/$locationId/attendance/$sessionId/correct',
         data: data);
+    await cache?.clearScope('branch:$locationId');
     return response.data['data'] as Map<String, dynamic>;
   }
 
@@ -290,6 +389,25 @@ class AttendanceRepository {
       options: Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
     _captureServerTime(response.data['server_time']);
+    await cache?.clearScope('branch:$locationId');
     return AttendanceSessionModel.fromJson(response.data['data']);
+  }
+
+  dynamic _safeAttendancePayload(dynamic value) {
+    if (value is List) return value.map(_safeAttendancePayload).toList();
+    if (value is Map) {
+      final copy = <String, dynamic>{};
+      value.forEach((key, item) {
+        final name = key.toString();
+        if (name == 'evidence' ||
+            name == 'selfie_storage_key' ||
+            name == 'selfie_upload_token') {
+          return;
+        }
+        copy[name] = _safeAttendancePayload(item);
+      });
+      return copy;
+    }
+    return value;
   }
 }

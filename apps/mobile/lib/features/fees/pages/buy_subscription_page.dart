@@ -44,9 +44,24 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
       _error = null;
     });
     try {
-      final plans = await context
-          .read<OrganizationRepository>()
-          .getOrganizationPlans(organizationId, branchId: branchId);
+      final plans =
+          await context.read<OrganizationRepository>().getOrganizationPlans(
+        organizationId,
+        branchId: branchId,
+        onFresh: (freshPlans) {
+          if (!mounted) return;
+          final activePlans =
+              freshPlans.where((plan) => plan['is_active'] == true).toList();
+          setState(() {
+            _plans = activePlans;
+            if (_selectedPlan != null &&
+                !activePlans
+                    .any((plan) => plan['id'] == _selectedPlan!['id'])) {
+              _selectedPlan = null;
+            }
+          });
+        },
+      );
       if (!mounted) return;
       setState(() {
         _plans = plans.where((plan) => plan['is_active'] == true).toList();

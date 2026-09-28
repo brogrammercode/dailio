@@ -38,7 +38,9 @@ class _FakeAttendanceRepository extends AttendanceRepository {
       );
 
   @override
-  Future<Map<String, dynamic>> getAttendancePolicy(String locationId) async => {
+  Future<Map<String, dynamic>> getAttendancePolicy(String locationId,
+          {void Function(Map<String, dynamic> freshPolicy)? onFresh}) async =>
+      {
         'version': 1,
         'source_scope': 'BRANCH_DEFAULT',
         'late_grace_minutes': 15,
@@ -51,7 +53,8 @@ class _FakeAttendanceRepository extends AttendanceRepository {
       };
 
   @override
-  Future<AttendanceSessionModel?> getActiveSession(String locationId) async =>
+  Future<AttendanceSessionModel?> getActiveSession(String locationId,
+          {void Function(AttendanceSessionModel?)? onFresh}) async =>
       isOpen ? _session : null;
 
   @override
@@ -61,6 +64,7 @@ class _FakeAttendanceRepository extends AttendanceRepository {
     String? roleId,
     String? dateFrom,
     String? dateTo,
+    void Function(List<AttendanceSessionModel> freshSessions)? onFresh,
   }) async =>
       isOpen ? [_session] : const [];
 

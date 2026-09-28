@@ -27,9 +27,9 @@ class _FakeAttendanceRepository extends AttendanceRepository {
   _FakeAttendanceRepository(ApiClient apiClient) : super(apiClient: apiClient);
 
   @override
-  Future<List<Map<String, dynamic>>> getAttendancePolicies(
-    String locationId,
-  ) async {
+  Future<List<Map<String, dynamic>>> getAttendancePolicies(String locationId,
+      {void Function(List<Map<String, dynamic>> freshPolicies)?
+          onFresh}) async {
     return [
       {
         'id': 'policy-1',
@@ -53,6 +53,7 @@ class _FakeOrganizationRepository extends OrganizationRepository {
   Future<List<Map<String, dynamic>>> getRoles(
     String organizationId, {
     String? branchId,
+    void Function(List<Map<String, dynamic>> freshRoles)? onFresh,
   }) async {
     return [
       {'id': 'role-1', 'name': 'Coach'},
@@ -71,6 +72,7 @@ class _FakeMembersRepository extends MembersRepository {
     String? roleId,
     int page = 1,
     int limit = 20,
+    void Function(Map<String, dynamic> freshData)? onFresh,
   }) async {
     return {
       'data': [

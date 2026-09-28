@@ -4,6 +4,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/storage/json_cache_store.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -14,6 +15,7 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   late final ApiClient _api;
+  late final JsonCacheStore _cache;
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
   bool _markingAll = false;
@@ -23,6 +25,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   void initState() {
     super.initState();
     _api = context.read<ApiClient>();
+    _cache = context.read<JsonCacheStore>();
     _load();
   }
 
@@ -32,14 +35,21 @@ class _NotificationsPageState extends State<NotificationsPage> {
       _error = null;
     });
     try {
-      final response = await _api.dio.get('/notifications');
-      final data = response.data['data'] as List? ?? const [];
-      if (!mounted) return;
-      setState(() {
-        _items = data
+      final data = await _cache.load<List<Map<String, dynamic>>>(
+        key: _cache.scopedKey('notifications'),
+        scope: 'user',
+        fetch: () async => (await _api.dio.get('/notifications')).data,
+        decode: (payload) => ((payload as Map)['data'] as List? ?? const [])
             .whereType<Map>()
             .map((item) => Map<String, dynamic>.from(item))
-            .toList();
+            .toList(),
+        onFresh: (freshItems) {
+          if (mounted) setState(() => _items = freshItems);
+        },
+      );
+      if (!mounted) return;
+      setState(() {
+        _items = data;
         _loading = false;
       });
     } catch (error) {
@@ -57,6 +67,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     if (item['read_at'] != null) return;
     try {
       await _api.dio.patch('/notifications/${item['id']}/read');
+      await _cache.clearKey(_cache.scopedKey('notifications'));
       if (mounted) {
         setState(() => _items[index] = {
               ...item,
@@ -73,6 +84,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     setState(() => _markingAll = true);
     try {
       await _api.dio.post('/notifications/read-all');
+      await _cache.clearKey(_cache.scopedKey('notifications'));
       if (mounted) {
         setState(() {
           _items = _items

@@ -66,7 +66,15 @@ class _MembersPageState extends State<MembersPage> {
 
   Future<void> _loadInitialData() async {
     try {
-      final roleMaps = await _orgRepo.getRoles(_orgId);
+      final roleMaps = await _orgRepo.getRoles(
+        _orgId,
+        onFresh: (freshRoles) {
+          if (!mounted) return;
+          setState(() {
+            _roles = freshRoles.map((e) => RoleModel.fromJson(e)).toList();
+          });
+        },
+      );
       final roles = roleMaps.map((e) => RoleModel.fromJson(e)).toList();
       if (mounted) {
         setState(() {
@@ -103,6 +111,16 @@ class _MembersPageState extends State<MembersPage> {
         search: _currentSearch,
         status: _currentStatus,
         roleId: _currentRoleId,
+        onFresh: (freshData) {
+          if (!mounted) return;
+          final freshList = ((freshData['data'] ?? []) as List)
+              .map((e) => MemberModel.fromJson(e))
+              .toList();
+          setState(() {
+            _members = freshList;
+            _meta = freshData;
+          });
+        },
       );
       final list = ((data['data'] ?? []) as List)
           .map((e) => MemberModel.fromJson(e))

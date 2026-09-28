@@ -83,8 +83,17 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
       final repository = context.read<OrganizationRepository>();
       final prefs = context.read<PreferencesStorage>();
       final orgId = prefs.activeOrganizationId!;
-      final plans = await repository.getOrganizationPlans(orgId,
-          branchId: _selectedFilterBranchId);
+      final plans = await repository.getOrganizationPlans(
+        orgId,
+        branchId: _selectedFilterBranchId,
+        onFresh: (freshPlans) {
+          if (!mounted) return;
+          setState(() {
+            _allPlans = freshPlans;
+            if (_filteredPlans.isNotEmpty && !_isCreating) _selectPlan(0);
+          });
+        },
+      );
       final branches = await repository.getOrganizationBranches(orgId);
 
       if (mounted) {

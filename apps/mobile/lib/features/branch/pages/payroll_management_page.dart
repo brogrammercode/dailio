@@ -52,6 +52,9 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
       final structures = await _repo.listSalaryStructures(
         _orgId,
         branchId: _selectedFilterBranchId,
+        onFresh: (freshStructures) {
+          if (mounted) setState(() => _structures = freshStructures);
+        },
       );
       if (mounted) {
         setState(() {
