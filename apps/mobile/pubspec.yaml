@@ -1,7 +1,7 @@
 name: dailio
 description: "Dailio — gym management mobile app"
 publish_to: "none"
-version: 1.0.0+1
+version: 0.1.2+4
 
 environment:
   sdk: ^3.5.0
