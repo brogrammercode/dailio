@@ -52,7 +52,10 @@ android {
         create("release") {
             keyAlias = keystoreProperties.getProperty("keyAlias")
             keyPassword = keystoreProperties.getProperty("keyPassword")
-            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
+            // key.properties commonly stores paths as quoted Windows strings
+            // (for example: "./dailio.jks"). Use the normalized path above so
+            // the quote characters never become part of the filesystem path.
+            storeFile = releaseStoreFile
             storePassword = keystoreProperties.getProperty("storePassword")
         }
     }
