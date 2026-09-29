@@ -3,6 +3,7 @@ import { ulid } from 'ulid';
 
 import { prisma } from '../../lib/prisma';
 import { NotFoundError } from '../../lib/errors';
+import { notify } from '../notifications/notifications.service';
 
 import { CreateShiftInput, UpdateShiftInput } from './shifts.schema';
 
@@ -31,7 +32,7 @@ export async function createShift(
   });
   if (!branch) throw new NotFoundError('Branch');
 
-  return prisma.$transaction(async (tx) => {
+  const created = await prisma.$transaction(async (tx) => {
     const shift = await tx.shift.create({
       data: {
         organization_id,
@@ -61,6 +62,7 @@ export async function createShift(
     });
     return shift;
   });
+  return created;
 }
 
 export async function updateShift(
@@ -80,7 +82,12 @@ export async function updateShift(
     throw new NotFoundError('Shift');
   }
 
-  return prisma.$transaction(async (tx) => {
+  const affectedMembers = await prisma.member.findMany({
+    where: { organization_id, branch_id: shift.branch_id, shift_id },
+    select: { user_id: true },
+  });
+
+  const updated = await prisma.$transaction(async (tx) => {
     const updated = await tx.shift.update({
       where: { id: shift_id },
       data,
@@ -99,6 +106,24 @@ export async function updateShift(
     });
     return updated;
   });
+
+  try {
+    await notify({
+      type: 'SHIFT_UPDATED',
+      organizationId: organization_id,
+      branchId: updated.branch_id,
+      entityType: 'Shift',
+      entityId: updated.id,
+      recipientUserIds: affectedMembers.map((member) => member.user_id),
+      title: 'Shift updated',
+      body: `Your assigned shift, ${updated.name}, has been updated.`,
+      data: { organization_id, branch_id: updated.branch_id, entity_id: updated.id },
+      dedupeKey: `shift:${updated.id}:updated:${updated.updated_at.toISOString()}`,
+    });
+  } catch {
+    // Notification delivery must not undo a committed shift update.
+  }
+  return updated;
 }
 
 export async function deleteShift(
@@ -117,7 +142,12 @@ export async function deleteShift(
     throw new NotFoundError('Shift');
   }
 
-  return prisma.$transaction(async (tx) => {
+  const affectedMembers = await prisma.member.findMany({
+    where: { organization_id, branch_id: shift.branch_id, shift_id },
+    select: { user_id: true },
+  });
+
+  const deleted = await prisma.$transaction(async (tx) => {
     const deleted = await tx.shift.delete({
       where: { id: shift_id },
     });
@@ -135,4 +165,22 @@ export async function deleteShift(
     });
     return deleted;
   });
+
+  try {
+    await notify({
+      type: 'SHIFT_REMOVED',
+      organizationId: organization_id,
+      branchId: deleted.branch_id,
+      entityType: 'Shift',
+      entityId: deleted.id,
+      recipientUserIds: affectedMembers.map((member) => member.user_id),
+      title: 'Shift removed',
+      body: `Your assigned shift, ${deleted.name}, is no longer available.`,
+      data: { organization_id, branch_id: deleted.branch_id, entity_id: deleted.id },
+      dedupeKey: `shift:${deleted.id}:removed`,
+    });
+  } catch {
+    // Notification delivery must not undo a committed shift deletion.
+  }
+  return deleted;
 }

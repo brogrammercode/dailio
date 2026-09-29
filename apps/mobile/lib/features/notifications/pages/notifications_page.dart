@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/json_cache_store.dart';
+import '../../../core/notifications/notification_runtime.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -26,7 +27,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
     super.initState();
     _api = context.read<ApiClient>();
     _cache = context.read<JsonCacheStore>();
+    NotificationRuntime.setInboxRefresh(_load);
     _load();
+  }
+
+  @override
+  void dispose() {
+    NotificationRuntime.setInboxRefresh(null);
+    super.dispose();
   }
 
   Future<void> _load() async {

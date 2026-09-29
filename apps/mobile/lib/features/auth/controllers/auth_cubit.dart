@@ -1,5 +1,3 @@
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -7,12 +5,17 @@ import 'package:injectable/injectable.dart';
 
 import 'auth_repository.dart';
 import 'auth_state.dart';
+import '../../../core/notifications/notification_runtime.dart';
 
 @injectable
 class AuthCubit extends Cubit<AuthState> {
   final AuthRepository _repository;
 
-  AuthCubit(this._repository) : super(const AuthInitial());
+  AuthCubit(this._repository) : super(const AuthInitial()) {
+    NotificationRuntime.setTokenSync(
+      (token) => _repository.updateProfile(fcmToken: token).then((_) {}),
+    );
+  }
 
   Future<void> checkSession() async {
     emit(const AuthLoading());
@@ -58,11 +61,9 @@ class AuthCubit extends Cubit<AuthState> {
 
       // Attempt to register FCM token silently
       try {
-        if (Firebase.apps.isNotEmpty) {
-          final fcmToken = await FirebaseMessaging.instance.getToken();
-          if (fcmToken != null) {
-            await _repository.updateProfile(fcmToken: fcmToken);
-          }
+        final fcmToken = await NotificationRuntime.getToken();
+        if (fcmToken != null) {
+          await _repository.updateProfile(fcmToken: fcmToken);
         }
       } catch (_) {
         // FCM might not be configured, ignore error
@@ -115,6 +116,9 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> signOut() async {
     emit(const AuthLoading());
     try {
+      final token = await NotificationRuntime.getToken();
+      if (token != null) await _repository.unregisterFcmToken(token);
+      NotificationRuntime.clearTokenSync();
       await _repository.signOut();
     } finally {
       emit(const AuthUnauthenticated());

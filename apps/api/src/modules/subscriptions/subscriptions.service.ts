@@ -3,6 +3,7 @@ import { ulid } from 'ulid';
 
 import { prisma } from '../../lib/prisma';
 import { AppError, ConflictError, NotFoundError, UnprocessableError } from '../../lib/errors';
+import { notify } from '../notifications/notifications.service';
 
 import type {
   AssignSubscriptionInput,
@@ -11,6 +12,39 @@ import type {
   SubscriptionTransitionInput,
   UpdateSubscriptionInput,
 } from './subscriptions.schema';
+
+async function notifySubscriptionMember(
+  organization_id: string,
+  branch_id: string,
+  member_id: string,
+  subscription_id: string,
+  type: string,
+  title: string,
+  body: string,
+  dedupeKey: string,
+) {
+  try {
+    const member = await prisma.member.findFirst({
+      where: { id: member_id, organization_id, branch_id },
+      select: { user_id: true },
+    });
+    if (!member) return;
+    await notify({
+      type,
+      organizationId: organization_id,
+      branchId: branch_id,
+      entityType: 'Subscription',
+      entityId: subscription_id,
+      recipientUserIds: [member.user_id],
+      title,
+      body,
+      data: { organization_id, branch_id, entity_id: subscription_id },
+      dedupeKey,
+    });
+  } catch {
+    // Notification delivery must not undo a committed subscription transition.
+  }
+}
 
 export function calculateSubscriptionEndDate(startDate: Date, durationDays: number) {
   const endDate = new Date(startDate);
@@ -37,7 +71,7 @@ export async function assignSubscription(
     }
     return existing;
   }
-  return await prisma.$transaction(
+  const assigned = await prisma.$transaction(
     async (tx) => {
       // 1. Verify Member
       const member = await tx.member.findUnique({
@@ -190,6 +224,18 @@ export async function assignSubscription(
     },
     { isolationLevel: 'Serializable' },
   );
+
+  await notifySubscriptionMember(
+    organization_id,
+    branch_id,
+    member_id,
+    assigned.id,
+    'SUBSCRIPTION_ASSIGNED',
+    'Subscription activated',
+    'A subscription has been assigned to your account.',
+    `subscription:${assigned.id}:assigned`,
+  );
+  return assigned;
 }
 
 export async function listSubscriptions(
@@ -253,7 +299,7 @@ export async function updateSubscription(
   subscription_id: string,
   data: UpdateSubscriptionInput,
 ) {
-  return await prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     const subscription = await tx.subscription.findUnique({
       where: { id: subscription_id },
     });
@@ -290,6 +336,17 @@ export async function updateSubscription(
 
     return updated;
   });
+  await notifySubscriptionMember(
+    organization_id,
+    branch_id,
+    updated.member_id,
+    updated.id,
+    'SUBSCRIPTION_UPDATED',
+    'Subscription updated',
+    'Your subscription coverage details have been updated.',
+    `subscription:${updated.id}:updated:${updated.updated_at.toISOString()}`,
+  );
+  return updated;
 }
 
 export async function cancelSubscription(
@@ -299,7 +356,7 @@ export async function cancelSubscription(
   subscription_id: string,
   data: CancelSubscriptionInput,
 ) {
-  return prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     const subscription = await tx.subscription.findFirst({
       where: { id: subscription_id, organization_id, branch_id },
     });
@@ -331,6 +388,19 @@ export async function cancelSubscription(
     });
     return updated;
   });
+  await notifySubscriptionMember(
+    organization_id,
+    branch_id,
+    updated.member_id,
+    updated.id,
+    'SUBSCRIPTION_CANCELLED',
+    'Subscription cancelled',
+    data.reason
+      ? `Your subscription was cancelled: ${data.reason}`
+      : 'Your subscription was cancelled.',
+    `subscription:${updated.id}:cancelled:${updated.updated_at.toISOString()}`,
+  );
+  return updated;
 }
 
 async function transitionSubscription(
@@ -341,7 +411,7 @@ async function transitionSubscription(
   targetStatus: 'PAUSED' | 'ACTIVE',
   data: SubscriptionTransitionInput,
 ) {
-  return prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     const subscription = await tx.subscription.findFirst({
       where: { id: subscription_id, organization_id, branch_id },
     });
@@ -377,6 +447,21 @@ async function transitionSubscription(
     });
     return updated;
   });
+  await notifySubscriptionMember(
+    organization_id,
+    branch_id,
+    updated.member_id,
+    updated.id,
+    targetStatus === 'PAUSED' ? 'SUBSCRIPTION_PAUSED' : 'SUBSCRIPTION_RESUMED',
+    targetStatus === 'PAUSED' ? 'Subscription paused' : 'Subscription resumed',
+    targetStatus === 'PAUSED'
+      ? data.reason
+        ? `Your subscription was paused: ${data.reason}`
+        : 'Your subscription was paused.'
+      : 'Your subscription is active again.',
+    `subscription:${updated.id}:${targetStatus.toLowerCase()}:${updated.updated_at.toISOString()}`,
+  );
+  return updated;
 }
 
 export function pauseSubscription(
@@ -439,7 +524,7 @@ export async function renewSubscription(
     idempotency_key,
     { plan_id: source.plan_id, start_date: data.start_date },
   );
-  return prisma.$transaction(async (tx) => {
+  const updatedRenewal = await prisma.$transaction(async (tx) => {
     const updated = await tx.subscription.update({
       where: { id: renewed.id },
       data: { renewed_from_id: source.id },
@@ -459,4 +544,16 @@ export async function renewSubscription(
     });
     return updated;
   });
+
+  await notifySubscriptionMember(
+    organization_id,
+    branch_id,
+    source.member_id,
+    updatedRenewal.id,
+    'SUBSCRIPTION_RENEWED',
+    'Subscription renewed',
+    'Your subscription has been renewed successfully.',
+    `subscription:${updatedRenewal.id}:renewed`,
+  );
+  return updatedRenewal;
 }

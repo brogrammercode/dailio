@@ -142,6 +142,12 @@ enum AnnouncementAudience {
 enum NotificationChannel {
   IN_APP
   PUSH
+  EMAIL
+}
+
+enum NotificationPreferenceChannel {
+  PUSH
+  EMAIL
 }
 
 enum NotificationStatus {
@@ -150,6 +156,20 @@ enum NotificationStatus {
   DELIVERED
   FAILED
   READ
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  SKIPPED
+}
+
+enum DailyJobRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
 }
 
 enum AuditAction {
@@ -195,10 +215,13 @@ model User {
   created_at              DateTime   @default(now())
   updated_at              DateTime   @updatedAt
 
-  members       Member[]
-  audit_logs    AuditLog[]     @relation("AuditActor")
-  notifications Notification[]
-  joinRequests  JoinRequest[]
+  members                 Member[]
+  audit_logs              AuditLog[]             @relation("AuditActor")
+  notifications           Notification[]
+  notification_deliveries NotificationDelivery[]
+  device_tokens           UserDeviceToken[]
+  notification_preferences NotificationPreference[]
+  joinRequests            JoinRequest[]
 
   @@map("users")
 }
@@ -321,6 +344,7 @@ model Branch {
   salaryStructures    SalaryStructure[]
   payment_requests    PaymentRequest[]
   invite_tokens       InviteToken[]
+  notifications       Notification[]
 
   @@index([organization_id])
   @@map("branches")
@@ -580,6 +604,7 @@ model LeaveRequest {
   reviewed_by     String?
   reviewed_at     DateTime?
   review_note     String?
+  idempotency_key String?             @unique
   created_at      DateTime           @default(now())
   updated_at      DateTime           @updatedAt
 
@@ -932,6 +957,10 @@ model Notification {
   id              String              @id @default(cuid())
   user_id         String
   organization_id String?
+  branch_id       String?
+  event_type      String?
+  entity_type     String?
+  entity_id       String?
   title           String
   body            String
   channel         NotificationChannel @default(IN_APP)
@@ -942,10 +971,87 @@ model Notification {
   sent_at         DateTime?
   created_at      DateTime            @default(now())
 
-  user User @relation(fields: [user_id], references: [id])
+  user       User                   @relation(fields: [user_id], references: [id])
+  branch     Branch?                @relation(fields: [branch_id], references: [id])
+  deliveries NotificationDelivery[]
 
-  @@index([user_id])
+  @@index([user_id, created_at])
+  @@index([organization_id, branch_id, created_at])
+  @@index([event_type, entity_id])
   @@map("notifications")
+}
+
+model NotificationDelivery {
+  id                  String                     @id @default(cuid())
+  notification_id     String
+  user_id             String
+  channel             NotificationChannel
+  status              NotificationDeliveryStatus @default(PENDING)
+  attempt_count       Int                        @default(0)
+  provider_message_id String?
+  last_error_code     String?
+  last_attempt_at     DateTime?
+  delivered_at        DateTime?
+  created_at          DateTime                   @default(now())
+  updated_at          DateTime                   @updatedAt
+
+  notification Notification @relation(fields: [notification_id], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [user_id], references: [id])
+
+  @@unique([notification_id, channel, user_id])
+  @@index([user_id, status, created_at])
+  @@index([status, last_attempt_at])
+  @@map("notification_deliveries")
+}
+
+model UserDeviceToken {
+  id            String   @id @default(cuid())
+  user_id       String
+  token         String   @unique
+  platform      String?
+  app_version   String?
+  last_seen_at  DateTime @default(now())
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, last_seen_at])
+  @@map("user_device_tokens")
+}
+
+model NotificationPreference {
+  id          String                         @id @default(cuid())
+  user_id     String
+  event_type  String
+  channel     NotificationPreferenceChannel
+  enabled     Boolean                        @default(true)
+  created_at  DateTime                       @default(now())
+  updated_at  DateTime                       @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, event_type, channel])
+  @@index([user_id, event_type])
+  @@map("notification_preferences")
+}
+
+model DailyJobRun {
+  id            String            @id @default(cuid())
+  job_key       String
+  business_date DateTime          @db.Date
+  status        DailyJobRunStatus @default(RUNNING)
+  lease_until   DateTime?
+  attempt_count Int               @default(1)
+  started_at    DateTime          @default(now())
+  completed_at  DateTime?
+  last_error    String?
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @updatedAt
+
+  @@unique([job_key, business_date])
+  @@index([status, lease_until])
+  @@map("daily_job_runs")
 }
 
 model AuditLog {

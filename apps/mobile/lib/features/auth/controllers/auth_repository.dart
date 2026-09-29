@@ -113,4 +113,13 @@ class AuthRepository {
       _cache?.setUserId(null);
     }
   }
+
+  Future<void> unregisterFcmToken(String token) async {
+    try {
+      await _apiClient.dio
+          .delete('/users/me/device-token', data: {'token': token});
+    } catch (_) {
+      // Logout remains best-effort if the device is offline.
+    }
+  }
 }

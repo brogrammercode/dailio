@@ -10,6 +10,7 @@ import 'core/storage/preferences_storage.dart';
 import 'core/storage/json_cache_store.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/theme/app_theme.dart';
+import 'core/notifications/notification_runtime.dart';
 import 'features/auth/controllers/auth_cubit.dart';
 import 'features/auth/controllers/auth_repository.dart';
 import 'features/auth/controllers/auth_state.dart';
@@ -68,6 +69,23 @@ class _MainAppState extends State<MainApp> {
     super.initState();
     // Cache the router so hot reload doesn't reset the navigation stack
     _router = buildRouter(widget.initialRoute, widget.preferencesStorage);
+    NotificationRuntime.setRouter(_router);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _runDailyCheck());
+  }
+
+  Future<void> _runDailyCheck() async {
+    if (widget.preferencesStorage.activeBranchId == null ||
+        widget.preferencesStorage.activeOrganizationId == null) {
+      return;
+    }
+    final token = await widget.secureStorage.getAccessToken();
+    if (token == null) return;
+    try {
+      await widget.apiClient.dio.post('/maintenance/daily-check');
+    } catch (_) {
+      // Daily coordination is best-effort; the next app open or cron fallback
+      // can claim the job again.
+    }
   }
 
   @override

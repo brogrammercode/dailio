@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client';
 
 import { prisma } from '../../lib/prisma';
 import { ConflictError, NotFoundError } from '../../lib/errors';
+import { findBranchRecipientUserIds, notify } from '../notifications/notifications.service';
 
 import type {
   ListMembersQuery,
@@ -48,6 +49,7 @@ export async function listMembers(
       where,
       include: {
         user: true,
+        shift: true,
         role: true,
         subscriptions: {
           where: { status: { in: ['ACTIVE', 'UPCOMING', 'EXPIRED', 'PAUSED'] } },
@@ -102,7 +104,7 @@ export async function suspendMember(
   member_id: string,
   data: MemberActionInput,
 ) {
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const member = await tx.member.findUnique({
       where: { id: member_id },
     });
@@ -132,8 +134,45 @@ export async function suspendMember(
       },
     });
 
-    return updated;
+    return { updated, userId: member.user_id };
   });
+
+  try {
+    await notify({
+      type: 'MEMBERSHIP_SUSPENDED',
+      organizationId: organization_id,
+      branchId: branch_id,
+      entityType: 'Member',
+      entityId: member_id,
+      recipientUserIds: [result.userId],
+      title: 'Membership suspended',
+      body: data.reason
+        ? `Your membership has been suspended: ${data.reason}`
+        : 'Your membership has been suspended. Contact the branch for details.',
+      data: { organization_id, branch_id, entity_id: member_id },
+      dedupeKey: `member:${member_id}:suspended:${result.updated.updated_at.toISOString()}`,
+    });
+    const reviewers = await findBranchRecipientUserIds(
+      organization_id,
+      branch_id,
+      'MEMBER_READ_ALL',
+    );
+    await notify({
+      type: 'MEMBERSHIP_SUSPENDED_REVIEW',
+      organizationId: organization_id,
+      branchId: branch_id,
+      entityType: 'Member',
+      entityId: member_id,
+      recipientUserIds: reviewers.filter((userId) => userId !== result.userId),
+      title: 'Membership suspended',
+      body: 'A member has been suspended and may need follow-up.',
+      data: { organization_id, branch_id, entity_id: member_id },
+      dedupeKey: `member:${member_id}:suspended-review:${result.updated.updated_at.toISOString()}`,
+    });
+  } catch {
+    // Notification delivery must not undo a committed membership change.
+  }
+  return result.updated;
 }
 
 export async function deactivateMember(
@@ -143,7 +182,7 @@ export async function deactivateMember(
   member_id: string,
   data: MemberActionInput,
 ) {
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const member = await tx.member.findUnique({
       where: { id: member_id },
     });
@@ -173,8 +212,45 @@ export async function deactivateMember(
       },
     });
 
-    return updated;
+    return { updated, userId: member.user_id };
   });
+
+  try {
+    await notify({
+      type: 'MEMBERSHIP_DEACTIVATED',
+      organizationId: organization_id,
+      branchId: branch_id,
+      entityType: 'Member',
+      entityId: member_id,
+      recipientUserIds: [result.userId],
+      title: 'Membership deactivated',
+      body: data.reason
+        ? `Your membership has been deactivated: ${data.reason}`
+        : 'Your membership has been deactivated. Contact the branch for details.',
+      data: { organization_id, branch_id, entity_id: member_id },
+      dedupeKey: `member:${member_id}:deactivated:${result.updated.updated_at.toISOString()}`,
+    });
+    const reviewers = await findBranchRecipientUserIds(
+      organization_id,
+      branch_id,
+      'MEMBER_READ_ALL',
+    );
+    await notify({
+      type: 'MEMBERSHIP_DEACTIVATED_REVIEW',
+      organizationId: organization_id,
+      branchId: branch_id,
+      entityType: 'Member',
+      entityId: member_id,
+      recipientUserIds: reviewers.filter((userId) => userId !== result.userId),
+      title: 'Membership deactivated',
+      body: 'A member has been deactivated and may need follow-up.',
+      data: { organization_id, branch_id, entity_id: member_id },
+      dedupeKey: `member:${member_id}:deactivated-review:${result.updated.updated_at.toISOString()}`,
+    });
+  } catch {
+    // Notification delivery must not undo a committed membership change.
+  }
+  return result.updated;
 }
 
 export async function createAssistedAdmission(
@@ -183,7 +259,7 @@ export async function createAssistedAdmission(
   branch_id: string,
   data: AssistedAdmissionInput,
 ) {
-  return prisma.$transaction(async (tx) => {
+  const member = await prisma.$transaction(async (tx) => {
     // 1. Check or Create User
     let targetUserId = ulid();
     if (data.email) {
@@ -255,6 +331,24 @@ export async function createAssistedAdmission(
 
     return member;
   });
+
+  try {
+    await notify({
+      type: 'MEMBERSHIP_CREATED',
+      organizationId: organization_id,
+      branchId: branch_id,
+      entityType: 'Member',
+      entityId: member.id,
+      recipientUserIds: [member.user_id],
+      title: 'Branch membership created',
+      body: 'Your branch membership is active and ready to use.',
+      data: { organization_id, branch_id, entity_id: member.id },
+      dedupeKey: `member:${member.id}:created`,
+    });
+  } catch {
+    // Notification delivery must not undo a committed admission.
+  }
+  return member;
 }
 
 export async function updateMember(
@@ -264,7 +358,7 @@ export async function updateMember(
   member_id: string,
   data: UpdateMemberInput,
 ) {
-  return prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     const member = await tx.member.findUnique({
       where: { id: member_id },
     });
@@ -392,6 +486,7 @@ export async function updateMember(
       },
       include: {
         user: true,
+        shift: true,
         role: true,
         role_assignments: {
           where: { effective_to: null },
@@ -416,6 +511,53 @@ export async function updateMember(
 
     return updated;
   });
+
+  const hasConfigurationChange =
+    data.role_id !== undefined ||
+    data.role_ids !== undefined ||
+    data.manager_member_id !== undefined ||
+    data.subscription_id !== undefined ||
+    data.shift_id !== undefined ||
+    data.salary_structure_id !== undefined;
+  if (hasConfigurationChange) {
+    try {
+      await notify({
+        type: 'MEMBER_CONFIGURATION_UPDATED',
+        organizationId: organization_id,
+        branchId: branch_id,
+        entityType: 'Member',
+        entityId: member_id,
+        recipientUserIds: [updated.user.id],
+        title: 'Membership details updated',
+        body: 'Your branch membership details have been updated.',
+        data: { organization_id, branch_id, entity_id: member_id },
+        dedupeKey: `member:${member_id}:configuration:${updated.updated_at.toISOString()}`,
+      });
+    } catch {
+      // Notification delivery must not undo a committed member update.
+    }
+  }
+  if (data.shift_id !== undefined) {
+    try {
+      await notify({
+        type: data.shift_id ? 'SHIFT_ASSIGNED' : 'SHIFT_UNASSIGNED',
+        organizationId: organization_id,
+        branchId: branch_id,
+        entityType: 'Member',
+        entityId: member_id,
+        recipientUserIds: [updated.user.id],
+        title: data.shift_id ? 'Shift assigned' : 'Shift removed',
+        body: data.shift_id
+          ? `You have been assigned to ${updated.shift?.name ?? 'a new shift'}.`
+          : 'Your assigned shift has been removed.',
+        data: { organization_id, branch_id, entity_id: member_id },
+        dedupeKey: `member:${member_id}:shift:${updated.shift_id ?? 'none'}:${updated.updated_at.toISOString()}`,
+      });
+    } catch {
+      // Notification delivery must not undo a committed member update.
+    }
+  }
+  return updated;
 }
 export async function listOrganizationMembers(organizationId: string, branchId?: string) {
   const where: any = { organization_id: organizationId };

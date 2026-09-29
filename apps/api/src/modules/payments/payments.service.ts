@@ -2,6 +2,7 @@ import type { MemberStatus, Prisma, PaymentRequestStatus } from '@prisma/client'
 import { ulid } from 'ulid';
 
 import { prisma } from '../../lib/prisma';
+import { findBranchRecipientUserIds, notify } from '../notifications/notifications.service';
 import { ConflictError, ForbiddenError, NotFoundError, UnprocessableError } from '../../lib/errors';
 import { cloudinary, getUploadSignature } from '../../lib/cloudinary';
 
@@ -211,7 +212,7 @@ export async function createPaymentRequest(
     return existing;
   }
 
-  return prisma.$transaction(
+  const created = await prisma.$transaction(
     async (tx) => {
       const member = await tx.member.findFirst({
         where: {
@@ -309,6 +310,31 @@ export async function createPaymentRequest(
       timeout: 30_000,
     },
   );
+
+  try {
+    const reviewerUserIds = await findBranchRecipientUserIds(
+      organizationId,
+      branchId,
+      'PAYMENT_REQUEST_REVIEW',
+    );
+    await notify({
+      type: 'PAYMENT_REQUEST_SUBMITTED',
+      organizationId,
+      branchId,
+      entityType: 'PaymentRequest',
+      entityId: created.id,
+      recipientUserIds: [...new Set([actorId, ...reviewerUserIds])],
+      title: 'Payment request submitted',
+      body: reviewerUserIds.length
+        ? 'A payment request is ready for branch review.'
+        : 'Your payment evidence has been submitted for branch review.',
+      data: { organization_id: organizationId, branch_id: branchId, entity_id: created.id },
+      dedupeKey: `payment-request:${created.id}:submitted`,
+    });
+  } catch {
+    // Notification delivery must not undo a committed payment request.
+  }
+  return created;
 }
 
 export async function listPaymentRequests(
@@ -394,7 +420,7 @@ export async function reviewPaymentRequest(
   action: 'approve' | 'reject' | 'needs_information',
   data: ReviewPaymentRequestInput,
 ) {
-  return prisma.$transaction(
+  const reviewed = await prisma.$transaction(
     async (tx) => {
       const request = await tx.paymentRequest.findFirst({
         where: { id: requestId, organization_id: organizationId, branch_id: branchId },
@@ -538,6 +564,82 @@ export async function reviewPaymentRequest(
       timeout: 30_000,
     },
   );
+
+  try {
+    const member = await prisma.member.findFirst({
+      where: {
+        id: reviewed.member_id,
+        organization_id: organizationId,
+        branch_id: branchId,
+      },
+      select: { user_id: true },
+    });
+    if (member) {
+      const isApproved = reviewed.status === 'APPROVED';
+      const isRejected = reviewed.status === 'REJECTED';
+      await notify({
+        type: isApproved
+          ? 'PAYMENT_REQUEST_APPROVED'
+          : isRejected
+            ? 'PAYMENT_REQUEST_REJECTED'
+            : 'PAYMENT_EVIDENCE_NEEDS_INFORMATION',
+        organizationId,
+        branchId,
+        entityType: 'PaymentRequest',
+        entityId: reviewed.id,
+        recipientUserIds: [member.user_id],
+        title: isApproved
+          ? 'Payment approved'
+          : isRejected
+            ? 'Payment request rejected'
+            : 'Payment information needed',
+        body: isApproved
+          ? 'Your payment has been approved and your receipt is available.'
+          : isRejected
+            ? (data.reason ?? 'Your payment request was rejected.')
+            : (data.reason ?? 'Please provide updated payment information.'),
+        data: { organization_id: organizationId, branch_id: branchId, entity_id: reviewed.id },
+        dedupeKey: `payment-request:${reviewed.id}:${reviewed.status.toLowerCase()}`,
+      });
+      if (isApproved && reviewed.payment_attempt_id) {
+        await notify({
+          type: 'PAYMENT_POSTED',
+          organizationId,
+          branchId,
+          entityType: 'PaymentAttempt',
+          entityId: reviewed.payment_attempt_id,
+          recipientUserIds: [member.user_id],
+          title: 'Payment posted',
+          body: 'Your payment has been posted to the branch ledger.',
+          data: {
+            organization_id: organizationId,
+            branch_id: branchId,
+            entity_id: reviewed.payment_attempt_id,
+          },
+          dedupeKey: `payment:${reviewed.payment_attempt_id}:posted`,
+        });
+        await notify({
+          type: 'RECEIPT_GENERATED',
+          organizationId,
+          branchId,
+          entityType: 'PaymentAttempt',
+          entityId: reviewed.payment_attempt_id,
+          recipientUserIds: [member.user_id],
+          title: 'Official receipt ready',
+          body: 'Your official payment receipt is ready to view in Dailio.',
+          data: {
+            organization_id: organizationId,
+            branch_id: branchId,
+            entity_id: reviewed.payment_attempt_id,
+          },
+          dedupeKey: `payment:${reviewed.payment_attempt_id}:receipt`,
+        });
+      }
+    }
+  } catch {
+    // Notification delivery must not undo a committed payment review.
+  }
+  return reviewed;
 }
 
 export async function correctPayment(
@@ -548,7 +650,7 @@ export async function correctPayment(
   action: 'refund' | 'void',
   data: PaymentCorrectionInput,
 ) {
-  return prisma.$transaction(
+  const corrected = await prisma.$transaction(
     async (tx) => {
       const payment = await tx.paymentAttempt.findFirst({
         where: {
@@ -607,6 +709,32 @@ export async function correctPayment(
       timeout: 30_000,
     },
   );
+  try {
+    const payment = await prisma.paymentAttempt.findFirst({
+      where: { id: paymentAttemptId, organization_id: organizationId, branch_id: branchId },
+      select: { member: { select: { user_id: true } } },
+    });
+    if (payment?.member?.user_id) {
+      await notify({
+        type: action === 'refund' ? 'PAYMENT_REFUNDED' : 'PAYMENT_VOIDED',
+        organizationId,
+        branchId,
+        entityType: 'PaymentAttempt',
+        entityId: paymentAttemptId,
+        recipientUserIds: [payment.member.user_id],
+        title: action === 'refund' ? 'Payment refunded' : 'Payment voided',
+        body:
+          action === 'refund'
+            ? `Your payment was refunded: ${data.reason}`
+            : `Your payment was voided: ${data.reason}`,
+        data: { organization_id: organizationId, branch_id: branchId, entity_id: paymentAttemptId },
+        dedupeKey: `payment:${paymentAttemptId}:${action}`,
+      });
+    }
+  } catch {
+    // Notification delivery must not undo a committed payment correction.
+  }
+  return corrected;
 }
 
 export async function getReceipt(

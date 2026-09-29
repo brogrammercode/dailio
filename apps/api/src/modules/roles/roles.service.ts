@@ -3,6 +3,7 @@ import { ulid } from 'ulid';
 
 import { prisma } from '../../lib/prisma';
 import { NotFoundError, ConflictError } from '../../lib/errors';
+import { findBranchRecipientUserIds, notify } from '../notifications/notifications.service';
 
 import type { CreateRoleInput, UpdateRoleInput } from './roles.schema';
 
@@ -117,5 +118,61 @@ export async function updateRole(
       after_state: { name: updated.name, branch_id: updated.branch_id },
     },
   });
+
+  try {
+    const affectedMembers = await prisma.member.findMany({
+      where: {
+        organization_id: organizationId,
+        branch_id: updated.branch_id ?? branchId,
+        OR: [
+          { role_id: updated.id },
+          { role_assignments: { some: { role_id: updated.id, effective_to: null } } },
+        ],
+      },
+      select: { user_id: true },
+    });
+    await notify({
+      type: 'ROLE_CONFIGURATION_UPDATED',
+      organizationId,
+      branchId: updated.branch_id ?? branchId,
+      entityType: 'Role',
+      entityId: updated.id,
+      recipientUserIds: affectedMembers.map((member) => member.user_id),
+      title: 'Role permissions updated',
+      body: `The ${updated.name} role has been updated.`,
+      data: {
+        organization_id: organizationId,
+        branch_id: updated.branch_id ?? branchId,
+        entity_id: updated.id,
+      },
+      dedupeKey: `role:${updated.id}:updated:${updated.updated_at.toISOString()}`,
+    });
+
+    if (data.permissions !== undefined) {
+      const reviewers = await findBranchRecipientUserIds(
+        organizationId,
+        updated.branch_id ?? branchId,
+        'ROLE_UPDATE',
+      );
+      await notify({
+        type: 'ROLE_PERMISSION_SET_CHANGED',
+        organizationId,
+        branchId: updated.branch_id ?? branchId,
+        entityType: 'Role',
+        entityId: updated.id,
+        recipientUserIds: reviewers.filter((userId) => userId !== actorId),
+        title: 'Role permissions changed',
+        body: `The ${updated.name} permission set was changed. Review the role in Dailio.`,
+        data: {
+          organization_id: organizationId,
+          branch_id: updated.branch_id ?? branchId,
+          entity_id: updated.id,
+        },
+        dedupeKey: `role:${updated.id}:permissions:${updated.updated_at.toISOString()}`,
+      });
+    }
+  } catch {
+    // Notification delivery must not undo a committed role update.
+  }
   return updated;
 }
