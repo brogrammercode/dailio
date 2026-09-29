@@ -7,6 +7,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../branch/models/member_model.dart';
@@ -92,33 +93,16 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
     final canSubmit = !_isLoading && _error == null && _selectedPlanId != null;
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.brandDark,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Dailio',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-        ),
-        leading: IconButton(
-          tooltip: 'Back',
-          onPressed: () => Navigator.maybePop(context),
-          icon: const Icon(Iconsax.arrow_left_2),
-        ),
-        actions: [
-          DailioOverflowMenu<String>(
-            items: const [
-              DailioMenuItem(
-                value: 'refresh',
-                icon: Iconsax.refresh,
-                label: 'Refresh plans',
-              ),
-            ],
-            onSelected: (_) => _loadPlans(),
+      appBar: DailioSimpleAppBar(
+        onBack: () => Navigator.maybePop(context),
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Iconsax.refresh,
+            label: 'Refresh plans',
           ),
-          const SizedBox(width: 8),
         ],
+        onMenuSelected: (_) => _loadPlans(),
       ),
       bottomNavigationBar: canSubmit ? _submitBar() : null,
       body: _isLoading

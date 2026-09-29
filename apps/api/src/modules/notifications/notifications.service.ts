@@ -1,7 +1,8 @@
 import { prisma } from '../../lib/prisma';
 import { NotFoundError } from '../../lib/errors';
+import { cloudinary } from '../../lib/cloudinary';
 
-import { sendEmail, escapeHtml, isEmailConfigured } from './email.service';
+import { type EmailAttachment, sendEmail, escapeHtml, isEmailConfigured } from './email.service';
 import { sendPush } from './push.service';
 
 export type NotificationEvent = {
@@ -83,8 +84,65 @@ function deliveryDedupeKey(event: NotificationEvent, userId: string) {
   return `${event.dedupeKey}:user:${userId}`;
 }
 
-function defaultEmailHtml(event: NotificationEvent) {
-  return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#171717;line-height:1.5"><div style="max-width:600px;margin:0 auto;padding:24px"><div style="font-size:24px;font-weight:700;margin-bottom:24px">Dailio</div><h2>${escapeHtml(event.title)}</h2><p>${escapeHtml(event.body)}</p><p style="color:#666;font-size:13px">This is an operational notification from Dailio.</p></div></body></html>`;
+function defaultEmailHtml(event: NotificationEvent, mediaCid?: string) {
+  const media = mediaCid
+    ? `<div style="margin:20px 0"><img src="cid:${mediaCid}" alt="Related image" style="display:block;width:100%;max-width:560px;height:auto;border-radius:12px" /></div>`
+    : '';
+  return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#171717;line-height:1.5"><div style="max-width:600px;margin:0 auto;padding:24px"><div style="font-size:24px;font-weight:700;margin-bottom:24px">Dailio</div><h2>${escapeHtml(event.title)}</h2><p>${escapeHtml(event.body)}</p>${media}<p style="color:#666;font-size:13px">This is an operational notification from Dailio.</p></div></body></html>`;
+}
+
+function mediaExtension(storageKey: string) {
+  const extension = storageKey.split('.').pop()?.toLowerCase();
+  return extension && /^[a-z0-9]{2,5}$/.test(extension) ? extension : 'jpg';
+}
+
+async function resolveNotificationMedia(event: NotificationEvent) {
+  const storageKey = event.data?.media_storage_key;
+  const organizationId = event.organizationId;
+  if (!storageKey || !organizationId) return null;
+
+  const expectedPrefix = `organizations/${organizationId}/`;
+  if (!storageKey.startsWith(expectedPrefix)) return null;
+  if (event.branchId && !storageKey.includes(`/branches/${event.branchId}/`)) return null;
+
+  try {
+    const extension = mediaExtension(storageKey);
+    const url = cloudinary.utils.private_download_url(storageKey, extension, {
+      resource_type: 'image',
+      type: 'authenticated',
+      expires_at: Math.floor(Date.now() / 1000) + 300,
+      attachment: false,
+    });
+    const response = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+    if (!response.ok) return null;
+    const contentLength = Number(response.headers.get('content-length') ?? 0);
+    if (contentLength > 5 * 1024 * 1024) return null;
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length > 5 * 1024 * 1024) return null;
+    const contentType = response.headers.get('content-type')?.split(';')[0];
+    if (!contentType?.startsWith('image/')) return null;
+    return {
+      attachment: {
+        filename: `dailio-notification.${extension}`,
+        content: bytes,
+        contentType,
+        cid: 'dailio-notification-media',
+      } satisfies EmailAttachment,
+      cid: 'dailio-notification-media',
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function emailContent(event: NotificationEvent) {
+  const media = await resolveNotificationMedia(event);
+  let html = event.emailHtml ?? defaultEmailHtml(event, media?.cid);
+  if (event.emailHtml && media?.cid) {
+    const image = `<div style="margin:20px 0"><img src="cid:${media.cid}" alt="Related image" style="display:block;width:100%;max-width:560px;height:auto;border-radius:12px" /></div>`;
+    html = html.replace('</body>', `${image}</body>`);
+  }
+  return { html, attachments: media ? [media.attachment] : undefined };
 }
 
 function defaultRoute(event: NotificationEvent) {
@@ -99,7 +157,10 @@ function defaultRoute(event: NotificationEvent) {
     return '/home/fees';
   }
   if (event.entityType === 'Announcement' || event.type.startsWith('ANNOUNCEMENT_')) {
-    return '/home/notifications';
+    return '/announcements';
+  }
+  if (event.entityType === 'Feed' || event.type.startsWith('FEED_')) {
+    return '/announcements';
   }
   if (event.entityType === 'LeaveRequest' || event.type.startsWith('LEAVE_')) {
     return '/home/attendance';
@@ -224,12 +285,14 @@ async function deliverNotification(
       continue;
     }
     try {
+      const email = await emailContent(event);
       const result = await timeout(
         sendEmail({
           to: user.email,
           subject: event.emailSubject ?? event.title,
           text: event.emailText ?? event.body,
-          html: event.emailHtml ?? defaultEmailHtml(event),
+          html: email.html,
+          attachments: email.attachments,
         }),
         deliveryTimeoutMs,
       );
@@ -333,30 +396,64 @@ export async function notify(event: NotificationEvent) {
   let created = 0;
   let skipped = 0;
 
+  let notificationEvent = event;
+  if (event.actorUserId) {
+    try {
+      const actor = await prisma.user.findUnique({
+        where: { id: event.actorUserId },
+        select: {
+          name: true,
+          avatar_url: true,
+          members: {
+            where: {
+              organization_id: event.organizationId ?? '',
+              ...(event.branchId ? { branch_id: event.branchId } : {}),
+            },
+            select: { id: true },
+            take: 1,
+          },
+        },
+      });
+      if (actor) {
+        notificationEvent = {
+          ...event,
+          data: {
+            ...(event.data ?? {}),
+            actor_name: actor.name,
+            ...(actor.avatar_url ? { actor_avatar_url: actor.avatar_url } : {}),
+            ...(actor.members?.[0]?.id ? { actor_member_id: actor.members[0].id } : {}),
+          },
+        };
+      }
+    } catch {
+      // Actor presentation is best-effort and must not block notification delivery.
+    }
+  }
+
   for (const user of users) {
-    const dedupeKey = deliveryDedupeKey(event, user.id);
+    const dedupeKey = deliveryDedupeKey(notificationEvent, user.id);
     const notification = await prisma.notification.upsert({
       where: { dedupe_key: dedupeKey },
       create: {
         user_id: user.id,
-        organization_id: event.organizationId,
-        branch_id: event.branchId,
-        event_type: event.type,
-        entity_type: event.entityType,
-        entity_id: event.entityId,
-        title: event.title,
-        body: event.body,
+        organization_id: notificationEvent.organizationId,
+        branch_id: notificationEvent.branchId,
+        event_type: notificationEvent.type,
+        entity_type: notificationEvent.entityType,
+        entity_id: notificationEvent.entityId,
+        title: notificationEvent.title,
+        body: notificationEvent.body,
         channel: 'IN_APP',
         status: 'SENT',
         sent_at: new Date(),
         dedupe_key: dedupeKey,
-        data: event.data,
+        data: notificationEvent.data,
       },
       update: {},
     });
 
     created += 1;
-    await deliverNotification(event, notification.id, user);
+    await deliverNotification(notificationEvent, notification.id, user);
   }
 
   skipped = uniqueRecipientIds.length - users.length;
@@ -395,6 +492,12 @@ export async function listNotifications(
     data,
     next_cursor: hasMore && data.length > 0 ? data[data.length - 1].id : null,
   };
+}
+
+export async function countUnreadNotifications(userId: string) {
+  return prisma.notification.count({
+    where: { user_id: userId, read_at: null },
+  });
 }
 
 export async function markNotificationRead(userId: string, notificationId: string) {

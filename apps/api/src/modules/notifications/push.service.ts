@@ -26,17 +26,28 @@ function stringifyData(data: Record<string, unknown>): Record<string, string> {
 
 export async function sendPush(input: PushNotificationInput): Promise<PushSendResult | null> {
   const messaging = getFirebaseMessaging();
-  if (!messaging) return null;
+  if (!messaging) {
+    logger.warn('FCM push skipped: Firebase Admin is not configured', {
+      user_id: input.userId,
+    });
+    return null;
+  }
 
   try {
     const tokens = [...new Set(input.tokens ?? (input.token ? [input.token] : []))];
-    if (tokens.length === 0) return null;
+    if (tokens.length === 0) {
+      logger.warn('FCM push skipped: recipient has no registered device token', {
+        user_id: input.userId,
+      });
+      return null;
+    }
     if (tokens.length === 1) {
       const messageId = await messaging.send({
         token: tokens[0],
         notification: { title: input.title, body: input.body },
         data: stringifyData(input.data),
       });
+      logger.info('FCM push sent', { user_id: input.userId, token_count: 1 });
       return { messageId };
     }
 
@@ -68,11 +79,19 @@ export async function sendPush(input: PushNotificationInput): Promise<PushSendRe
       const firstError = response.responses.find((result) => result.error)?.error;
       throw firstError ?? new Error('FCM_MULTICAST_FAILED');
     }
+    logger.info('FCM push sent', {
+      user_id: input.userId,
+      token_count: response.successCount,
+    });
     return {
       messageId: `multicast:${response.successCount}/${response.responses.length}`,
     };
   } catch (error) {
     const code = (error as { code?: string }).code;
+    logger.warn('FCM push failed', {
+      user_id: input.userId,
+      code: code ?? 'FCM_SEND_FAILED',
+    });
     if (
       code === 'messaging/registration-token-not-registered' ||
       code === 'messaging/invalid-registration-token'

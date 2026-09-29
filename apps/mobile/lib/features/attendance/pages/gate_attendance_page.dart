@@ -10,6 +10,7 @@ import '../attendance_error.dart';
 import '../attendance_ui.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 import 'attendance_detail_page.dart';
 
 List<String> gateAttendanceRequirementLabels(
@@ -181,36 +182,17 @@ class _GateAttendancePageState extends State<GateAttendancePage> {
     final shift = gateAttendanceShift(_policy);
     return Scaffold(
       backgroundColor: AttendanceUi.canvas,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: AttendanceUi.text,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Dailio',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Text('Gate attendance',
-                style: TextStyle(fontSize: 11, color: AttendanceUi.muted)),
-          ],
-        ),
-        actions: [
-          DailioOverflowMenu<String>(
-            items: const [
-              DailioMenuItem(
-                value: 'cancel',
-                icon: Icons.close,
-                label: 'Cancel',
-              ),
-            ],
-            onSelected: (value) {
-              if (value == 'cancel') Navigator.of(context).pop();
-            },
+      appBar: DailioSimpleAppBar(
+        menuItems: const [
+          DailioMenuItem(
+            value: 'cancel',
+            icon: Icons.close,
+            label: 'Cancel',
           ),
-          const SizedBox(width: 8),
         ],
+        onMenuSelected: (value) {
+          if (value == 'cancel') Navigator.of(context).pop();
+        },
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

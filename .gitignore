@@ -59,6 +59,10 @@ Thumbs.db
 !apps/api/prisma/migrations/20260926200000_admin_attendance_export_permission/migration.sql
 !apps/api/prisma/migrations/20260926210000_member_reporting_hierarchy/migration.sql
 !apps/api/prisma/migrations/20260926220000_member_role_assignments/migration.sql
+!apps/api/prisma/migrations/20260929150000_announcement_social_content/migration.sql
+!apps/api/prisma/migrations/20260929170000_feed_module/migration.sql
+!apps/api/prisma/migrations/20260929190000_feed_post_rich_content/migration.sql
+!apps/api/prisma/migrations/20260929190000_notification_actor/migration.sql
 
 # Docker volumes
 .postgres-data/

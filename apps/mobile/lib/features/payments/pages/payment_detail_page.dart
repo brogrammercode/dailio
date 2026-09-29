@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/dailio_receipt_sheet.dart';
 import '../../../core/widgets/shimmer_loader.dart';
@@ -77,28 +78,15 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF171717),
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Dailio',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-        ),
-        actions: [
-          DailioOverflowMenu<String>(
-            items: const [
-              DailioMenuItem(
-                value: 'refresh',
-                icon: Iconsax.refresh,
-                label: 'Refresh payment',
-              ),
-            ],
-            onSelected: (_) => _load(),
+      appBar: DailioSimpleAppBar(
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Iconsax.refresh,
+            label: 'Refresh payment',
           ),
-          const SizedBox(width: 8),
         ],
+        onMenuSelected: (_) => _load(),
       ),
       body: _loading
           ? Padding(

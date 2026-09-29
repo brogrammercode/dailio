@@ -1,5 +1,8 @@
 import { prisma } from '../../lib/prisma';
-import { expireAnnouncements, publishDueAnnouncements } from '../announcements/announcements.service';
+import {
+  expireAnnouncements,
+  publishDueAnnouncements,
+} from '../announcements/announcements.service';
 
 import {
   findBranchRecipientUserIds,

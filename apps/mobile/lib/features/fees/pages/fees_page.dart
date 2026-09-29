@@ -11,6 +11,7 @@ import '../../../core/widgets/dailio_compact_tile.dart';
 import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_tab_strip.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/fees_repository.dart';
@@ -96,26 +97,15 @@ class _FeesPageState extends State<FeesPage> {
     final canReadAll = preferences.canReadAllFees;
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.brandDark,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('Dailio',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        actions: [
-          DailioOverflowMenu<String>(
-            items: const [
-              DailioMenuItem(
-                value: 'refresh',
-                icon: Iconsax.refresh,
-                label: 'Refresh',
-              ),
-            ],
-            onSelected: (_) => _load(),
+      appBar: DailioSimpleAppBar(
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Iconsax.refresh,
+            label: 'Refresh',
           ),
-          const SizedBox(width: 8),
         ],
+        onMenuSelected: (_) => _load(),
       ),
       body: Column(
         children: [

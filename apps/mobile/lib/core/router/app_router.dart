@@ -30,6 +30,8 @@ import '../../features/fees/pages/buy_subscription_page.dart';
 
 import '../../features/profile/pages/profile_page.dart';
 import '../../features/notifications/pages/notifications_page.dart';
+import '../../features/announcements/pages/announcements_page.dart';
+import '../../features/feeds/pages/feed_pages.dart';
 import '../widgets/app_shell.dart';
 import '../storage/preferences_storage.dart';
 import 'route_names.dart';
@@ -177,6 +179,50 @@ GoRouter buildRouter(
         path: AppRoutes.notifications,
         builder: (_, __) => const NotificationsPage(),
       ),
+      GoRoute(
+        path: AppRoutes.announcements,
+        builder: (_, __) => const AnnouncementsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.announcementCreate,
+        builder: (_, __) => const AnnouncementComposerPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.announcementEdit,
+        builder: (_, state) => AnnouncementComposerPage(
+          announcementId: state.pathParameters['announcementId']!,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.announcementDetail,
+        builder: (_, state) => AnnouncementDetailPage(
+          announcementId: state.pathParameters['announcementId']!,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.feedCreate,
+        builder: (_, __) => const FeedCreatePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.feedPostCreate,
+        builder: (_, state) => FeedPostComposerPage(
+          feedId: state.pathParameters['feedId']!,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.feedPostEdit,
+        builder: (_, state) => FeedPostComposerPage(
+          feedId: state.pathParameters['feedId']!,
+          postId: state.pathParameters['postId']!,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.feedPostDetail,
+        builder: (_, state) => FeedPostDetailPage(
+          feedId: state.pathParameters['feedId']!,
+          postId: state.pathParameters['postId']!,
+        ),
+      ),
     ],
   );
 }
@@ -199,6 +245,22 @@ String? _guardConfigurationRoute(
   if (path.startsWith('/home/branch/configure-member/') &&
       !any(['MEMBER_READ_ALL', 'MEMBER_UPDATE'])) {
     return AppRoutes.home;
+  }
+  if (path == AppRoutes.feedCreate &&
+      !preferences.hasPermission('FEED_CREATE')) {
+    return AppRoutes.announcements;
+  }
+  if (path.endsWith('/posts/new') && !preferences.hasPermission('FEED_POST')) {
+    return AppRoutes.announcements;
+  }
+  if (path.contains('/posts/') &&
+      path.endsWith('/edit') &&
+      !preferences.hasPermission('FEED_POST')) {
+    return AppRoutes.announcements;
+  }
+  if (path.contains('/announcements/feeds/') &&
+      !preferences.hasPermission('FEED_READ')) {
+    return AppRoutes.announcements;
   }
 
   final allowed = switch (path) {

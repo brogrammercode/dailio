@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../firebase_options.dart';
 import '../router/route_names.dart';
+import '../widgets/dailio_notification_button.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -59,12 +60,15 @@ class NotificationRuntime {
               AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(channel);
 
-      await _messaging.requestPermission(
+      final settings = await _messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
         provisional: false,
       );
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        debugPrint('[Dailio.NOTIFICATIONS] notification permission denied');
+      }
       await _messaging.setForegroundNotificationPresentationOptions(
         alert: true,
         badge: true,
@@ -74,7 +78,11 @@ class NotificationRuntime {
       _messaging.onTokenRefresh.listen((token) {
         _latestToken = token;
         final sync = _tokenSync;
-        if (sync != null) sync(token).catchError((_) {});
+        if (sync != null) {
+          sync(token).catchError((error) {
+            debugPrint('[Dailio.NOTIFICATIONS] token sync failed: $error');
+          });
+        }
       });
       FirebaseMessaging.onMessage.listen(_showForegroundNotification);
       FirebaseMessaging.onMessageOpenedApp.listen((message) {
@@ -99,11 +107,16 @@ class NotificationRuntime {
   static void setTokenSync(Future<void> Function(String token) sync) {
     _tokenSync = sync;
     final token = _latestToken;
-    if (token != null) sync(token).catchError((_) {});
+    if (token != null) {
+      sync(token).catchError((error) {
+        debugPrint('[Dailio.NOTIFICATIONS] token sync failed: $error');
+      });
+    }
   }
 
   static void clearTokenSync() {
     _tokenSync = null;
+    NotificationBadgeController.clear();
   }
 
   static void setInboxRefresh(Future<void> Function()? refresh) {
@@ -114,6 +127,10 @@ class NotificationRuntime {
     if (_latestToken != null) return _latestToken;
     try {
       _latestToken = await _messaging.getToken();
+      if (_latestToken != null) {
+        debugPrint(
+            '[Dailio.NOTIFICATIONS] FCM token available (${_latestToken!.length} chars)');
+      }
     } catch (_) {
       return null;
     }
@@ -121,6 +138,7 @@ class NotificationRuntime {
   }
 
   static Future<void> _showForegroundNotification(RemoteMessage message) async {
+    NotificationBadgeController.increment();
     await _inboxRefresh?.call();
     final notification = message.notification;
     if (notification == null) return;
@@ -160,6 +178,7 @@ class NotificationRuntime {
     final route = data['route']?.toString();
     const allowedRoutes = <String>{
       AppRoutes.notifications,
+      AppRoutes.announcements,
       AppRoutes.home,
       AppRoutes.attendance,
       AppRoutes.fees,
@@ -170,10 +189,12 @@ class NotificationRuntime {
     };
     final feesPrefix = '${AppRoutes.fees}/';
     final attendancePrefix = '${AppRoutes.attendance}/';
+    final announcementsPrefix = '${AppRoutes.announcements}/';
     final isAllowed = route != null &&
         (allowedRoutes.contains(route) ||
             route.startsWith(feesPrefix) ||
             route.startsWith(attendancePrefix) ||
+            route.startsWith(announcementsPrefix) ||
             route.startsWith('${AppRoutes.members}/') ||
             route.startsWith(AppRoutes.memberDetail.split(':').first));
     final safeRoute = isAllowed ? route : AppRoutes.notifications;

@@ -3,6 +3,7 @@ import 'package:iconsax/iconsax.dart';
 
 import '../theme/app_colors.dart';
 import 'dailio_overflow_menu.dart';
+import 'dailio_notification_button.dart';
 
 /// The standard top bar for secondary Dailio pages.
 ///
@@ -14,12 +15,14 @@ class DailioSimpleAppBar extends StatelessWidget
   final VoidCallback? onBack;
   final List<DailioMenuItem<String>> menuItems;
   final ValueChanged<String>? onMenuSelected;
+  final PreferredSizeWidget? bottom;
 
   const DailioSimpleAppBar({
     super.key,
     this.onBack,
     this.menuItems = const [],
     this.onMenuSelected,
+    this.bottom,
   });
 
   @override
@@ -41,6 +44,7 @@ class DailioSimpleAppBar extends StatelessWidget
         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
       ),
       actions: [
+        const DailioNotificationButton(),
         if (menuItems.isNotEmpty)
           DailioOverflowMenu<String>(
             items: menuItems,
@@ -48,9 +52,12 @@ class DailioSimpleAppBar extends StatelessWidget
           ),
         const SizedBox(width: 8),
       ],
+      bottom: bottom,
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => Size.fromHeight(
+        kToolbarHeight + (bottom?.preferredSize.height ?? 0),
+      );
 }

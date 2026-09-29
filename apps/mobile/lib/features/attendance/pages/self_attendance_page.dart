@@ -12,6 +12,7 @@ import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/utils/branch_time.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_compact_tile.dart';
 import '../../../core/widgets/dailio_tab_strip.dart';
 import '../../../core/widgets/shimmer_loader.dart';
@@ -267,34 +268,17 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AttendanceUi.canvas,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: AttendanceUi.text,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Dailio',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        actions: [
-          DailioOverflowMenu<String>(
-            items: const [
-              DailioMenuItem(
-                value: 'refresh',
-                icon: Icons.refresh,
-                label: 'Refresh',
-              ),
-            ],
-            onSelected: (value) {
-              if (value == 'refresh') _load();
-            },
+      appBar: DailioSimpleAppBar(
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Icons.refresh,
+            label: 'Refresh',
           ),
-          const SizedBox(width: 8),
         ],
+        onMenuSelected: (value) {
+          if (value == 'refresh') _load();
+        },
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(44),
           child: AnimatedBuilder(

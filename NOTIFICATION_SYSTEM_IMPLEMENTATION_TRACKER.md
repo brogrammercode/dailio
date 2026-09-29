@@ -301,7 +301,27 @@ The supplied Gmail/Nodemailer reference is a suitable MVP adapter. It should be 
 - `[x]` Support organization-wide, branch-specific, selected-role, and selected-member announcement audiences.
 - `[x]` Support scheduled announcement publication through the daily coordinator.
 - `[x]` Respect draft, scheduled, published, expired, and cancelled announcement lifecycle state; cancelled announcements are never published.
+- `[x]` Add versioned rich-content JSON blocks for paragraphs, headings, quotes, dividers, images, slides, and text marks.
+- `[x]` Add tenant-scoped announcement reactions with one reaction per user and idempotent toggle behavior.
+- `[x]` Add tenant-scoped threaded comments, replies, soft deletion, and idempotency-key support.
+- `[x]` Add server-side announcement access checks for feed, detail, reactions, comments, and media URLs.
+- `[x]` Add authenticated Cloudinary upload-signature and short-lived media-download URL endpoints; only storage keys are persisted in announcement content.
+- `[x]` Add mobile announcement feed, detail/comments view, reaction controls, lightweight rich composer, image/slide attachment flow, cache/stale refresh, empty/error/loading states, and permission-aware publishing action.
+- `[x]` Add Announcements as the first shell destination and allow notification deep links to open it.
 - `[x]` Sanitize dynamic notification values and use a trusted template system for email.
+
+### L.1 Private Feeds and announcement-tab integration
+
+- `[x]` Add tenant/branch-scoped `Feed`, `FeedParticipant`, `FeedPost`, `FeedPostRead`, `FeedReaction`, `FeedComment`, and `FeedReport` models with migration `20260929170000_feed_module`.
+- `[x]` Add feed permissions for read, create, update, disband, participant management, post, reaction, comment, report, and moderation; seed existing OWNER/ADMIN/MEMBER roles through the migration.
+- `[x]` Enforce participant-only visibility and active branch membership on every feed read/mutation; managers can moderate within the active branch only.
+- `[x]` Enforce configurable participant posting, server-side post expiry, idempotent post/comment commands, one reaction/read receipt per member, threaded replies, and report-threshold hiding without auto-disbanding the feed.
+- `[x]` Add create/update/disband/participant, post/read/reaction/comment/reply/report API endpoints with audit records and authorization middleware.
+- `[x]` Add feed notifications for creation, participant addition, posts, reactions, comments/replies, reports, and disbanding through the central in-app/push/email service.
+- `[x]` Add Announcement internal tabs (`Announcement`, feed names, permission-aware `+`) without changing the five-item bottom navigation.
+- `[x]` Add cached feed list and post timelines using `JsonCacheStore`; successful mutations clear the affected JSON cache and the next view refreshes server data in the background.
+- `[x]` Add compact feed timeline, create-feed, create-post, post-detail, reaction, comment/reply, read, and report mobile UI with loading/empty/error states.
+- `[x]` No new scheduled job is required for `post_timeout`; expiry is evaluated at read time, avoiding a cleanup worker and preserving the Vercel-simple architecture.
 
 ### M. Mobile inbox and notification UX
 
@@ -311,6 +331,8 @@ The supplied Gmail/Nodemailer reference is a suitable MVP adapter. It should be 
 - `[x]` Configure iOS APNs runtime handling and foreground presentation in Flutter; `[manual]` Xcode capability, signing, and APNs provider key remain a device/release action.
 - `[x]` Implement the navigation-service pattern using Dailio route keys and an allowlist.
 - `[x]` Refresh the in-app inbox after foreground delivery.
+- `[x]` Add reusable app-bar notification icon with unread badge and route access.
+- `[x]` Mark all unread notifications read automatically after the inbox first loads successfully.
 - `[x]` Render unread, read, loading, empty, error, cached/stale, and offline-safe states.
 - `[x]` Open an allowlisted secured detail route; the destination fetches current data after a tap.
 - `[x]` Never trust notification payload data as authorization.
@@ -351,7 +373,18 @@ Vercel Cron invokes a Vercel Function through an HTTP GET request and uses UTC s
 | Branch/manager assignment changed       | Affected user                                 |     Yes |      Yes |     Optional | `[x]` branch reassignment is immutable; manager/shift changes covered |
 | Critical permission change              | Affected user/owner                           |     Yes |      Yes |     Optional | `[x]`                                                     |
 | Announcement published                  | Target audience                               |     Yes |      Yes | Optional/Yes | `[x]` central service and audience resolver                  |
+| Announcement reacted                    | Announcement author                           |     Yes |      Yes | Optional     | `[x]` deduplicated central service event                     |
+| Announcement commented                  | Announcement author                           |     Yes |      Yes | Optional     | `[x]` deduplicated central service event                     |
+| Announcement comment replied            | Parent comment author                         |     Yes |      Yes | Optional     | `[x]` deduplicated central service event                     |
 | Announcement scheduled                  | Publisher/target audience when applicable     |     Yes | Optional |     Optional | `[x]` daily coordinator publishes due records                 |
+| Feed created                            | Active feed participants                       |     Yes |      Yes | Optional     | `[x]` participant snapshot resolved server-side               |
+| Feed participant added                  | Added active member                            |     Yes |      Yes | Optional     | `[x]` branch-scoped participant mutation                       |
+| Feed post published                     | Other active feed participants                |     Yes |      Yes | Optional     | `[x]` excludes author and never trusts client recipients       |
+| Feed post reacted                       | Post author                                    |     Yes |      Yes | Optional     | `[x]` one reaction per member/post                            |
+| Feed post commented                     | Post author                                    |     Yes |      Yes | Optional     | `[x]` threaded comment event                                  |
+| Feed comment replied                    | Parent comment author                          |     Yes |      Yes | Optional     | `[x]` parent is validated against the same post               |
+| Feed post reported                      | Feed creator/moderator                         |     Yes |      Yes | Optional     | `[x]` threshold hides post; feed is not disbanded              |
+| Feed disbanded                          | Active feed participants                       |     Yes |      Yes | Optional     | `[x]` participant-scoped lifecycle event                       |
 | Subscription assigned/activated         | Member                                        |     Yes |      Yes |          Yes | `[x]`                                                     |
 | Subscription expiring                   | Member                                        |     Yes |      Yes |          Yes | `[x]`                                                     |
 | Subscription expired                    | Member and authorized staff                   |     Yes |      Yes |          Yes | `[x]`                                                     |
@@ -716,6 +749,28 @@ The notification system is production-ready only when all of the following are t
 
 This status is intentionally conservative: repository implementation is complete for all current-product event producers, while provider deliverability, Vercel deployment, iOS/APNs signing, and physical-device verification remain external release gates.
 
+### 29 September 2026 — announcement social/feed pass
+
+- `[x]` Added `AnnouncementReactionType`, rich `Announcement.content`, `AnnouncementReaction`, and `AnnouncementComment` models.
+- `[x]` Added migration `20260929150000_announcement_social_content` and applied it to the configured PostgreSQL database.
+- `[x]` Added scoped announcement detail, reaction, comment/reply, soft-delete, media-signature, and media-download API endpoints.
+- `[x]` Added reaction/comment notification events with durable in-app, push, and email delivery through the existing central service.
+- `[x]` Added reusable mobile notification badge button, app-bar wiring, notification deep-link allowlist, automatic inbox read-all behavior, and five-destination shell with Announcements first.
+- `[x]` Added cached announcement feed, Instagram-style compact feed rows, detail/comments screen, and permission-aware composer with text marks, images, and slides.
+- `[x]` Prisma schema validation, client generation, API type-check, API lint, and Flutter analysis passed after the pass; remaining analyzer output is style-only informational brace guidance.
+- `[x]` Final verification: API production build and full API suite passed (35 test files / 117 tests); full Flutter suite passed (22 tests).
+- `[manual]` Real Cloudinary media upload, FCM/email delivery, and physical device rendering remain external acceptance checks, not unimplemented repository tasks.
+
+### 29 September 2026 — private Feed module pass
+
+- `[x]` Added the permanent Feed migration `20260929170000_feed_module`, generated Prisma client, deployed it to the configured PostgreSQL database, and confirmed migration status is current.
+- `[x]` Added branch-scoped Feed APIs for participant management, disbanding, posts, read receipts, reactions, threaded comments/replies, and reports.
+- `[x]` Added server enforcement for participant visibility, configurable posting, post expiry, report-threshold hiding, permission checks, idempotency keys, audit records, and notification recipient resolution.
+- `[x]` Added Feed notification events and stable per-event deduplication through the existing three-channel service.
+- `[x]` Added Announcement internal tabs, cached feed/post read models, compact feed composer/timeline/detail screens, and mutation cache invalidation.
+- `[x]` Added Feed schema tests; final API suite passed 36 test files / 120 tests and the mobile suite passed 22 tests.
+- `[manual]` Physical-device rendering, FCM/email provider delivery, and multi-user cross-tenant staging acceptance remain release checks; repository implementation and database migration are complete.
+
 ## 16. Progress log
 
 ### 29 September 2026 — foundation implementation
@@ -782,4 +837,14 @@ This status is intentionally conservative: repository implementation is complete
 - `[x]` Added leave and announcement schema tests plus protected Cron controller tests; full API suite now passes with 35 test files and 115 tests.
 - `[x]` Re-ran API type-check, lint, Prisma validation, production build, and the full Flutter analysis/test suite successfully.
 - `[manual]` The only non-repository actions are entering production provider credentials, DNS records, Vercel deployment values, and testing real Android/iOS/email delivery.
+
+### 29 September 2026 - media email, monthly report, and profile actions pass
+
+- `[x]` Extended the reusable Nodemailer adapter with inline attachments and added bounded announcement-image delivery from the scoped Cloudinary media key. If media cannot be fetched, the notification safely falls back to text/HTML without exposing a private URL.
+- `[x]` Added `monthly-reports.service.ts`: branch-scoped previous-month attendance and subscription PDF generation with Dailio/org branding, owner-recipient resolution, and PDF email attachment.
+- `[x]` Added the idempotent `MONTHLY_MEMBER_REPORT` job to the existing database-backed daily coordinator. It is claimed by the previous calendar month, so a missed first-day app open is recovered on the next daily run and concurrent app opens cannot duplicate the report.
+- `[x]` Replaced the shared member avatar sheet with a dark profile surface: zoomable DP, WhatsApp, share profile, copy link, QR, call, and permission-aware info actions.
+- `[x]` Added the shared profile surface to announcement actors/comments, feed post/comment authors, notification actors, and retained existing attendance, fees, payments, admissions, and directory integrations.
+- `[x]` API type-check, targeted lint, notification/job tests, and Flutter analysis passed after this pass.
+- `[manual]` Real SMTP attachment delivery, Cloudinary media retrieval, WhatsApp installation/phone launch, PDF visual rendering, and physical-device profile zoom remain release acceptance checks.
 

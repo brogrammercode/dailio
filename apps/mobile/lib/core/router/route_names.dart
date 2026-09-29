@@ -43,4 +43,13 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String notifications = '/notifications';
   static const String announcements = '/announcements';
+  static const String announcementDetail = '/announcements/:announcementId';
+  static const String announcementCreate = '/announcements/new';
+  static const String announcementEdit = '/announcements/:announcementId/edit';
+  static const String feedCreate = '/announcements/feeds/new';
+  static const String feedPostCreate = '/announcements/feeds/:feedId/posts/new';
+  static const String feedPostEdit =
+      '/announcements/feeds/:feedId/posts/:postId/edit';
+  static const String feedPostDetail =
+      '/announcements/feeds/:feedId/posts/:postId';
 }

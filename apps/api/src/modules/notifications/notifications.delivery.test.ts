@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const prismaMock = vi.hoisted(() => ({
-  user: { findMany: vi.fn() },
+  user: { findMany: vi.fn(), findUnique: vi.fn() },
   notification: { upsert: vi.fn() },
   notificationDelivery: { upsert: vi.fn(), update: vi.fn() },
 }));
@@ -41,6 +41,7 @@ describe('central notification delivery', () => {
     sendPushMock.mockResolvedValue({ messageId: 'push-message-a' });
     sendEmailMock.mockResolvedValue({ messageId: 'email-message-a' });
     emailConfiguredMock.mockReturnValue(true);
+    prismaMock.user.findUnique.mockResolvedValue(null);
   });
 
   it('creates one in-app record and one delivery per enabled channel', async () => {
@@ -92,6 +93,35 @@ describe('central notification delivery', () => {
     expect(prismaMock.notificationDelivery.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'SKIPPED' }) }),
     );
+  });
+
+  it('embeds safe actor display data for the in-app notification', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      name: 'Harsh Sharma',
+      avatar_url: 'https://example.com/avatar.png',
+    });
+
+    await notify({
+      type: 'ANNOUNCEMENT_COMMENTED',
+      actorUserId: 'actor-a',
+      recipientUserIds: ['user-a'],
+      title: 'New comment',
+      body: 'Someone commented on your announcement.',
+      dedupeKey: 'announcement-a:comment:actor-a',
+    });
+
+    expect(prismaMock.notification.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          data: {
+            actor_name: 'Harsh Sharma',
+            actor_avatar_url: 'https://example.com/avatar.png',
+          },
+        }),
+      }),
+    );
+    const createData = prismaMock.notification.upsert.mock.calls[0][0].create;
+    expect(createData).not.toHaveProperty('actor_id');
   });
 
   it('honours a user channel preference without suppressing the inbox record', async () => {

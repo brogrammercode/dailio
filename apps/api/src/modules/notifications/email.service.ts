@@ -5,6 +5,8 @@ import { logger } from '../../config/logger';
 
 let transporter: Transporter | null = null;
 
+export type EmailAttachment = NonNullable<SendMailOptions['attachments']>[number];
+
 function getTransporter(): Transporter | null {
   if (!env.MAIL_USER || !env.GOOGLE_APP_PASSWORD) return null;
   if (!transporter) {
@@ -40,6 +42,7 @@ export async function sendEmail(input: {
   subject: string;
   text: string;
   html: string;
+  attachments?: EmailAttachment[];
 }): Promise<{ messageId: string } | null> {
   const mailer = getTransporter();
   if (!mailer || !env.MAIL_USER) return null;
@@ -50,6 +53,7 @@ export async function sendEmail(input: {
     subject: input.subject,
     text: input.text,
     html: input.html,
+    ...(input.attachments?.length ? { attachments: input.attachments } : {}),
   };
   const result = await mailer.sendMail(options);
   logger.debug('Notification email sent', { message_id: result.messageId });

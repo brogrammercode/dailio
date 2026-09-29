@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:injectable/injectable.dart';
 
@@ -12,9 +13,25 @@ class AuthCubit extends Cubit<AuthState> {
   final AuthRepository _repository;
 
   AuthCubit(this._repository) : super(const AuthInitial()) {
-    NotificationRuntime.setTokenSync(
-      (token) => _repository.updateProfile(fcmToken: token).then((_) {}),
-    );
+    NotificationRuntime.setTokenSync(_syncFcmToken);
+  }
+
+  Future<void> _syncFcmToken(String token) async {
+    Object? lastError;
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await _repository.updateProfile(fcmToken: token);
+        debugPrint('[Dailio.NOTIFICATIONS] FCM token synced');
+        return;
+      } catch (error) {
+        lastError = error;
+        if (attempt < 3) {
+          await Future<void>.delayed(Duration(milliseconds: 500 * attempt));
+        }
+      }
+    }
+    debugPrint('[Dailio.NOTIFICATIONS] FCM token sync failed: $lastError');
+    throw lastError ?? StateError('FCM token sync failed');
   }
 
   Future<void> checkSession() async {
@@ -22,6 +39,15 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       final user = await _repository.getMe();
       if (user != null && user.isActive) {
+        // A restored session does not go through Google sign-in. Re-register
+        // the current device token here so push delivery works after app
+        // restart, token rotation, or a reinstall with a restored session.
+        try {
+          final fcmToken = await NotificationRuntime.getToken();
+          if (fcmToken != null) await _syncFcmToken(fcmToken);
+        } catch (_) {
+          // Push registration is best effort and must not block app startup.
+        }
         emit(AuthAuthenticated(user));
       } else {
         emit(const AuthUnauthenticated());
@@ -63,7 +89,7 @@ class AuthCubit extends Cubit<AuthState> {
       try {
         final fcmToken = await NotificationRuntime.getToken();
         if (fcmToken != null) {
-          await _repository.updateProfile(fcmToken: fcmToken);
+          await _syncFcmToken(fcmToken);
         }
       } catch (_) {
         // FCM might not be configured, ignore error

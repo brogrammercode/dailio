@@ -139,6 +139,35 @@ enum AnnouncementAudience {
   SELECTED_MEMBERS
 }
 
+enum AnnouncementReactionType {
+  LIKE
+  LOVE
+  CELEBRATE
+  LAUGH
+  SAD
+  ANGRY
+}
+
+enum FeedReactionType {
+  LIKE
+  LOVE
+  CELEBRATE
+  LAUGH
+  SAD
+  ANGRY
+}
+
+enum FeedPostStatus {
+  ACTIVE
+  HIDDEN
+}
+
+enum FeedReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
 enum NotificationChannel {
   IN_APP
   PUSH
@@ -215,13 +244,19 @@ model User {
   created_at              DateTime   @default(now())
   updated_at              DateTime   @updatedAt
 
-  members                 Member[]
-  audit_logs              AuditLog[]             @relation("AuditActor")
-  notifications           Notification[]
-  notification_deliveries NotificationDelivery[]
-  device_tokens           UserDeviceToken[]
+  members                  Member[]
+  audit_logs               AuditLog[]               @relation("AuditActor")
+  notifications            Notification[]
+  notification_deliveries  NotificationDelivery[]
+  device_tokens            UserDeviceToken[]
   notification_preferences NotificationPreference[]
-  joinRequests            JoinRequest[]
+  announcements_created    Announcement[]           @relation("AnnouncementActor")
+  announcement_reactions   AnnouncementReaction[]
+  announcement_comments    AnnouncementComment[]
+  feeds_created            Feed[]                   @relation("FeedCreator")
+  feed_participants_added  FeedParticipant[]        @relation("FeedParticipantAdder")
+  feed_reports_reviewed    FeedReport[]             @relation("FeedReportReviewer")
+  joinRequests             JoinRequest[]
 
   @@map("users")
 }
@@ -262,6 +297,12 @@ model Member {
   join_requests           JoinRequest[]
   leave_requests          LeaveRequest[]
   announcement_recipients AnnouncementRecipient[]
+  feed_participations     FeedParticipant[]
+  feed_posts              FeedPost[]
+  feed_post_reads         FeedPostRead[]
+  feed_reactions          FeedReaction[]
+  feed_comments           FeedComment[]
+  feed_reports            FeedReport[]
 
   @@unique([organization_id, branch_id, user_id])
   @@index([organization_id, branch_id])
@@ -291,16 +332,23 @@ model Organization {
   archived_at DateTime?
   archived_by String?
 
-  branches             Branch[]
-  organization_members Member[]
-  roles                Role[]
-  plans                Plan[]
-  feature_flags        FeatureFlag[]
-  audit_logs           AuditLog[]
-  announcements        Announcement[]
-  salaryStructures     SalaryStructure[]
-  payment_requests     PaymentRequest[]
-  invite_tokens        InviteToken[]
+  branches               Branch[]
+  organization_members   Member[]
+  roles                  Role[]
+  plans                  Plan[]
+  feature_flags          FeatureFlag[]
+  audit_logs             AuditLog[]
+  announcements          Announcement[]
+  announcement_reactions AnnouncementReaction[]
+  announcement_comments  AnnouncementComment[]
+  feeds                  Feed[]
+  feed_reactions         FeedReaction[]
+  feed_comments          FeedComment[]
+  feed_posts             FeedPost[]
+  feed_reports           FeedReport[]
+  salaryStructures       SalaryStructure[]
+  payment_requests       PaymentRequest[]
+  invite_tokens          InviteToken[]
 
   @@map("organizations")
 }
@@ -328,23 +376,30 @@ model Branch {
 
   organization Organization @relation(fields: [organization_id], references: [id])
 
-  join_requests       JoinRequest[]
-  attendance_policies AttendancePolicy[]
-  attendance_sessions AttendanceSession[]
-  shifts              Shift[]
-  leave_requests      LeaveRequest[]
-  holidays            Holiday[]
-  subscriptions       Subscription[]
-  ledger_entries      LedgerEntry[]
-  payment_attempts    PaymentAttempt[]
-  reminders           Reminder[]
-  announcements       Announcement[]
-  members             Member[]
-  plans               Plan[]
-  salaryStructures    SalaryStructure[]
-  payment_requests    PaymentRequest[]
-  invite_tokens       InviteToken[]
-  notifications       Notification[]
+  join_requests          JoinRequest[]
+  attendance_policies    AttendancePolicy[]
+  attendance_sessions    AttendanceSession[]
+  shifts                 Shift[]
+  leave_requests         LeaveRequest[]
+  holidays               Holiday[]
+  subscriptions          Subscription[]
+  ledger_entries         LedgerEntry[]
+  payment_attempts       PaymentAttempt[]
+  reminders              Reminder[]
+  announcements          Announcement[]
+  announcement_reactions AnnouncementReaction[]
+  announcement_comments  AnnouncementComment[]
+  feeds                  Feed[]
+  feed_reactions         FeedReaction[]
+  feed_comments          FeedComment[]
+  feed_posts             FeedPost[]
+  feed_reports           FeedReport[]
+  members                Member[]
+  plans                  Plan[]
+  salaryStructures       SalaryStructure[]
+  payment_requests       PaymentRequest[]
+  invite_tokens          InviteToken[]
+  notifications          Notification[]
 
   @@index([organization_id])
   @@map("branches")
@@ -604,7 +659,7 @@ model LeaveRequest {
   reviewed_by     String?
   reviewed_at     DateTime?
   review_note     String?
-  idempotency_key String?             @unique
+  idempotency_key String?            @unique
   created_at      DateTime           @default(now())
   updated_at      DateTime           @updatedAt
 
@@ -899,6 +954,7 @@ model Announcement {
   branch_id       String?
   title           String
   body            String
+  content         Json                 @default("[]")
   priority        Int                  @default(0)
   status          AnnouncementStatus   @default(DRAFT)
   audience        AnnouncementAudience @default(ALL_ACTIVE_MEMBERS)
@@ -911,10 +967,58 @@ model Announcement {
 
   organization Organization            @relation(fields: [organization_id], references: [id])
   branch       Branch?                 @relation(fields: [branch_id], references: [id])
+  actor        User?                   @relation("AnnouncementActor", fields: [created_by], references: [id])
   recipients   AnnouncementRecipient[]
+  reactions    AnnouncementReaction[]
+  comments     AnnouncementComment[]
 
   @@index([organization_id])
   @@map("announcements")
+}
+
+model AnnouncementReaction {
+  id              String                   @id @default(cuid())
+  organization_id String
+  branch_id       String?
+  announcement_id String
+  user_id         String
+  reaction        AnnouncementReactionType
+  created_at      DateTime                 @default(now())
+  updated_at      DateTime                 @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  branch       Branch?      @relation(fields: [branch_id], references: [id])
+  announcement Announcement @relation(fields: [announcement_id], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [user_id], references: [id])
+
+  @@unique([announcement_id, user_id])
+  @@index([organization_id, branch_id, announcement_id])
+  @@map("announcement_reactions")
+}
+
+model AnnouncementComment {
+  id              String    @id @default(cuid())
+  organization_id String
+  branch_id       String?
+  announcement_id String
+  user_id         String
+  body            String
+  reply_to_id     String?
+  idempotency_key String?   @unique
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+
+  organization Organization          @relation(fields: [organization_id], references: [id])
+  branch       Branch?               @relation(fields: [branch_id], references: [id])
+  announcement Announcement          @relation(fields: [announcement_id], references: [id], onDelete: Cascade)
+  user         User                  @relation(fields: [user_id], references: [id])
+  reply_to     AnnouncementComment?  @relation("AnnouncementCommentReplies", fields: [reply_to_id], references: [id])
+  replies      AnnouncementComment[] @relation("AnnouncementCommentReplies")
+
+  @@index([organization_id, branch_id, announcement_id, created_at])
+  @@index([reply_to_id])
+  @@map("announcement_comments")
 }
 
 model AnnouncementRecipient {
@@ -930,6 +1034,161 @@ model AnnouncementRecipient {
 
   @@unique([announcement_id, member_id])
   @@map("announcement_recipients")
+}
+
+// ============================================================
+// PRIVATE FEEDS
+// ============================================================
+
+model Feed {
+  id                    String   @id @default(cuid())
+  organization_id       String
+  branch_id             String
+  name                  String
+  participants_can_post Boolean  @default(false)
+  post_timeout          Int?
+  disbanded             Boolean  @default(false)
+  report_threshold      Int      @default(3)
+  created_by_user_id    String
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organization_id], references: [id])
+  branch       Branch            @relation(fields: [branch_id], references: [id])
+  created_by   User              @relation("FeedCreator", fields: [created_by_user_id], references: [id])
+  participants FeedParticipant[]
+  posts        FeedPost[]
+
+  @@unique([organization_id, branch_id, name])
+  @@index([organization_id, branch_id, disbanded])
+  @@map("feeds")
+}
+
+model FeedParticipant {
+  id               String    @id @default(cuid())
+  feed_id          String
+  member_id        String
+  added_by_user_id String?
+  created_at       DateTime  @default(now())
+  removed_at       DateTime?
+
+  feed     Feed   @relation(fields: [feed_id], references: [id], onDelete: Cascade)
+  member   Member @relation(fields: [member_id], references: [id])
+  added_by User?  @relation("FeedParticipantAdder", fields: [added_by_user_id], references: [id])
+
+  @@unique([feed_id, member_id])
+  @@index([member_id, removed_at])
+  @@map("feed_participants")
+}
+
+model FeedPost {
+  id              String         @id @default(cuid())
+  organization_id String
+  branch_id       String
+  feed_id         String
+  title           String
+  body            String
+  content         Json           @default("[]")
+  member_id       String
+  status          FeedPostStatus @default(ACTIVE)
+  expires_at      DateTime?
+  idempotency_key String?        @unique
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
+
+  organization Organization   @relation(fields: [organization_id], references: [id])
+  branch       Branch         @relation(fields: [branch_id], references: [id])
+  feed         Feed           @relation(fields: [feed_id], references: [id], onDelete: Cascade)
+  member       Member         @relation(fields: [member_id], references: [id])
+  read_by      FeedPostRead[]
+  reactions    FeedReaction[]
+  comments     FeedComment[]
+  reports      FeedReport[]
+
+  @@index([organization_id, branch_id, feed_id, created_at])
+  @@index([feed_id, status, expires_at])
+  @@map("feed_posts")
+}
+
+model FeedPostRead {
+  id           String   @id @default(cuid())
+  feed_post_id String
+  member_id    String
+  read_at      DateTime @default(now())
+
+  post   FeedPost @relation(fields: [feed_post_id], references: [id], onDelete: Cascade)
+  member Member   @relation(fields: [member_id], references: [id])
+
+  @@unique([feed_post_id, member_id])
+  @@map("feed_post_reads")
+}
+
+model FeedReaction {
+  id              String           @id @default(cuid())
+  organization_id String
+  branch_id       String
+  feed_post_id    String
+  member_id       String
+  reaction        FeedReactionType
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  branch       Branch       @relation(fields: [branch_id], references: [id])
+  post         FeedPost     @relation(fields: [feed_post_id], references: [id], onDelete: Cascade)
+  member       Member       @relation(fields: [member_id], references: [id])
+
+  @@unique([feed_post_id, member_id])
+  @@index([organization_id, branch_id, feed_post_id])
+  @@map("feed_reactions")
+}
+
+model FeedComment {
+  id              String    @id @default(cuid())
+  organization_id String
+  branch_id       String
+  feed_post_id    String
+  member_id       String
+  body            String
+  reply_to_id     String?
+  idempotency_key String?   @unique
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+
+  organization Organization  @relation(fields: [organization_id], references: [id])
+  branch       Branch        @relation(fields: [branch_id], references: [id])
+  post         FeedPost      @relation(fields: [feed_post_id], references: [id], onDelete: Cascade)
+  member       Member        @relation(fields: [member_id], references: [id])
+  reply_to     FeedComment?  @relation("FeedCommentReplies", fields: [reply_to_id], references: [id])
+  replies      FeedComment[] @relation("FeedCommentReplies")
+
+  @@index([organization_id, branch_id, feed_post_id, created_at])
+  @@index([reply_to_id])
+  @@map("feed_comments")
+}
+
+model FeedReport {
+  id                  String           @id @default(cuid())
+  organization_id     String
+  branch_id           String
+  feed_post_id        String
+  reporter_member_id  String
+  reason              String
+  status              FeedReportStatus @default(OPEN)
+  reviewed_by_user_id String?
+  reviewed_at         DateTime?
+  created_at          DateTime         @default(now())
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  branch       Branch       @relation(fields: [branch_id], references: [id])
+  post         FeedPost     @relation(fields: [feed_post_id], references: [id], onDelete: Cascade)
+  reporter     Member       @relation(fields: [reporter_member_id], references: [id])
+  reviewed_by  User?        @relation("FeedReportReviewer", fields: [reviewed_by_user_id], references: [id])
+
+  @@unique([feed_post_id, reporter_member_id])
+  @@index([organization_id, branch_id, status])
+  @@map("feed_reports")
 }
 
 // ============================================================
@@ -1005,14 +1264,14 @@ model NotificationDelivery {
 }
 
 model UserDeviceToken {
-  id            String   @id @default(cuid())
-  user_id       String
-  token         String   @unique
-  platform      String?
-  app_version   String?
-  last_seen_at  DateTime @default(now())
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  id           String   @id @default(cuid())
+  user_id      String
+  token        String   @unique
+  platform     String?
+  app_version  String?
+  last_seen_at DateTime @default(now())
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
@@ -1021,13 +1280,13 @@ model UserDeviceToken {
 }
 
 model NotificationPreference {
-  id          String                         @id @default(cuid())
-  user_id     String
-  event_type  String
-  channel     NotificationPreferenceChannel
-  enabled     Boolean                        @default(true)
-  created_at  DateTime                       @default(now())
-  updated_at  DateTime                       @updatedAt
+  id         String                        @id @default(cuid())
+  user_id    String
+  event_type String
+  channel    NotificationPreferenceChannel
+  enabled    Boolean                       @default(true)
+  created_at DateTime                      @default(now())
+  updated_at DateTime                      @updatedAt
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 

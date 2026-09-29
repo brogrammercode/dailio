@@ -16,6 +16,8 @@ import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_picker_field.dart';
 import '../../../core/widgets/dailio_tab_strip.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
+import '../../../core/widgets/dailio_nav_badges.dart';
 import '../controllers/attendance_repository.dart';
 import '../attendance_error.dart';
 import '../attendance_ui.dart';
@@ -150,6 +152,12 @@ class _AttendancePageState extends State<AttendancePage>
         roleId: _selectedRoleId,
         onFresh: (freshPage) {
           if (!mounted) return;
+          if (period == 'today') {
+            DailioNavBadgeController.setCount(
+              'attendance',
+              freshPage.sessions.length,
+            );
+          }
           setState(() {
             _sessions = freshPage.sessions;
             _nextCursor = freshPage.nextCursor;
@@ -158,6 +166,12 @@ class _AttendancePageState extends State<AttendancePage>
         },
       );
       if (mounted) {
+        if (period == 'today') {
+          DailioNavBadgeController.setCount(
+            'attendance',
+            page.sessions.length,
+          );
+        }
         setState(() {
           _sessions = page.sessions;
           _nextCursor = page.nextCursor;
@@ -262,37 +276,24 @@ class _AttendancePageState extends State<AttendancePage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AttendanceUi.canvas,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: AttendanceUi.text,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Dailio',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-        ),
-        actions: [
-          DailioOverflowMenu<String>(
-            items: [
-              if (_canCreateManual)
-                const DailioMenuItem(
-                  value: 'manual',
-                  icon: Iconsax.add_circle,
-                  label: 'Add attendance',
-                ),
-              const DailioMenuItem(
-                value: 'export',
-                icon: Iconsax.document_download,
-                label: 'Export attendance',
-              ),
-            ],
-            onSelected: (value) {
-              if (value == 'manual') _openManualRecordModal();
-              if (value == 'export') _exportAttendance();
-            },
+      appBar: DailioSimpleAppBar(
+        menuItems: [
+          if (_canCreateManual)
+            const DailioMenuItem(
+              value: 'manual',
+              icon: Iconsax.add_circle,
+              label: 'Add attendance',
+            ),
+          const DailioMenuItem(
+            value: 'export',
+            icon: Iconsax.document_download,
+            label: 'Export attendance',
           ),
-          const SizedBox(width: 8),
         ],
+        onMenuSelected: (value) {
+          if (value == 'manual') _openManualRecordModal();
+          if (value == 'export') _exportAttendance();
+        },
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(44),
           child: AnimatedBuilder(

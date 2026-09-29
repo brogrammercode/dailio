@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/utils/branch_time.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../attendance_error.dart';
@@ -68,30 +69,17 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AttendanceUi.canvas,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: AttendanceUi.text,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Dailio',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          DailioOverflowMenu<String>(
-            items: const [
-              DailioMenuItem(
-                value: 'refresh',
-                icon: Iconsax.refresh,
-                label: 'Refresh',
-              ),
-            ],
-            onSelected: (value) {
-              if (value == 'refresh') _load();
-            },
+      appBar: DailioSimpleAppBar(
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Iconsax.refresh,
+            label: 'Refresh',
           ),
-          const SizedBox(width: 8),
         ],
+        onMenuSelected: (value) {
+          if (value == 'refresh') _load();
+        },
       ),
       body: _loading
           ? ShimmerLoader.detailPage()

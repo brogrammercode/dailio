@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const prismaMock = vi.hoisted(() => ({
   notification: {
+    count: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
     updateMany: vi.fn(),
@@ -10,7 +11,11 @@ const prismaMock = vi.hoisted(() => ({
 
 vi.mock('../../lib/prisma', () => ({ prisma: prismaMock }));
 
-import { listNotifications, markNotificationRead } from './notifications.service';
+import {
+  countUnreadNotifications,
+  listNotifications,
+  markNotificationRead,
+} from './notifications.service';
 
 describe('notification privacy and idempotent read actions', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -38,5 +43,14 @@ describe('notification privacy and idempotent read actions', () => {
         where: { id: 'notification-b', user_id: 'user-a', read_at: null },
       }),
     );
+  });
+
+  it('counts unread notifications only for the authenticated user', async () => {
+    prismaMock.notification.count.mockResolvedValue(5);
+
+    await expect(countUnreadNotifications('user-a')).resolves.toBe(5);
+    expect(prismaMock.notification.count).toHaveBeenCalledWith({
+      where: { user_id: 'user-a', read_at: null },
+    });
   });
 });

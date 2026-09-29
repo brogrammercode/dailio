@@ -1257,6 +1257,10 @@ Audience:
 
 Store recipient snapshot at publication so later hierarchy/role changes do not rewrite historical audience.
 
+Published announcements expose an Instagram-like, tenant-scoped feed. Announcement content is stored as validated JSON blocks (text marks, headings, quotes, dividers, images, and slides) while private media is stored by an authenticated storage key. Members can react, comment, and reply to comments; comments are soft-deleted and retry-safe. Announcement media URLs are short-lived and are issued only after the viewer is authorized for the parent announcement. The mobile shell exposes Announcements as its first primary destination, and announcement notifications deep-link to that feed/detail route.
+
+Private feeds live inside the Announcements destination as internal tabs: `Announcement`, then each participant-scoped feed, followed by a permission-aware add action. A feed stores its name, active member participants, whether participants may post, an optional post timeout in minutes, a disbanded state, and a report threshold. Owners or members with the feed-management permissions create and manage feeds; members only see feeds for which they have an active participant record. The creator is always included as a participant. When participant posting is disabled, only feed managers may post; when enabled, active participants may post. Feed posts, reactions, threaded comments/replies, read receipts, and reports are all organization/branch scoped. Posts past their timeout are hidden from normal readers, and reaching the report threshold hides the post for moderation without automatically disbanding the feed. Feed notifications use the central in-app/push/email service and feed lists/posts use the JSON-file stale-while-refresh cache.
+
 ### 15.2 Notifications
 
 Generate events for at least:
@@ -1443,6 +1447,16 @@ Not every permission requires every scope.
 - `ANNOUNCEMENT_CREATE`
 - `ANNOUNCEMENT_UPDATE`
 - `ANNOUNCEMENT_DELETE`
+- `FEED_READ`
+- `FEED_CREATE`
+- `FEED_UPDATE`
+- `FEED_DISBAND`
+- `FEED_PARTICIPANT_MANAGE`
+- `FEED_POST`
+- `FEED_REACT`
+- `FEED_COMMENT`
+- `FEED_REPORT`
+- `FEED_MODERATE`
 - `REPORT_READ`
 - `REPORT_EXPORT`
 - `AUDIT_READ`
@@ -1523,6 +1537,15 @@ Logical model only. Adapt names to repository conventions without changing owner
 | `Reminder` | Scheduled/ad-hoc notification | org + branch + target |
 | `Announcement` | Targeted content | org; optional branch |
 | `AnnouncementRecipient` | Publication audience snapshot | announcement scope |
+| `AnnouncementReaction` | One reaction per user per announcement | org + announcement + user |
+| `AnnouncementComment` | Threaded announcement comment/reply with soft deletion | org + announcement + user |
+| `Feed` | Private participant-scoped communication space | organization + branch |
+| `FeedParticipant` | Active/removed branch member participation | feed + member |
+| `FeedPost` | Expiring or durable feed content with read/reaction/comment/report state | organization + branch + feed |
+| `FeedPostRead` | Member read receipt for a feed post | post + member |
+| `FeedReaction` | One reaction per member per feed post | organization + branch + post + member |
+| `FeedComment` | Threaded feed post comment/reply with soft deletion | organization + branch + post + member |
+| `FeedReport` | Member report and moderation threshold record | organization + branch + post + reporter |
 | `MediaAsset` | Private logo/evidence/selfie/attachment metadata | tenant scope |
 | `Notification` | Delivery/read state | recipient + tenant |
 | `AuditLog` | Append-only sensitive operation trail | org; optional branch |
@@ -1595,6 +1618,8 @@ Use existing repository API style. If none exists, use versioned REST under `/ap
 - `/branches/{branchId}/payslips`
 - `/branches/{branchId}/reminders`
 - `/branches/{branchId}/announcements`
+- `/organizations/{organizationId}/announcements/{announcementId}/comments`
+- `/organizations/{organizationId}/announcements/{announcementId}/reaction`
 - `/branches/{branchId}/reports`
 - `/branches/{branchId}/audit-logs`
 
@@ -2324,6 +2349,8 @@ A feature is complete only when all applicable items are true:
 | 2026-09-26 | Attendance UI redesign keeps the existing bottom navigation, Space Grotesk font, and canonical Dailio logo; redesigned Attendance screens use only the logo orange, white, and black as the primary palette with compact WhatsApp-like information hierarchy. | Approved screen-by-screen UI direction for the member and attendance-policy flows. |
 | 2026-09-27 | The compact Dailio row standard is the baseline for all future page reworks: Dailio app bar, left-aligned tabs, compact event rows, avatar status badges, consistent spacing, and geometry-matched loading skeletons. Settings removes Workspace Settings and the large sign-out panel; sign out remains in the overflow menu. | Consolidates the approved Attendance, Fees, Payments, and Settings visual language for the remaining screens. |
 | 2026-09-27 | Self Attendance removes the redundant app-bar subtitle; its Attendance Record period strip is intentionally centered, while its Today view uses a large branch-local time, concentric direct-punch/QR action control, accurate Check in/Check out/Total hrs metrics, compact policy parameters, and a live timeline for an open session. | Makes personal attendance more glanceable without changing evidence collection, server confirmation, or self-scope rules. |
+| 2026-09-29 | Announcements use validated rich JSON content, permanent durable reactions, threaded soft-deletable comments, authenticated private media, and a first-position mobile feed with notification deep links. | Provides the approved simple Instagram-like announcement experience without introducing a separate social service or unscoped public media. |
+| 2026-09-29 | Feeds are private participant-scoped tabs inside Announcements. Feed managers create/disband/manage participants; participant posting is configurable; post timeouts hide expired posts; report thresholds hide posts for moderation; read receipts, reactions, threaded comments/replies, notifications, and JSON stale-while-refresh cache are included. | Adds focused team communication without a separate bottom-nav destination or cross-tenant audience. |
 
 ---
 

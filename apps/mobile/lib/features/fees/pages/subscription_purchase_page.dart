@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/interceptors/logging_interceptor.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_picker_field.dart';
 import '../../context_selection/controllers/branch_repository.dart';
 import '../controllers/fees_repository.dart';
@@ -57,30 +58,17 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
     final currency = _plan['currency']?.toString() ?? 'INR';
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF171717),
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Dailio',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-        ),
-        actions: [
-          DailioOverflowMenu<String>(
-            items: const [
-              DailioMenuItem(
-                value: 'close',
-                icon: Iconsax.close_circle,
-                label: 'Close',
-              ),
-            ],
-            onSelected: (value) {
-              if (value == 'close') Navigator.of(context).pop();
-            },
+      appBar: DailioSimpleAppBar(
+        menuItems: const [
+          DailioMenuItem(
+            value: 'close',
+            icon: Iconsax.close_circle,
+            label: 'Close',
           ),
-          const SizedBox(width: 8),
         ],
+        onMenuSelected: (value) {
+          if (value == 'close') Navigator.of(context).pop();
+        },
       ),
       bottomNavigationBar: _submitBar(),
       body: ListView(

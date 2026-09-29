@@ -1,0 +1,3 @@
+-- Notification actor presentation is stored in the existing JSON data column.
+-- This migration is intentionally empty; it repairs the previously-created
+-- migration directory so Prisma can validate and deploy the migration chain.

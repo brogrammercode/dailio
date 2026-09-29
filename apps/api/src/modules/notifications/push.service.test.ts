@@ -13,7 +13,9 @@ vi.mock('../../lib/firebase', () => ({
   getFirebaseMessaging: () => messagingMock,
 }));
 vi.mock('../../lib/prisma', () => ({ prisma: prismaMock }));
-vi.mock('../../config/logger', () => ({ logger: { info: vi.fn() } }));
+vi.mock('../../config/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn() },
+}));
 
 import { sendPush } from './push.service';
 

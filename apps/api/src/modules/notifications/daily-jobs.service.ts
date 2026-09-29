@@ -15,9 +15,11 @@ import {
   runScheduledAnnouncementPublishing,
   runSubscriptionExpiryNotifications,
 } from './scheduled-jobs.service';
+import { runMonthlyMemberReports, previousMonthPeriod } from './monthly-reports.service';
 
 const dailyCoordinatorKey = 'DAILY_NOTIFICATION_COORDINATOR';
 const leaseMinutes = 5;
+let coordinatorInFlight = false;
 
 function utcBusinessDate(date = new Date()) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -69,32 +71,54 @@ async function claimDailyRun(jobKey: string, businessDate: Date) {
 }
 
 export async function runDailyNotificationCoordinator() {
+  if (coordinatorInFlight) {
+    return { status: 'running', job: dailyCoordinatorKey };
+  }
+  coordinatorInFlight = true;
+  try {
+    return await runDailyNotificationCoordinatorInternal();
+  } finally {
+    coordinatorInFlight = false;
+  }
+}
+
+async function runDailyNotificationCoordinatorInternal() {
   const businessDate = utcBusinessDate();
   const claim = await claimDailyRun(dailyCoordinatorKey, businessDate);
   if (claim.status !== 'CLAIMED' || !claim.run) {
     return { status: claim.status.toLowerCase(), job: dailyCoordinatorKey };
   }
 
+  const reportPeriod = previousMonthPeriod();
+  const reportClaim = await claimDailyRun('MONTHLY_MEMBER_REPORT', reportPeriod.start);
+
   try {
-    const [
-      attendanceReview,
-      evidenceRetention,
-      subscriptionExpiry,
-      overdueFees,
-      paymentReviewReminders,
-      scheduledAnnouncements,
-      expiredAnnouncements,
-      deliveryRetries,
-    ] = await Promise.all([
-      reviewOpenAttendanceSessions(),
-      purgeExpiredAttendanceEvidence(),
-      runSubscriptionExpiryNotifications(),
-      runOverdueFeeNotifications(),
-      runPendingPaymentReviewNotifications(),
-      runScheduledAnnouncementPublishing(),
-      runAnnouncementExpiry(),
-      runNotificationDeliveryRetries(),
-    ]);
+    // Keep maintenance database pressure bounded. These jobs are triggered by
+    // app-open and cron, so running all scans concurrently can starve normal
+    // attendance/fees/member requests on small connection pools.
+    const attendanceReview = await reviewOpenAttendanceSessions();
+    const evidenceRetention = await purgeExpiredAttendanceEvidence();
+    const subscriptionExpiry = await runSubscriptionExpiryNotifications();
+    const overdueFees = await runOverdueFeeNotifications();
+    const paymentReviewReminders = await runPendingPaymentReviewNotifications();
+    const scheduledAnnouncements = await runScheduledAnnouncementPublishing();
+    const expiredAnnouncements = await runAnnouncementExpiry();
+    const deliveryRetries = await runNotificationDeliveryRetries();
+    const monthlyMemberReports =
+      reportClaim.status === 'CLAIMED'
+        ? await runMonthlyMemberReports(reportPeriod)
+        : {
+            status: reportClaim.status.toLowerCase(),
+            branches: 0,
+            sent: 0,
+            skipped: 0,
+          };
+    if (reportClaim.status === 'CLAIMED' && reportClaim.run) {
+      await prisma.dailyJobRun.update({
+        where: { id: reportClaim.run.id },
+        data: { status: 'COMPLETED', lease_until: null, completed_at: new Date() },
+      });
+    }
     await prisma.dailyJobRun.update({
       where: { id: claim.run.id },
       data: { status: 'COMPLETED', lease_until: null, completed_at: new Date() },
@@ -110,6 +134,7 @@ export async function runDailyNotificationCoordinator() {
       scheduled_announcements: scheduledAnnouncements,
       expired_announcements: expiredAnnouncements,
       delivery_retries: deliveryRetries,
+      monthly_member_reports: monthlyMemberReports,
     };
   } catch (error) {
     const safeError =
@@ -118,6 +143,12 @@ export async function runDailyNotificationCoordinator() {
       where: { id: claim.run.id },
       data: { status: 'FAILED', lease_until: null, last_error: safeError },
     });
+    if (reportClaim.status === 'CLAIMED' && reportClaim.run) {
+      await prisma.dailyJobRun.update({
+        where: { id: reportClaim.run.id },
+        data: { status: 'FAILED', lease_until: null, last_error: safeError },
+      });
+    }
     logger.error('Daily notification coordinator failed', { error: safeError });
     throw error;
   }

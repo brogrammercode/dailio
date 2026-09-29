@@ -18,7 +18,11 @@ describe('daily cron controller', () => {
     coordinatorMock.mockResolvedValue({ status: 'completed' });
     const json = vi.fn();
     const res = { status: vi.fn().mockReturnThis(), json };
-    await runDailyCronHandler({ headers: { authorization: 'Bearer cron-secret' } } as never, res as never, vi.fn());
+    await runDailyCronHandler(
+      { headers: { authorization: 'Bearer cron-secret' } } as never,
+      res as never,
+      vi.fn(),
+    );
     expect(coordinatorMock).toHaveBeenCalledOnce();
     expect(res.status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith({ data: { status: 'completed' } });

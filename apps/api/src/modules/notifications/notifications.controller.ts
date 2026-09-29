@@ -25,6 +25,19 @@ export async function listNotificationsHandler(req: Request, res: Response, next
   }
 }
 
+export async function countUnreadNotificationsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const count = await notificationsService.countUnreadNotifications(req.user!.id);
+    res.json({ data: { count } });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function markNotificationReadHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await notificationsService.markNotificationRead(

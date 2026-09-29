@@ -4,6 +4,7 @@ import { authenticate } from '../../middleware/auth';
 
 import {
   listNotificationsHandler,
+  countUnreadNotificationsHandler,
   markAllNotificationsReadHandler,
   markNotificationReadHandler,
   listNotificationPreferencesHandler,
@@ -14,6 +15,7 @@ import { runDailyCheckHandler, runDailyCronHandler } from './daily-jobs.controll
 const router: Router = Router();
 
 router.get('/notifications', authenticate, listNotificationsHandler);
+router.get('/notifications/unread-count', authenticate, countUnreadNotificationsHandler);
 router.post('/notifications/read-all', authenticate, markAllNotificationsReadHandler);
 router.patch('/notifications/:notification_id/read', authenticate, markNotificationReadHandler);
 router.get('/notifications/preferences', authenticate, listNotificationPreferencesHandler);
