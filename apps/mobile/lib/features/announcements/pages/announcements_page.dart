@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -11,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/media/cloudinary_media_upload.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/json_cache_store.dart';
 import '../../../core/storage/preferences_storage.dart';
@@ -19,6 +19,7 @@ import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_nav_badges.dart';
 import '../../../core/widgets/dailio_member_profile_sheet.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../feeds/pages/feed_pages.dart';
 
 class AnnouncementsPage extends StatefulWidget {
@@ -287,12 +288,6 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
         height: 45,
         margin: const EdgeInsets.only(right: 20),
         padding: const EdgeInsets.symmetric(horizontal: 1),
-        decoration: BoxDecoration(
-          border: Border(
-              bottom: BorderSide(
-                  color: selected ? AppColors.brandAccent : Colors.transparent,
-                  width: 2.5)),
-        ),
         alignment: Alignment.center,
         child: Text(label,
             style: TextStyle(
@@ -541,6 +536,7 @@ class _ContentPreview extends StatelessWidget {
             return _MediaPlaceholder(
                 storageKey: block['storage_key']?.toString(),
                 announcementId: item['id']?.toString(),
+                mediaUrl: block['media_url']?.toString(),
                 format: block['format']?.toString(),
                 alt: block['alt']?.toString());
           }
@@ -627,6 +623,7 @@ class AnnouncementDetailPage extends StatefulWidget {
 
 class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
   late final ApiClient _api;
+  late final JsonCacheStore _cache;
   late final PreferencesStorage _prefs;
   Map<String, dynamic>? _item;
   List<Map<String, dynamic>> _comments = [];
@@ -640,6 +637,7 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
   void initState() {
     super.initState();
     _api = context.read<ApiClient>();
+    _cache = context.read<JsonCacheStore>();
     _prefs = context.read<PreferencesStorage>();
     _load();
   }
@@ -774,10 +772,40 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
     }
   }
 
+  Future<void> _deleteAnnouncement() async {
+    final org = _prefs.activeOrganizationId;
+    if (org == null) return;
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Delete announcement?',
+      message: 'This announcement will be removed for everyone.',
+      confirmLabel: 'Delete',
+      isDestructive: true,
+      icon: Iconsax.trash,
+    );
+    if (!confirmed || !mounted) return;
+    try {
+      await _api.dio.post(
+          '/organizations/$org/announcements/${widget.announcementId}/cancel');
+      await _cache.clearKey(
+          _cache.scopedKey('announcements:$org:${_prefs.activeBranchId}'));
+      if (mounted) context.pop(true);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not delete announcement.')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final item = _item;
-    final canEdit = _prefs.hasPermission('ANNOUNCEMENT_UPDATE');
+    final actor = item?['actor'] is Map
+        ? Map<String, dynamic>.from(item!['actor'])
+        : <String, dynamic>{};
+    final isAuthor = actor['id']?.toString() == _cache.userId;
+    final canEdit = isAuthor || _prefs.hasPermission('ANNOUNCEMENT_UPDATE');
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: DailioSimpleAppBar(
@@ -789,12 +817,19 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
               icon: Iconsax.edit_2,
               label: 'Edit announcement',
             ),
+          if (canEdit)
+            const DailioMenuItem(
+              value: 'delete',
+              icon: Iconsax.trash,
+              label: 'Delete announcement',
+            ),
         ],
         onMenuSelected: (value) {
           if (value == 'edit') {
             context.push(AppRoutes.announcementEdit
                 .replaceFirst(':announcementId', widget.announcementId));
           }
+          if (value == 'delete') _deleteAnnouncement();
         },
       ),
       body: _loading
@@ -917,8 +952,10 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
   late final PreferencesStorage _prefs;
   final _title = TextEditingController();
   final _body = TextEditingController();
+  final _bodyFocus = FocusNode();
   final List<Map<String, dynamic>> _blocks = [];
   bool _saving = false;
+  bool _preview = false;
   bool _bold = false;
   bool _italic = false;
 
@@ -927,6 +964,7 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
     super.initState();
     _api = context.read<ApiClient>();
     _prefs = context.read<PreferencesStorage>();
+    _body.addListener(_refresh);
     unawaited(_loadExisting());
   }
 
@@ -934,7 +972,12 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
   void dispose() {
     _title.dispose();
     _body.dispose();
+    _bodyFocus.dispose();
     super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
   }
 
   Map<String, dynamic> _paragraph() => {
@@ -942,6 +985,37 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
         'text': _body.text.trim(),
         'marks': [if (_bold) 'bold', if (_italic) 'italic']
       };
+
+  void _formatSelection(String marker) {
+    final value = _body.value;
+    final start =
+        value.selection.start < 0 ? value.text.length : value.selection.start;
+    final end = value.selection.end < 0 ? start : value.selection.end;
+    final selected = value.text.substring(start, end);
+    final replacement =
+        selected.isEmpty ? '$marker$marker' : '$marker$selected$marker';
+    final caret =
+        selected.isEmpty ? start + marker.length : start + replacement.length;
+    _body.value = value.copyWith(
+      text: value.text.replaceRange(start, end, replacement),
+      selection: TextSelection.collapsed(offset: caret),
+      composing: TextRange.empty,
+    );
+    _bodyFocus.requestFocus();
+  }
+
+  void _insertLinePrefix(String prefix) {
+    final value = _body.value;
+    final selection = value.selection;
+    final start = selection.start < 0 ? value.text.length : selection.start;
+    final lineStart = value.text.lastIndexOf('\n', start - 1) + 1;
+    _body.value = value.copyWith(
+      text: value.text.replaceRange(lineStart, lineStart, prefix),
+      selection: TextSelection.collapsed(offset: lineStart + prefix.length),
+      composing: TextRange.empty,
+    );
+    _bodyFocus.requestFocus();
+  }
 
   Future<void> _addTextBlock(String type) async {
     final controller = TextEditingController();
@@ -997,8 +1071,11 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
   }
 
   Future<void> _addImage({bool slide = false}) async {
-    final file = await ImagePicker()
-        .pickImage(source: ImageSource.gallery, imageQuality: 82);
+    final file = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 78,
+        maxWidth: 1600,
+        maxHeight: 1600);
     if (file == null || !mounted) return;
     setState(() => _blocks.add({
           'type': slide ? 'slide' : 'image',
@@ -1010,20 +1087,27 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
   }
 
   Future<List<Map<String, dynamic>>> _blocksForPublish() async {
-    final prepared = <Map<String, dynamic>>[];
-    for (final block in _blocks) {
+    final prepared = await Future.wait(_blocks.map((block) async {
       final localPath = block['local_file']?.toString();
       if (localPath == null || localPath.isEmpty) {
-        prepared.add(Map<String, dynamic>.from(block));
-        continue;
+        return Map<String, dynamic>.from(block);
       }
       final filename = block['alt']?.toString() ?? 'announcement-image.jpg';
+      final uploaded = await uploadSignedCloudinaryImage(
+        api: _api.dio,
+        signaturePath:
+            '/organizations/${_prefs.activeOrganizationId}/announcements/media/upload-signature',
+        filename: filename,
+        filePath: localPath,
+      );
       final next = Map<String, dynamic>.from(block)
         ..remove('local_file')
-        ..['media_base64'] = base64Encode(await File(localPath).readAsBytes())
-        ..['media_filename'] = filename;
-      prepared.add(next);
-    }
+        ..remove('media_base64')
+        ..remove('media_filename')
+        ..['storage_key'] = uploaded['storage_key'];
+      if (uploaded['format'] != null) next['format'] = uploaded['format'];
+      return next;
+    }));
     return prepared;
   }
 
@@ -1074,8 +1158,235 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
     }
   }
 
+  Widget _mediaPreview() {
+    if (_blocks.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        children: _blocks.asMap().entries.map((entry) {
+          final localPath = entry.value['local_file']?.toString();
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(children: [
+              if (localPath != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(File(localPath),
+                      width: 70, height: 52, fit: BoxFit.cover),
+                )
+              else
+                const SizedBox(
+                    width: 70, height: 52, child: Icon(Iconsax.image)),
+              const SizedBox(width: 9),
+              Expanded(
+                  child: Text(
+                localPath == null
+                    ? 'Attached media'
+                    : 'Ready to upload when published',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              )),
+              IconButton(
+                tooltip: 'Remove media',
+                onPressed: () => setState(() => _blocks.removeAt(entry.key)),
+                icon: const Icon(Iconsax.close_circle, size: 18),
+              ),
+            ]),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildComposer() => Scaffold(
+        backgroundColor: Colors.white,
+        appBar: DailioSimpleAppBar(onBack: () => context.pop()),
+        body: SafeArea(
+          child: Column(children: [
+            Expanded(
+              child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+                children: [
+                  Text(
+                      widget.announcementId == null
+                          ? 'New announcement'
+                          : 'Edit announcement',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text('Share a clear update with everyone in this branch.',
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                  const SizedBox(height: 18),
+                  _Field(
+                      controller: _title,
+                      label: 'Title',
+                      hint: 'What should people know?'),
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 12, 10, 8),
+                            child: Row(children: [
+                              const Text('Message',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600)),
+                              const Spacer(),
+                              Text('${_body.text.length}/10000',
+                                  style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 11)),
+                              const SizedBox(width: 8),
+                              SegmentedButton<bool>(
+                                segments: const [
+                                  ButtonSegment<bool>(
+                                      value: false, label: Text('Write')),
+                                  ButtonSegment<bool>(
+                                      value: true, label: Text('Preview')),
+                                ],
+                                selected: {_preview},
+                                onSelectionChanged: (value) =>
+                                    setState(() => _preview = value.first),
+                                showSelectedIcon: false,
+                                style: ButtonStyle(
+                                  visualDensity: VisualDensity.compact,
+                                  textStyle: WidgetStateProperty.all(
+                                      const TextStyle(fontSize: 11)),
+                                  padding: WidgetStateProperty.all(
+                                      const EdgeInsets.symmetric(
+                                          horizontal: 8)),
+                                ),
+                              ),
+                            ]),
+                          ),
+                          if (!_preview) ...[
+                            Container(
+                              height: 42,
+                              color: const Color(0xFFFAFAFA),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(children: [
+                                  IconButton(
+                                      tooltip: 'Bold',
+                                      onPressed: () => _formatSelection('**'),
+                                      icon: const Icon(Iconsax.text_bold,
+                                          size: 18)),
+                                  IconButton(
+                                      tooltip: 'Italic',
+                                      onPressed: () => _formatSelection('_'),
+                                      icon: const Icon(Iconsax.text_italic,
+                                          size: 18)),
+                                  IconButton(
+                                      tooltip: 'Bullet',
+                                      onPressed: () => _insertLinePrefix('• '),
+                                      icon: const Icon(Iconsax.task_square,
+                                          size: 18)),
+                                  IconButton(
+                                      tooltip: 'Quote',
+                                      onPressed: () => _insertLinePrefix('> '),
+                                      icon: const Icon(Iconsax.quote_up,
+                                          size: 18)),
+                                  IconButton(
+                                      tooltip: 'Add image',
+                                      onPressed: () => _addImage(),
+                                      icon:
+                                          const Icon(Iconsax.image, size: 18)),
+                                  IconButton(
+                                      tooltip: 'Add slide',
+                                      onPressed: () => _addImage(slide: true),
+                                      icon: const Icon(Iconsax.gallery,
+                                          size: 18)),
+                                ]),
+                              ),
+                            ),
+                            TextField(
+                              controller: _body,
+                              focusNode: _bodyFocus,
+                              minLines: 11,
+                              maxLines: null,
+                              maxLength: 10000,
+                              keyboardType: TextInputType.multiline,
+                              textAlignVertical: TextAlignVertical.top,
+                              style: const TextStyle(fontSize: 14, height: 1.5),
+                              decoration: const InputDecoration(
+                                hintText: 'Write your announcement here...',
+                                border: InputBorder.none,
+                                counterText: '',
+                                contentPadding:
+                                    EdgeInsets.fromLTRB(14, 14, 14, 18),
+                              ),
+                            ),
+                          ] else
+                            Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _body.text.trim().isEmpty
+                                        ? Text('Your preview will appear here.',
+                                            style: TextStyle(
+                                                color: Colors.grey.shade500,
+                                                fontSize: 14))
+                                        : _AnnouncementRichText(
+                                            text: _body.text,
+                                            style: const TextStyle(
+                                                fontSize: 14, height: 1.5)),
+                                    _mediaPreview(),
+                                  ]),
+                            ),
+                        ]),
+                  ),
+                  if (!_preview) _mediaPreview(),
+                  const SizedBox(height: 8),
+                  Text(
+                      'Use the toolbar for emphasis, bullets, quotes, images, and slides.',
+                      style:
+                          TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+                ],
+              ),
+            ),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: SizedBox(
+                  height: 46,
+                  child: FilledButton(
+                    onPressed: _saving ? null : _publish,
+                    style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.brandAccent),
+                    child: _saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : Text(widget.announcementId == null
+                            ? 'Publish announcement'
+                            : 'Save changes'),
+                  ),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      );
+
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => _buildComposer();
+
+  // Kept as a reference for the previous editor layout during migration.
+  // ignore: unused_element
+  Widget _legacyBuild(BuildContext context) => Scaffold(
         backgroundColor: Colors.white,
         appBar: DailioSimpleAppBar(onBack: () => context.pop()),
         body: ListView(
@@ -1206,6 +1517,16 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
       );
 }
 
+class _AnnouncementRichText extends StatelessWidget {
+  final String text;
+  final TextStyle? style;
+
+  const _AnnouncementRichText({required this.text, this.style});
+
+  @override
+  Widget build(BuildContext context) => Text(text, style: style);
+}
+
 class _Field extends StatelessWidget {
   final TextEditingController controller;
   final String label;
@@ -1306,10 +1627,15 @@ String? _memberId(Map<String, dynamic> user) {
 class _MediaPlaceholder extends StatefulWidget {
   final String? storageKey;
   final String? announcementId;
+  final String? mediaUrl;
   final String? format;
   final String? alt;
   const _MediaPlaceholder(
-      {this.storageKey, this.announcementId, this.format, this.alt});
+      {this.storageKey,
+      this.announcementId,
+      this.mediaUrl,
+      this.format,
+      this.alt});
 
   @override
   State<_MediaPlaceholder> createState() => _MediaPlaceholderState();
@@ -1331,7 +1657,8 @@ class _MediaPlaceholderState extends State<_MediaPlaceholder> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _url = widget.mediaUrl;
+    if (_url == null || _url!.isEmpty) _load();
   }
 
   Future<void> _load() async {
@@ -1369,12 +1696,11 @@ class _MediaPlaceholderState extends State<_MediaPlaceholder> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Iconsax.image, color: Colors.grey),
-            if (widget.alt != null)
-              Text(widget.alt!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: AppColors.brandAccent)),
           ],
         ),
       ),
@@ -1391,7 +1717,15 @@ class _MediaPlaceholderState extends State<_MediaPlaceholder> {
               width: double.infinity,
               fit: BoxFit.fitWidth,
               placeholder: (_, __) => placeholder,
-              errorWidget: (_, __, ___) => placeholder,
+              errorWidget: (_, __, ___) => AspectRatio(
+                aspectRatio: 1.65,
+                child: Container(
+                  color: const Color(0xFFF7F7F7),
+                  alignment: Alignment.center,
+                  child: Icon(Iconsax.image,
+                      color: Colors.grey.shade400, size: 20),
+                ),
+              ),
             ),
     );
   }

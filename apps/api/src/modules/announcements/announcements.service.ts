@@ -1,7 +1,7 @@
 import { ulid } from 'ulid';
 
 import { prisma } from '../../lib/prisma';
-import { ConflictError, NotFoundError, ValidationError } from '../../lib/errors';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../lib/errors';
 import { cloudinary, getUploadSignature } from '../../lib/cloudinary';
 import { notify } from '../notifications/notifications.service';
 
@@ -119,6 +119,7 @@ export async function listAnnouncements(
     .then((items) =>
       items.map((item) => ({
         ...item,
+        content: withAnnouncementMediaUrls(item.content, organizationId),
         // Keep the API contract scalar and stable for the mobile optimistic toggle.
         my_reaction: item.reactions[0]?.reaction ?? null,
         // The query is newest-first for the limit; render the small preview oldest-first.
@@ -163,13 +164,62 @@ export function createAnnouncementMediaDownloadUrl(
     requestedFormat?.toLowerCase() ||
     (storageKey.includes('.') ? (storageKey.split('.').pop() ?? 'jpg') : 'jpg');
   return {
-    url: cloudinary.utils.private_download_url(storageKey, extension, {
+    url: cloudinary.url(storageKey, {
       resource_type: 'image',
       type: 'authenticated',
-      expires_at: Math.floor(Date.now() / 1000) + 300,
-      attachment: false,
+      format: extension,
+      secure: true,
+      sign_url: true,
     }),
   };
+}
+
+function withAnnouncementMediaUrls(content: unknown, organizationId: string) {
+  if (!Array.isArray(content)) return content;
+  return content.map((rawBlock) => {
+    if (!rawBlock || typeof rawBlock !== 'object') return rawBlock;
+    const block = rawBlock as Record<string, unknown>;
+    const storageKey = typeof block.storage_key === 'string' ? block.storage_key : null;
+    if (!storageKey || !['image', 'slide'].includes(String(block.type))) return rawBlock;
+    try {
+      return {
+        ...block,
+        media_url: createAnnouncementMediaDownloadUrl(
+          organizationId,
+          storageKey,
+          typeof block.format === 'string' ? block.format : undefined,
+        ).url,
+      };
+    } catch {
+      return rawBlock;
+    }
+  });
+}
+
+export async function getAnnouncementMediaContent(
+  organizationId: string,
+  branchId: string,
+  announcementId: string,
+  memberId: string,
+  permissions: Set<string>,
+) {
+  const managed = canManageAnnouncements(permissions);
+  const announcement = await prisma.announcement.findFirst({
+    where: {
+      id: announcementId,
+      organization_id: organizationId,
+      OR: [{ branch_id: branchId }, { branch_id: null }],
+      ...(managed
+        ? {}
+        : {
+            status: 'PUBLISHED',
+            recipients: { some: { member_id: memberId } },
+          }),
+    },
+    select: { content: true },
+  });
+  if (!announcement) throw new NotFoundError('Announcement');
+  return announcement.content;
 }
 
 async function materializeAnnouncementContent(
@@ -187,6 +237,13 @@ async function materializeAnnouncementContent(
   return Promise.all(
     content.map(async (block) => {
       if (!block.media_base64 || (block.type !== 'image' && block.type !== 'slide')) {
+        if (
+          block.storage_key &&
+          (!block.storage_key.startsWith(`${folder}/`) ||
+            block.storage_key.slice(folder.length + 1).includes('..'))
+        ) {
+          throw new ValidationError('Announcement media scope is invalid');
+        }
         return block;
       }
       const filename = block.media_filename ?? block.alt ?? 'announcement-image.jpg';
@@ -443,7 +500,12 @@ export async function publishAnnouncement(
     );
     const storageKey =
       media && typeof media === 'object' ? (media as { storage_key?: unknown }).storage_key : null;
-    if (typeof storageKey === 'string') notificationData.media_storage_key = storageKey;
+    if (typeof storageKey === 'string') {
+      notificationData.media_storage_key = storageKey;
+      const format =
+        media && typeof media === 'object' ? (media as { format?: unknown }).format : null;
+      if (typeof format === 'string') notificationData.media_format = format;
+    }
   }
   await notify({
     type: 'ANNOUNCEMENT_PUBLISHED',
@@ -457,7 +519,7 @@ export async function publishAnnouncement(
     body: published.body,
     data: notificationData,
     dedupeKey: `announcement:${published.id}:published`,
-  });
+  }).catch(() => undefined);
   return published;
 }
 
@@ -466,17 +528,25 @@ export async function cancelAnnouncement(
   branchId: string,
   id: string,
   actorUserId: string,
+  permissions: Set<string>,
 ) {
-  const result = await prisma.announcement.updateMany({
+  const announcement = await prisma.announcement.findFirst({
     where: {
       id,
       organization_id: organizationId,
       OR: [{ branch_id: branchId }, { branch_id: null }],
       status: { in: ['DRAFT', 'SCHEDULED', 'PUBLISHED'] },
     },
+    select: { id: true, created_by: true },
+  });
+  if (!announcement) throw new NotFoundError('Announcement');
+  const isAuthor = announcement.created_by === actorUserId;
+  const canDelete = permissions.has('ALL') || permissions.has('ANNOUNCEMENT_DELETE');
+  if (!isAuthor && !canDelete) throw new ForbiddenError('You cannot delete this announcement');
+  await prisma.announcement.update({
+    where: { id: announcement.id },
     data: { status: 'CANCELLED', updated_by: actorUserId },
   });
-  if (result.count !== 1) throw new NotFoundError('Announcement');
   await prisma.auditLog.create({
     data: {
       id: ulid(),

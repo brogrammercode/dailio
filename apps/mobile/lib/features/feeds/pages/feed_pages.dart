@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -11,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/media/cloudinary_media_upload.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/json_cache_store.dart';
 import '../../../core/storage/preferences_storage.dart';
@@ -18,6 +18,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_member_profile_sheet.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 
 class FeedTimeline extends StatefulWidget {
   final Map<String, dynamic> feed;
@@ -109,6 +110,40 @@ class _FeedTimelineState extends State<FeedTimeline> {
     await _load();
   }
 
+  Future<void> _react(Map<String, dynamic> post) async {
+    final org = _prefs.activeOrganizationId;
+    final id = post['id']?.toString();
+    if (org == null || id == null) return;
+    final index = _posts.indexWhere((item) => item['id']?.toString() == id);
+    if (index < 0) return;
+    final wasLiked = post['my_reaction'] == 'LIKE';
+    final count =
+        (post['_count'] is Map ? post['_count']['reactions'] : 0) as num? ?? 0;
+    final next = Map<String, dynamic>.from(post)
+      ..['my_reaction'] = wasLiked ? null : 'LIKE'
+      ..['_count'] = {
+        ...((post['_count'] is Map)
+            ? Map<String, dynamic>.from(post['_count'] as Map)
+            : <String, dynamic>{}),
+        'reactions':
+            wasLiked ? (count - 1).clamp(0, double.infinity) : count + 1,
+      };
+    setState(() => _posts[index] = next);
+    try {
+      if (wasLiked) {
+        await _api.dio
+            .delete('/organizations/$org/feeds/$_feedId/posts/$id/reaction');
+      } else {
+        await _api.dio.put(
+            '/organizations/$org/feeds/$_feedId/posts/$id/reaction',
+            data: {'reaction': 'LIKE'});
+      }
+      unawaited(_cache.clearKey(_cache.scopedKey(_cacheKey)));
+    } catch (_) {
+      if (mounted) setState(() => _posts[index] = post);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) return const FeedTimelineSkeleton();
@@ -141,7 +176,8 @@ class _FeedTimelineState extends State<FeedTimeline> {
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (_, index) => _FeedPostTile(
                       post: _posts[index],
-                      onTap: () => _openPost(_posts[index])),
+                      onTap: () => _openPost(_posts[index]),
+                      onReact: () => _react(_posts[index])),
                 ),
         ),
       ),
@@ -423,8 +459,11 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
   }
 
   Future<void> _addMedia({required bool slide}) async {
-    final file = await ImagePicker()
-        .pickImage(source: ImageSource.gallery, imageQuality: 82);
+    final file = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 78,
+        maxWidth: 1600,
+        maxHeight: 1600);
     if (file == null || !mounted) return;
     setState(() => _blocks.add({
           'type': slide ? 'slide' : 'image',
@@ -436,20 +475,27 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
   }
 
   Future<List<Map<String, dynamic>>> _blocksForSave() async {
-    final prepared = <Map<String, dynamic>>[];
-    for (final block in _blocks) {
+    final prepared = await Future.wait(_blocks.map((block) async {
       final localPath = block['local_file']?.toString();
       if (localPath == null || localPath.isEmpty) {
-        prepared.add(Map<String, dynamic>.from(block));
-        continue;
+        return Map<String, dynamic>.from(block);
       }
       final filename = block['alt']?.toString() ?? 'feed-image.jpg';
+      final uploaded = await uploadSignedCloudinaryImage(
+        api: _api.dio,
+        signaturePath:
+            '/organizations/${_prefs.activeOrganizationId}/feeds/media/upload-signature',
+        filename: filename,
+        filePath: localPath,
+      );
       final next = Map<String, dynamic>.from(block)
         ..remove('local_file')
-        ..['media_base64'] = base64Encode(await File(localPath).readAsBytes())
-        ..['media_filename'] = filename;
-      prepared.add(next);
-    }
+        ..remove('media_base64')
+        ..remove('media_filename')
+        ..['storage_key'] = uploaded['storage_key'];
+      if (uploaded['format'] != null) next['format'] = uploaded['format'];
+      return next;
+    }));
     return prepared;
   }
 
@@ -768,6 +814,7 @@ class FeedPostDetailPage extends StatefulWidget {
 
 class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
   late final ApiClient _api;
+  late final JsonCacheStore _cache;
   late final PreferencesStorage _prefs;
   Map<String, dynamic>? _post;
   List<Map<String, dynamic>> _comments = [];
@@ -781,6 +828,7 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
   void initState() {
     super.initState();
     _api = context.read<ApiClient>();
+    _cache = context.read<JsonCacheStore>();
     _prefs = context.read<PreferencesStorage>();
     unawaited(_load());
   }
@@ -937,6 +985,32 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
     }
   }
 
+  Future<void> _deletePost() async {
+    final org = _prefs.activeOrganizationId;
+    if (org == null) return;
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Delete post?',
+      message: 'This post will be removed from the feed for everyone.',
+      confirmLabel: 'Delete',
+      isDestructive: true,
+      icon: Iconsax.trash,
+    );
+    if (!confirmed || !mounted) return;
+    try {
+      await _api.dio.delete(
+          '/organizations/$org/feeds/${widget.feedId}/posts/${widget.postId}');
+      await _cache.clearKey(_cache.scopedKey(
+          'feed-posts:$org:${_prefs.activeBranchId}:${widget.feedId}'));
+      if (mounted) context.pop(true);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not delete post.')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final post = _post;
@@ -946,15 +1020,22 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
     final user = member['user'] is Map
         ? Map<String, dynamic>.from(member['user'])
         : <String, dynamic>{};
+    final isAuthor = user['id']?.toString() == _cache.userId ||
+        member['user_id']?.toString() == _cache.userId;
+    final canEdit = isAuthor ||
+        _prefs.hasPermission('FEED_UPDATE') ||
+        _prefs.hasPermission('FEED_MODERATE');
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: DailioSimpleAppBar(
           onBack: () => context.pop(),
           menuItems: [
-            if (_prefs.hasPermission('FEED_UPDATE') ||
-                _prefs.hasPermission('FEED_MODERATE'))
+            if (canEdit)
               const DailioMenuItem(
                   value: 'edit', icon: Iconsax.edit_2, label: 'Edit post'),
+            if (canEdit)
+              const DailioMenuItem(
+                  value: 'delete', icon: Iconsax.trash, label: 'Delete post'),
             const DailioMenuItem(
                 value: 'report', icon: Iconsax.flag, label: 'Report post')
           ],
@@ -964,6 +1045,7 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
                   .replaceFirst(':feedId', widget.feedId)
                   .replaceFirst(':postId', widget.postId));
             }
+            if (value == 'delete') _deletePost();
             if (value == 'report') _report();
           }),
       body: _loading
@@ -1217,6 +1299,7 @@ class _FeedContentMedia extends StatelessWidget {
                   storageKey: block['storage_key']?.toString(),
                   feedId: post['feed_id']?.toString(),
                   postId: post['id']?.toString(),
+                  mediaUrl: block['media_url']?.toString(),
                   format: block['format']?.toString(),
                   alt: block['alt']?.toString(),
                 ))
@@ -1230,12 +1313,14 @@ class _FeedMediaPlaceholder extends StatefulWidget {
   final String? storageKey;
   final String? feedId;
   final String? postId;
+  final String? mediaUrl;
   final String? format;
   final String? alt;
   const _FeedMediaPlaceholder({
     this.storageKey,
     this.feedId,
     this.postId,
+    this.mediaUrl,
     this.format,
     this.alt,
   });
@@ -1260,7 +1345,8 @@ class _FeedMediaPlaceholderState extends State<_FeedMediaPlaceholder> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _url = widget.mediaUrl;
+    if (_url == null || _url!.isEmpty) _load();
   }
 
   Future<void> _load() async {
@@ -1298,12 +1384,11 @@ class _FeedMediaPlaceholderState extends State<_FeedMediaPlaceholder> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Iconsax.image, color: Colors.grey),
-            if (widget.alt != null)
-              Text(widget.alt!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: AppColors.brandAccent)),
           ],
         ),
       ),
@@ -1317,7 +1402,15 @@ class _FeedMediaPlaceholderState extends State<_FeedMediaPlaceholder> {
               width: double.infinity,
               fit: BoxFit.fitWidth,
               placeholder: (_, __) => placeholder,
-              errorWidget: (_, __, ___) => placeholder,
+              errorWidget: (_, __, ___) => AspectRatio(
+                aspectRatio: 1.65,
+                child: Container(
+                  color: const Color(0xFFF7F7F7),
+                  alignment: Alignment.center,
+                  child: Icon(Iconsax.image,
+                      color: Colors.grey.shade400, size: 20),
+                ),
+              ),
             ),
     );
   }
@@ -1326,7 +1419,9 @@ class _FeedMediaPlaceholderState extends State<_FeedMediaPlaceholder> {
 class _FeedPostTile extends StatelessWidget {
   final Map<String, dynamic> post;
   final VoidCallback onTap;
-  const _FeedPostTile({required this.post, required this.onTap});
+  final VoidCallback onReact;
+  const _FeedPostTile(
+      {required this.post, required this.onTap, required this.onReact});
   @override
   Widget build(BuildContext context) {
     final member = post['member'] is Map
@@ -1335,64 +1430,135 @@ class _FeedPostTile extends StatelessWidget {
     final user = member['user'] is Map
         ? Map<String, dynamic>.from(member['user'])
         : <String, dynamic>{};
-    final read =
-        post['read_by'] is List && (post['read_by'] as List).isNotEmpty;
+    final reactions =
+        (post['_count'] is Map ? post['_count']['reactions'] : 0) as num? ?? 0;
+    final comments =
+        (post['_count'] is Map ? post['_count']['comments'] : 0) as num? ?? 0;
+    final previews =
+        (post['comments'] is List ? post['comments'] as List : const [])
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
     return InkWell(
         onTap: onTap,
         child: Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _FeedAvatar(
-                  url: user['avatar_url']?.toString(),
-                  name: user['name']?.toString() ?? 'Member',
-                  onTap: member['id'] == null
-                      ? null
-                      : () => showDailioMemberProfileSheet(
-                            context,
-                            DailioMemberPreview(
-                              memberId: member['id'].toString(),
-                              name: user['name']?.toString() ?? 'Member',
-                              avatarUrl: user['avatar_url']?.toString(),
-                            ),
-                          )),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    Row(children: [
-                      Expanded(
-                          child: Text(user['name']?.toString() ?? 'Member',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w700))),
+            padding: const EdgeInsets.only(bottom: 12),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                _FeedAvatar(
+                    url: user['avatar_url']?.toString(),
+                    name: user['name']?.toString() ?? 'Member',
+                    onTap: member['id'] == null
+                        ? null
+                        : () => showDailioMemberProfileSheet(
+                              context,
+                              DailioMemberPreview(
+                                memberId: member['id'].toString(),
+                                name: user['name']?.toString() ?? 'Member',
+                                avatarUrl: user['avatar_url']?.toString(),
+                              ),
+                            )),
+                const SizedBox(width: 9),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text(user['name']?.toString() ?? 'Member',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 14)),
                       Text(_date(post['created_at']),
                           style: TextStyle(
-                              fontSize: 11, color: Colors.grey.shade600))
-                    ]),
-                    const SizedBox(height: 4),
-                    Text(post['title']?.toString() ?? '',
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 3),
-                    _FeedRichText(
-                        text: post['body']?.toString() ?? '',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.grey.shade700)),
-                    _FeedContentMedia(post: post, maxItems: 1),
-                    const SizedBox(height: 7),
-                    Row(children: [
-                      Icon(read ? Iconsax.tick_circle : Iconsax.message,
-                          size: 15,
-                          color: read ? Colors.green : AppColors.brandAccent),
-                      const SizedBox(width: 4),
-                      Text(read ? 'Read' : 'New',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color:
-                                  read ? Colors.green : AppColors.brandAccent))
-                    ])
-                  ]))
+                              color: Colors.grey.shade600, fontSize: 11)),
+                    ])),
+                const Icon(Iconsax.more, size: 18),
+              ]),
+              const SizedBox(height: 8),
+              Text(post['title']?.toString() ?? 'Post',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 16)),
+              const SizedBox(height: 4),
+              _FeedRichText(
+                  text: post['body']?.toString() ?? '',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.grey.shade800, height: 1.35)),
+              _FeedContentMedia(post: post, maxItems: null),
+              const SizedBox(height: 7),
+              Row(children: [
+                InkWell(
+                    onTap: onReact,
+                    child: Row(children: [
+                      Icon(
+                          post['my_reaction'] == 'LIKE'
+                              ? Iconsax.heart5
+                              : Iconsax.heart,
+                          size: 20,
+                          color: post['my_reaction'] == 'LIKE'
+                              ? AppColors.brandAccent
+                              : Colors.black87),
+                      const SizedBox(width: 5),
+                      Text('$reactions', style: const TextStyle(fontSize: 12)),
+                    ])),
+                const SizedBox(width: 18),
+                InkWell(
+                    onTap: onTap,
+                    child: Row(children: [
+                      const Icon(Iconsax.message_text, size: 19),
+                      const SizedBox(width: 5),
+                      Text('$comments', style: const TextStyle(fontSize: 12)),
+                    ])),
+                const Spacer(),
+                Text('View details',
+                    style: TextStyle(
+                        color: AppColors.brandAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+              ]),
+              if (previews.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                ...previews
+                    .map((comment) => _FeedCommentPreview(comment: comment)),
+              ],
+              const SizedBox(height: 12),
+              Divider(height: 1, color: Colors.grey.shade200),
             ])));
+  }
+}
+
+class _FeedCommentPreview extends StatelessWidget {
+  final Map<String, dynamic> comment;
+  const _FeedCommentPreview({required this.comment});
+
+  @override
+  Widget build(BuildContext context) {
+    final member = comment['member'] is Map
+        ? Map<String, dynamic>.from(comment['member'])
+        : <String, dynamic>{};
+    final user = member['user'] is Map
+        ? Map<String, dynamic>.from(member['user'])
+        : <String, dynamic>{};
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Row(children: [
+        _FeedAvatar(
+            url: user['avatar_url']?.toString(),
+            name: user['name']?.toString() ?? 'Member',
+            size: 20),
+        const SizedBox(width: 7),
+        Expanded(
+            child: Text.rich(
+                TextSpan(children: [
+                  TextSpan(
+                      text: '${user['name']?.toString() ?? 'Member'}  ',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  TextSpan(text: comment['body']?.toString() ?? ''),
+                ]),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade800))),
+      ]),
+    );
   }
 }
 

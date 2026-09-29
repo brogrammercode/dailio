@@ -49,13 +49,66 @@ export function createFeedMediaDownloadUrl(
     requestedFormat?.toLowerCase() ||
     (storageKey.includes('.') ? (storageKey.split('.').pop() ?? 'jpg') : 'jpg');
   return {
-    url: cloudinary.utils.private_download_url(storageKey, extension, {
+    url: cloudinary.url(storageKey, {
       resource_type: 'image',
       type: 'authenticated',
-      expires_at: Math.floor(Date.now() / 1000) + 300,
-      attachment: false,
+      format: extension,
+      secure: true,
+      sign_url: true,
     }),
   };
+}
+
+function withFeedMediaUrls(content: unknown, organizationId: string, branchId: string) {
+  if (!Array.isArray(content)) return content;
+  return content.map((rawBlock) => {
+    if (!rawBlock || typeof rawBlock !== 'object') return rawBlock;
+    const block = rawBlock as Record<string, unknown>;
+    const storageKey = typeof block.storage_key === 'string' ? block.storage_key : null;
+    if (!storageKey || !['image', 'slide'].includes(String(block.type))) return rawBlock;
+    try {
+      return {
+        ...block,
+        media_url: createFeedMediaDownloadUrl(
+          organizationId,
+          branchId,
+          storageKey,
+          typeof block.format === 'string' ? block.format : undefined,
+        ).url,
+      };
+    } catch {
+      return rawBlock;
+    }
+  });
+}
+
+export async function getFeedMediaContent(
+  organizationId: string,
+  branchId: string,
+  feedId: string,
+  postId: string,
+  memberId: string,
+  permissions: Set<string>,
+) {
+  const managed = canManage(permissions);
+  const post = await prisma.feedPost.findFirst({
+    where: {
+      id: postId,
+      feed_id: feedId,
+      organization_id: organizationId,
+      branch_id: branchId,
+      status: 'ACTIVE',
+      ...(managed
+        ? {}
+        : {
+            OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }],
+            feed: { participants: { some: { member_id: memberId, removed_at: null } } },
+          }),
+    },
+    select: { content: true },
+  });
+  if (!post) throw new NotFoundError('Feed post');
+  return post.content;
 }
 
 async function materializeFeedContent(
@@ -67,6 +120,13 @@ async function materializeFeedContent(
   return Promise.all(
     content.map(async (block) => {
       if (!block.media_base64 || (block.type !== 'image' && block.type !== 'slide')) {
+        if (
+          block.storage_key &&
+          (!block.storage_key.startsWith(`${folder}/`) ||
+            block.storage_key.slice(folder.length + 1).includes('..'))
+        ) {
+          throw new ValidationError('Feed media scope is invalid');
+        }
         return block;
       }
       const filename = block.media_filename ?? block.alt ?? 'feed-image.jpg';
@@ -142,7 +202,7 @@ async function safeFeedUserIds(feedId: string, excludeUserId?: string) {
   }
 }
 
-function notifyFeedUsers(
+async function notifyFeedUsers(
   type: string,
   organizationId: string,
   branchId: string,
@@ -152,9 +212,10 @@ function notifyFeedUsers(
   body: string,
   actorUserId?: string,
   dedupeSuffix?: string,
+  extraData: Record<string, string> = {},
 ) {
   if (recipientUserIds.length === 0) return;
-  void notify({
+  await notify({
     type,
     organizationId,
     branchId,
@@ -165,7 +226,7 @@ function notifyFeedUsers(
     title,
     body,
     dedupeKey: `${type}:${feedId}:${dedupeSuffix ?? feedId}`,
-    data: { feed_id: feedId },
+    data: { feed_id: feedId, ...extraData },
   }).catch((error: unknown) => {
     logger.warn('Feed notification delivery failed', {
       event_type: type,
@@ -288,7 +349,7 @@ export async function createFeed(
     });
     return created;
   });
-  notifyFeedUsers(
+  await notifyFeedUsers(
     'FEED_CREATED',
     organizationId,
     branchId,
@@ -357,7 +418,7 @@ export async function addParticipant(
     });
     return result;
   });
-  notifyFeedUsers(
+  await notifyFeedUsers(
     'FEED_PARTICIPANT_ADDED',
     organizationId,
     branchId,
@@ -428,7 +489,7 @@ export async function disbandFeed(
     });
     return result;
   });
-  notifyFeedUsers(
+  await notifyFeedUsers(
     'FEED_DISBANDED',
     organizationId,
     branchId,
@@ -456,9 +517,8 @@ export async function listPosts(
       organization_id: organizationId,
       branch_id: branchId,
       feed_id: feed.id,
-      ...(managed
-        ? {}
-        : { status: 'ACTIVE', OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }] }),
+      status: 'ACTIVE',
+      ...(managed ? {} : { OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }] }),
     },
     include: {
       member: {
@@ -469,14 +529,26 @@ export async function listPosts(
       },
       read_by: { where: { member_id: memberId }, select: { read_at: true } },
       reactions: { where: { member_id: memberId }, select: { reaction: true } },
+      comments: {
+        where: { deleted_at: null },
+        orderBy: { created_at: 'desc' },
+        take: 3,
+        include: {
+          member: {
+            include: { user: { select: { id: true, name: true, avatar_url: true } } },
+          },
+        },
+      },
       _count: { select: { reactions: true, comments: true, reports: true } },
     },
     orderBy: { created_at: 'desc' },
   });
   return posts.map((post) => ({
     ...post,
+    content: withFeedMediaUrls(post.content, organizationId, branchId),
     my_reaction: post.reactions[0]?.reaction ?? null,
     is_read: post.read_by.length > 0,
+    comments: [...post.comments].reverse(),
   }));
 }
 
@@ -511,6 +583,7 @@ export async function getPost(
     throw new NotFoundError('Feed post');
   return {
     ...post,
+    content: withFeedMediaUrls(post.content, organizationId, branchId),
     my_reaction: post.reactions[0]?.reaction ?? null,
   };
 }
@@ -563,7 +636,7 @@ export async function createPost(
     });
     return post;
   });
-  notifyFeedUsers(
+  await notifyFeedUsers(
     'FEED_POSTED',
     organizationId,
     branchId,
@@ -573,6 +646,25 @@ export async function createPost(
     created.body.slice(0, 180),
     actorUserId,
     created.id,
+    (() => {
+      const media = Array.isArray(created.content)
+        ? created.content.find(
+            (block) =>
+              block &&
+              typeof block === 'object' &&
+              ['image', 'slide'].includes(String((block as { type?: unknown }).type)) &&
+              typeof (block as { storage_key?: unknown }).storage_key === 'string',
+          )
+        : null;
+      if (!media || typeof media !== 'object') return { post_id: created.id };
+      return {
+        post_id: created.id,
+        media_storage_key: String((media as { storage_key: string }).storage_key),
+        ...(typeof (media as { format?: unknown }).format === 'string'
+          ? { media_format: String((media as { format: string }).format) }
+          : {}),
+      };
+    })(),
   );
   return created;
 }
@@ -622,6 +714,41 @@ export async function updatePost(
   return updated;
 }
 
+export async function deletePost(
+  organizationId: string,
+  branchId: string,
+  feedId: string,
+  postId: string,
+  memberId: string,
+  actorUserId: string,
+  permissions: Set<string>,
+) {
+  const post = await getPost(organizationId, branchId, feedId, postId, memberId, permissions);
+  const isAuthor = post.member.user_id === actorUserId;
+  if (!isAuthor && !canModerate(permissions) && !permissions.has('FEED_UPDATE')) {
+    throw new ForbiddenError('You cannot delete this feed post');
+  }
+  return prisma.$transaction(async (tx) => {
+    const result = await tx.feedPost.update({
+      where: { id: postId },
+      data: { status: 'HIDDEN' },
+    });
+    await tx.auditLog.create({
+      data: {
+        id: ulid(),
+        organization_id: organizationId,
+        branch_id: branchId,
+        actor_id: actorUserId,
+        action: 'ARCHIVE',
+        target_type: 'FeedPost',
+        target_id: postId,
+        after_state: { feed_id: feedId, status: 'HIDDEN' },
+      },
+    });
+    return result;
+  });
+}
+
 export async function markPostRead(
   organizationId: string,
   branchId: string,
@@ -662,7 +789,7 @@ export async function setReaction(
     update: { reaction: input.reaction },
   });
   if (post.member.user_id !== actorUserId)
-    notifyFeedUsers(
+    await notifyFeedUsers(
       'FEED_REACTED',
       organizationId,
       branchId,
@@ -766,7 +893,7 @@ export async function createComment(
       // The comment is already committed; delivery must remain best effort.
     }
   }
-  notifyFeedUsers(
+  await notifyFeedUsers(
     'FEED_COMMENTED',
     organizationId,
     branchId,
@@ -844,7 +971,7 @@ export async function reportPost(
   } catch {
     // A committed report must not become a 500 when notification fan-out is unavailable.
   }
-  notifyFeedUsers(
+  await notifyFeedUsers(
     'FEED_REPORTED',
     organizationId,
     branchId,

@@ -306,8 +306,10 @@ model Member {
 
   @@unique([organization_id, branch_id, user_id])
   @@index([organization_id, branch_id])
+  @@index([organization_id, branch_id, status, created_at])
   @@index([organization_id, branch_id, manager_member_id])
   @@index([user_id])
+  @@index([user_id, status])
   @@map("members")
 }
 
@@ -773,6 +775,7 @@ model Subscription {
   payment_requests PaymentRequest[]
 
   @@index([organization_id, branch_id])
+  @@index([organization_id, branch_id, member_id, status, end_date])
   @@index([member_id])
   @@map("subscriptions")
 }
@@ -803,6 +806,7 @@ model LedgerEntry {
   allocations  PaymentAllocation[]
 
   @@index([organization_id, branch_id])
+  @@index([organization_id, branch_id, member_id, subscription_id])
   @@index([member_id])
   @@map("ledger_entries")
 }
@@ -862,6 +866,7 @@ model PaymentRequest {
   evidence        PaymentEvidence[]
 
   @@index([organization_id, branch_id, status])
+  @@index([organization_id, branch_id, member_id, status, created_at])
   @@index([member_id, status])
   @@index([subscription_id])
   @@map("payment_requests")
@@ -973,6 +978,7 @@ model Announcement {
   comments     AnnouncementComment[]
 
   @@index([organization_id])
+  @@index([organization_id, branch_id, status, created_at])
   @@map("announcements")
 }
 
@@ -1106,6 +1112,7 @@ model FeedPost {
   reports      FeedReport[]
 
   @@index([organization_id, branch_id, feed_id, created_at])
+  @@index([organization_id, branch_id, feed_id, status, created_at])
   @@index([feed_id, status, expires_at])
   @@map("feed_posts")
 }
@@ -1235,6 +1242,7 @@ model Notification {
   deliveries NotificationDelivery[]
 
   @@index([user_id, created_at])
+  @@index([user_id, read_at, created_at])
   @@index([organization_id, branch_id, created_at])
   @@index([event_type, entity_id])
   @@map("notifications")

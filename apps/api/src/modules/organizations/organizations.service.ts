@@ -311,10 +311,59 @@ export async function getOrganization(organization_id: string, user_id: string) 
 export async function getUserOrganizations(user_id: string) {
   const members = await prisma.member.findMany({
     where: { user_id, status: 'ACTIVE' },
-    include: {
-      organization: true,
-      branch: true,
-      role: true,
+    select: {
+      id: true,
+      organization_id: true,
+      user_id: true,
+      branch_id: true,
+      status: true,
+      organization: {
+        select: {
+          id: true,
+          type: true,
+          name: true,
+          slug: true,
+          email: true,
+          phone: true,
+          address: true,
+          logo_url: true,
+          timezone: true,
+          currency: true,
+          status: true,
+        },
+      },
+      branch: {
+        select: {
+          id: true,
+          organization_id: true,
+          name: true,
+          address: true,
+          city: true,
+          state: true,
+          country: true,
+          postal_code: true,
+          latitude: true,
+          longitude: true,
+          phone: true,
+          email: true,
+          timezone: true,
+          status: true,
+          week_start: true,
+        },
+      },
+      role: {
+        select: {
+          id: true,
+          organization_id: true,
+          branch_id: true,
+          system_key: true,
+          name: true,
+          description: true,
+          is_protected: true,
+          is_system: true,
+          permissions: true,
+        },
+      },
     },
   });
 

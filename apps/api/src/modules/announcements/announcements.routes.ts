@@ -53,7 +53,7 @@ router.post(
   '/:organization_id/announcements/:announcement_id/cancel',
   authenticate,
   resolveTenantContext,
-  requirePermission('ANNOUNCEMENT_DELETE'),
+  requirePermission('ANNOUNCEMENT_READ'),
   cancelAnnouncement,
 );
 router.post(

@@ -9,6 +9,7 @@ import type {
   CreateAnnouncementCommentInput,
   SetAnnouncementReactionInput,
 } from './announcements.schema';
+import { createAnnouncementMediaDownloadUrl } from './announcements.service';
 
 function canManage(permissions: Set<string>) {
   return (
@@ -52,7 +53,27 @@ async function getAccessibleAnnouncement(
     where: { announcement_id_user_id: { announcement_id: announcementId, user_id: userId } },
     select: { reaction: true },
   });
-  return { ...announcement, my_reaction: myReaction?.reaction ?? null };
+  const content = Array.isArray(announcement.content)
+    ? announcement.content.map((rawBlock) => {
+        if (!rawBlock || typeof rawBlock !== 'object') return rawBlock;
+        const block = rawBlock as Record<string, unknown>;
+        const storageKey = typeof block.storage_key === 'string' ? block.storage_key : null;
+        if (!storageKey || !['image', 'slide'].includes(String(block.type))) return rawBlock;
+        try {
+          return {
+            ...block,
+            media_url: createAnnouncementMediaDownloadUrl(
+              organizationId,
+              storageKey,
+              typeof block.format === 'string' ? block.format : undefined,
+            ).url,
+          };
+        } catch {
+          return rawBlock;
+        }
+      })
+    : announcement.content;
+  return { ...announcement, content, my_reaction: myReaction?.reaction ?? null };
 }
 
 export async function getAnnouncement(

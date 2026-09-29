@@ -848,3 +848,17 @@ This status is intentionally conservative: repository implementation is complete
 - `[x]` API type-check, targeted lint, notification/job tests, and Flutter analysis passed after this pass.
 - `[manual]` Real SMTP attachment delivery, Cloudinary media retrieval, WhatsApp installation/phone launch, PDF visual rendering, and physical-device profile zoom remain release acceptance checks.
 
+### 29 September 2026 - FCM runtime verification and permission fix
+
+- `[x]` Confirmed the Android Firebase package, Firebase project, sender ID, and API Firebase Admin project are aligned (`com.example.mobile` / `oorg-62783`).
+- `[x]` Confirmed the API Firebase Admin credential loads and messaging is available without logging secrets.
+- `[x]` Confirmed the configured database contains a registered device token; no-token registration was not the current failure.
+- `[x]` Sent a controlled server-side FCM smoke notification through the real Firebase Admin client; Firebase accepted it and returned a provider message ID.
+- `[x]` Split mobile notification initialization into independently logged Firebase, local-channel, permission, listener, initial-message, and token stages.
+- `[x]` Added explicit Android 13+ `POST_NOTIFICATIONS` permission request through the local-notifications plugin, while retaining Firebase permission handling for iOS and final authorization state.
+- `[x]` Moved notification initialization to the first rendered app frame so the permission prompt is visible and cannot be hidden by pre-`runApp` startup work.
+- `[x]` Added one-time initialization/listener guards and token synchronization immediately after token acquisition and refresh.
+- `[x]` Made Feed and announcement post notification fan-out await the durable notification write/delivery path, preventing Vercel serverless completion from dropping push/in-app work.
+- `[x]` `flutter analyze`, Flutter tests, API type-check/build, and Android debug APK build pass.
+- `[manual]` No Android device was connected to this workspace, so on-device prompt appearance, notification tray display, foreground display, and tap-through still require installing the rebuilt APK on a physical/emulated Android device. If permission was already denied for the installed app, enable Dailio notifications in Android Settings or uninstall/reinstall before retesting.
+

@@ -26,8 +26,59 @@ class NotificationRuntime {
   static String? _latestToken;
   static Future<void> Function(String token)? _tokenSync;
   static Future<void> Function()? _inboxRefresh;
+  static Future<void>? _initializationFuture;
+  static bool _firebaseReady = false;
+  static bool _localReady = false;
+  static bool _listenersRegistered = false;
 
-  static Future<void> initialize() async {
+  static Future<void> initialize() {
+    return _initializationFuture ??= _initialize();
+  }
+
+  static Future<void> _initialize() async {
+    if (!await _initializeFirebase()) return;
+
+    try {
+      await _initializeLocalNotifications();
+    } catch (error) {
+      debugPrint(
+          '[Dailio.NOTIFICATIONS] local notifications unavailable: $error');
+      // FCM can still deliver system notifications when local notification
+      // setup fails, so continue with Firebase Messaging below.
+    }
+
+    try {
+      await _requestPermission();
+    } catch (error) {
+      debugPrint('[Dailio.NOTIFICATIONS] permission request failed: $error');
+    }
+
+    try {
+      await _messaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    } catch (error) {
+      debugPrint(
+          '[Dailio.NOTIFICATIONS] foreground presentation unavailable: $error');
+    }
+
+    _registerListeners();
+
+    try {
+      final initialMessage = await _messaging.getInitialMessage();
+      if (initialMessage != null) _handleTap(initialMessage.data);
+    } catch (error) {
+      debugPrint('[Dailio.NOTIFICATIONS] initial message unavailable: $error');
+    }
+
+    await _loadAndSyncToken();
+    debugPrint('[Dailio.NOTIFICATIONS] runtime ready');
+  }
+
+  static Future<bool> _initializeFirebase() async {
+    if (_firebaseReady) return true;
     try {
       if (Firebase.apps.isEmpty) {
         await Firebase.initializeApp(
@@ -37,64 +88,95 @@ class NotificationRuntime {
       FirebaseMessaging.onBackgroundMessage(
         firebaseMessagingBackgroundHandler,
       );
-
-      const android = AndroidInitializationSettings('launcher_icon');
-      const ios = DarwinInitializationSettings();
-      await _local.initialize(
-        const InitializationSettings(android: android, iOS: ios),
-        onDidReceiveNotificationResponse: (response) {
-          final payload = response.payload;
-          if (payload == null || payload.isEmpty) return;
-          _handleTap(_decode(payload));
-        },
-      );
-
-      const channel = AndroidNotificationChannel(
-        'dailio_general',
-        'Dailio notifications',
-        description: 'Operational notifications from Dailio',
-        importance: Importance.high,
-      );
-      await _local
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(channel);
-
-      final settings = await _messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: false,
-      );
-      if (settings.authorizationStatus == AuthorizationStatus.denied) {
-        debugPrint('[Dailio.NOTIFICATIONS] notification permission denied');
-      }
-      await _messaging.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-
-      _messaging.onTokenRefresh.listen((token) {
-        _latestToken = token;
-        final sync = _tokenSync;
-        if (sync != null) {
-          sync(token).catchError((error) {
-            debugPrint('[Dailio.NOTIFICATIONS] token sync failed: $error');
-          });
-        }
-      });
-      FirebaseMessaging.onMessage.listen(_showForegroundNotification);
-      FirebaseMessaging.onMessageOpenedApp.listen((message) {
-        _handleTap(message.data);
-      });
-
-      final initialMessage = await _messaging.getInitialMessage();
-      if (initialMessage != null) _pendingTap = initialMessage.data;
-      _latestToken = await _messaging.getToken();
+      _firebaseReady = true;
+      debugPrint('[Dailio.NOTIFICATIONS] Firebase Messaging ready');
+      return true;
     } catch (error) {
-      debugPrint('[Dailio.NOTIFICATIONS] initialization skipped: $error');
+      debugPrint(
+          '[Dailio.NOTIFICATIONS] Firebase initialization failed: $error');
+      return false;
     }
+  }
+
+  static Future<void> _initializeLocalNotifications() async {
+    const android = AndroidInitializationSettings('launcher_icon');
+    const ios = DarwinInitializationSettings();
+    await _local.initialize(
+      const InitializationSettings(android: android, iOS: ios),
+      onDidReceiveNotificationResponse: (response) {
+        final payload = response.payload;
+        if (payload == null || payload.isEmpty) return;
+        _handleTap(_decode(payload));
+      },
+    );
+
+    const channel = AndroidNotificationChannel(
+      'dailio_general',
+      'Dailio notifications',
+      description: 'Operational notifications from Dailio',
+      importance: Importance.high,
+    );
+    final androidPlugin = _local.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await androidPlugin?.createNotificationChannel(channel);
+    _localReady = true;
+  }
+
+  static Future<void> _requestPermission() async {
+    // flutter_local_notifications explicitly requests POST_NOTIFICATIONS on
+    // Android 13+. Firebase's requestPermission covers iOS and also returns
+    // the final Android authorization state. Keeping both calls makes the
+    // behavior reliable across Android plugin versions and fresh installs.
+    final androidPlugin = _local.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await androidPlugin?.requestNotificationsPermission();
+
+    final settings = await _messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+    debugPrint(
+      '[Dailio.NOTIFICATIONS] authorization: ${settings.authorizationStatus.name}',
+    );
+  }
+
+  static void _registerListeners() {
+    if (_listenersRegistered) return;
+    _listenersRegistered = true;
+    _messaging.onTokenRefresh.listen((token) {
+      _latestToken = token;
+      _syncToken(token);
+    });
+    FirebaseMessaging.onMessage.listen(_showForegroundNotification);
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      _handleTap(message.data);
+    });
+  }
+
+  static Future<void> _loadAndSyncToken() async {
+    try {
+      _latestToken = await _messaging.getToken();
+      if (_latestToken != null) {
+        debugPrint(
+          '[Dailio.NOTIFICATIONS] FCM token available (${_latestToken!.length} chars)',
+        );
+        _syncToken(_latestToken!);
+      } else {
+        debugPrint('[Dailio.NOTIFICATIONS] FCM token is not available yet');
+      }
+    } catch (error) {
+      debugPrint('[Dailio.NOTIFICATIONS] FCM token unavailable: $error');
+    }
+  }
+
+  static void _syncToken(String token) {
+    final sync = _tokenSync;
+    if (sync == null) return;
+    sync(token).catchError((error) {
+      debugPrint('[Dailio.NOTIFICATIONS] token sync failed: $error');
+    });
   }
 
   static void setRouter(GoRouter router) {
@@ -125,13 +207,15 @@ class NotificationRuntime {
 
   static Future<String?> getToken() async {
     if (_latestToken != null) return _latestToken;
+    if (!_firebaseReady && !await _initializeFirebase()) return null;
     try {
       _latestToken = await _messaging.getToken();
       if (_latestToken != null) {
         debugPrint(
             '[Dailio.NOTIFICATIONS] FCM token available (${_latestToken!.length} chars)');
       }
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[Dailio.NOTIFICATIONS] FCM token unavailable: $error');
       return null;
     }
     return _latestToken;
@@ -141,7 +225,7 @@ class NotificationRuntime {
     NotificationBadgeController.increment();
     await _inboxRefresh?.call();
     final notification = message.notification;
-    if (notification == null) return;
+    if (notification == null || !_localReady) return;
     await _local.show(
       notification.hashCode,
       notification.title ?? 'Dailio',

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -15,7 +17,6 @@ import 'core/network/interceptors/auth_interceptor.dart';
 import 'core/network/interceptors/tenant_interceptor.dart';
 import 'core/router/route_names.dart';
 import 'core/utils/branch_time.dart';
-import 'core/notifications/notification_runtime.dart';
 
 import 'features/auth/controllers/auth_repository.dart';
 import 'features/context_selection/controllers/branch_repository.dart';
@@ -79,7 +80,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   BranchTime.initialize();
   await dotenv.load(fileName: ".env");
-  await NotificationRuntime.initialize();
   configureDependencies();
 
   // Set up global Bloc observer

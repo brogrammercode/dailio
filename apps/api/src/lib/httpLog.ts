@@ -167,8 +167,11 @@ function colourForStatus(status: number) {
   return networkErrorColour;
 }
 
-function sanitize(value: unknown, key?: string, seen = new WeakSet<object>()): unknown {
+function sanitize(value: unknown, key?: string, seen = new WeakSet<object>(), depth = 0): unknown {
   if (key && isSensitiveKey(key)) return '[REDACTED]';
+  // Do not recursively walk arbitrarily large editor/media payloads merely to
+  // print a diagnostic request line. This keeps logging from adding latency.
+  if (depth > 6) return '[TRUNCATED]';
   if (
     value === null ||
     value === undefined ||
@@ -185,12 +188,18 @@ function sanitize(value: unknown, key?: string, seen = new WeakSet<object>()): u
   if (seen.has(value)) return '[CIRCULAR]';
   seen.add(value);
 
-  if (Array.isArray(value)) return value.map((item) => sanitize(item, undefined, seen));
+  if (Array.isArray(value)) {
+    const items = value.slice(0, 50).map((item) => sanitize(item, undefined, seen, depth + 1));
+    if (value.length > items.length) items.push(`[${value.length - items.length} more items]`);
+    return items;
+  }
 
   const result: Record<string, unknown> = {};
-  for (const [entryKey, entryValue] of Object.entries(value)) {
-    result[entryKey] = sanitize(entryValue, entryKey, seen);
+  const entries = Object.entries(value);
+  for (const [entryKey, entryValue] of entries.slice(0, 50)) {
+    result[entryKey] = sanitize(entryValue, entryKey, seen, depth + 1);
   }
+  if (entries.length > 50) result._truncated_fields = entries.length - 50;
   return result;
 }
 

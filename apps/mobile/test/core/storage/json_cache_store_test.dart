@@ -71,4 +71,25 @@ void main() {
     await store.clearAll();
     expect(await store.read(userOneKey), isNull);
   });
+
+  test('does not restore stale data after a key is invalidated', () async {
+    final store = JsonCacheStore(directoryProvider: () async => root)
+      ..setUserId('user-1');
+    final key = store.scopedKey('feed-posts:feed-1');
+    await store.write(key, 'old', scope: 'branch:branch-1');
+    final refreshGate = Completer<String>();
+
+    final cachedLoad = store.load<String>(
+      key: key,
+      scope: 'branch:branch-1',
+      fetch: () => refreshGate.future,
+      decode: (payload) => payload.toString(),
+    );
+    expect(await cachedLoad, 'old');
+    await store.clearKey(key);
+    refreshGate.complete('stale');
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(await store.read(key), isNull);
+  });
 }

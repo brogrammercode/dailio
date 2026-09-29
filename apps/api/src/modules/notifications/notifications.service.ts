@@ -84,6 +84,29 @@ function deliveryDedupeKey(event: NotificationEvent, userId: string) {
   return `${event.dedupeKey}:user:${userId}`;
 }
 
+/**
+ * Fan-out is deliberately bounded. A branch can have hundreds of recipients,
+ * while the API commonly runs with a small PostgreSQL pool. Unbounded
+ * Promise.all here would make a notification slow down unrelated requests by
+ * exhausting every available connection.
+ */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<R>,
+) {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  const run = async () => {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await worker(items[index]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(Math.max(concurrency, 1), items.length) }, run));
+  return results;
+}
+
 function defaultEmailHtml(event: NotificationEvent, mediaCid?: string) {
   const media = mediaCid
     ? `<div style="margin:20px 0"><img src="cid:${mediaCid}" alt="Related image" style="display:block;width:100%;max-width:560px;height:auto;border-radius:12px" /></div>`
@@ -106,12 +129,13 @@ async function resolveNotificationMedia(event: NotificationEvent) {
   if (event.branchId && !storageKey.includes(`/branches/${event.branchId}/`)) return null;
 
   try {
-    const extension = mediaExtension(storageKey);
-    const url = cloudinary.utils.private_download_url(storageKey, extension, {
+    const extension = event.data?.media_format?.toLowerCase() ?? mediaExtension(storageKey);
+    const url = cloudinary.url(storageKey, {
       resource_type: 'image',
       type: 'authenticated',
-      expires_at: Math.floor(Date.now() / 1000) + 300,
-      attachment: false,
+      format: extension,
+      secure: true,
+      sign_url: true,
     });
     const response = await fetch(url, { signal: AbortSignal.timeout(5_000) });
     if (!response.ok) return null;
@@ -430,7 +454,10 @@ export async function notify(event: NotificationEvent) {
     }
   }
 
-  for (const user of users) {
+  // Create every in-app row before external delivery. This guarantees that a
+  // slow SMTP/FCM provider cannot delay or prevent the inbox notification for
+  // later recipients.
+  const notificationRows = await mapWithConcurrency(users, 8, async (user) => {
     const dedupeKey = deliveryDedupeKey(notificationEvent, user.id);
     const notification = await prisma.notification.upsert({
       where: { dedupe_key: dedupeKey },
@@ -451,10 +478,13 @@ export async function notify(event: NotificationEvent) {
       },
       update: {},
     });
+    return { notification, user };
+  });
 
-    created += 1;
-    await deliverNotification(notificationEvent, notification.id, user);
-  }
+  created = notificationRows.length;
+  await mapWithConcurrency(notificationRows, 4, ({ notification, user }) =>
+    deliverNotification(notificationEvent, notification.id, user),
+  );
 
   skipped = uniqueRecipientIds.length - users.length;
   return { created, skipped };

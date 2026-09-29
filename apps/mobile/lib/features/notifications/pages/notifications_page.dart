@@ -344,9 +344,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
       final announcementId =
           data?['entity_id']?.toString() ?? item['entity_id']?.toString();
       final organizationId = data?['organization_id']?.toString();
+      final feedId = data?['feed_id']?.toString();
+      final postId = data?['post_id']?.toString();
       final itemId = item['id']?.toString();
       if (storageKey == null ||
-          announcementId == null ||
+          (announcementId == null && (feedId == null || postId == null)) ||
           organizationId == null ||
           itemId == null ||
           _resolvedImages.containsKey(itemId)) {
@@ -354,13 +356,26 @@ class _NotificationsPageState extends State<NotificationsPage> {
       }
       requests.add(() async {
         try {
-          final response = await _api.dio.get(
-            '/organizations/$organizationId/announcements/media-url',
-            queryParameters: {
-              'storage_key': storageKey,
-              'announcement_id': announcementId,
-            },
-          );
+          final response = feedId != null && postId != null
+              ? await _api.dio.get(
+                  '/organizations/$organizationId/feeds/media-url',
+                  queryParameters: {
+                    'storage_key': storageKey,
+                    'feed_id': feedId,
+                    'post_id': postId,
+                    if (data?['media_format'] != null)
+                      'format': data?['media_format'],
+                  },
+                )
+              : await _api.dio.get(
+                  '/organizations/$organizationId/announcements/media-url',
+                  queryParameters: {
+                    'storage_key': storageKey,
+                    'announcement_id': announcementId,
+                    if (data?['media_format'] != null)
+                      'format': data?['media_format'],
+                  },
+                );
           final url = _imageUrl(response.data['data']['url']);
           if (url != null) _resolvedImages[itemId] = url;
         } catch (_) {}

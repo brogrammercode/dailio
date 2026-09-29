@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -70,7 +72,10 @@ class _MainAppState extends State<MainApp> {
     // Cache the router so hot reload doesn't reset the navigation stack
     _router = buildRouter(widget.initialRoute, widget.preferencesStorage);
     NotificationRuntime.setRouter(_router);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _runDailyCheck());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(NotificationRuntime.initialize());
+      unawaited(_runDailyCheck());
+    });
   }
 
   Future<void> _runDailyCheck() async {

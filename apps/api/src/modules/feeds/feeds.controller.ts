@@ -158,7 +158,7 @@ export async function getFeedMediaUrl(req: Request, res: Response, next: NextFun
   try {
     assertOrganization(req);
     const input = FeedMediaUrlSchema.parse(req.query);
-    const post = await feedsService.getPost(
+    const content = await feedsService.getFeedMediaContent(
       req.organization!.id,
       req.branch!.id,
       input.feed_id,
@@ -166,8 +166,8 @@ export async function getFeedMediaUrl(req: Request, res: Response, next: NextFun
       req.member!.id,
       req.permissions ?? new Set(),
     );
-    const content = Array.isArray(post.content) ? post.content : [];
-    const ownsMedia = content.some(
+    const blocks = Array.isArray(content) ? content : [];
+    const ownsMedia = blocks.some(
       (block) =>
         block &&
         typeof block === 'object' &&
@@ -257,6 +257,24 @@ export async function updatePost(req: Request, res: Response, next: NextFunction
         req.permissions ?? new Set(),
       ),
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deletePost(req: Request, res: Response, next: NextFunction) {
+  try {
+    assertOrganization(req);
+    await feedsService.deletePost(
+      req.organization!.id,
+      req.branch!.id,
+      req.params.feed_id,
+      req.params.post_id,
+      req.member!.id,
+      req.user!.id,
+      req.permissions ?? new Set(),
+    );
+    res.status(204).send();
   } catch (error) {
     next(error);
   }

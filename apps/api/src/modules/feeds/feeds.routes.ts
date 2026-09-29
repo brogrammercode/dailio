@@ -10,6 +10,7 @@ import {
   createFeed,
   createFeedMediaSignature,
   createPost,
+  deletePost,
   deleteComment,
   disbandFeed,
   getPost,
@@ -90,6 +91,12 @@ router.patch(
   ...secured,
   requirePermission('FEED_POST'),
   updatePost,
+);
+router.delete(
+  '/:organization_id/feeds/:feed_id/posts/:post_id',
+  ...secured,
+  requirePermission('FEED_READ'),
+  deletePost,
 );
 router.post(
   '/:organization_id/feeds/:feed_id/posts/:post_id/read',

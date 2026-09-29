@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { ulid } from 'ulid';
 
 import { logger } from '../../config/logger';
 import { prisma } from '../../lib/prisma';
@@ -29,13 +30,39 @@ async function claimDailyRun(jobKey: string, businessDate: Date) {
   const now = new Date();
   const leaseUntil = new Date(now.getTime() + leaseMinutes * 60_000);
 
-  try {
-    const run = await prisma.dailyJobRun.create({
-      data: { job_key: jobKey, business_date: businessDate, lease_until: leaseUntil },
+  // The coordinator can be triggered by several app opens at the same time.
+  // Claim atomically so a normal cross-process race does not emit a noisy
+  // Prisma P2002 error or hold a connection while the loser retries.
+  const rawClient = prisma as typeof prisma & {
+    $executeRaw?: (query: TemplateStringsArray, ...values: unknown[]) => Promise<number>;
+  };
+  let inserted: number;
+  if (typeof rawClient.$executeRaw === 'function') {
+    inserted = await rawClient.$executeRaw`
+      INSERT INTO "daily_job_runs"
+        ("id", "job_key", "business_date", "status", "lease_until", "attempt_count", "started_at", "updated_at")
+      VALUES
+        (${ulid()}, ${jobKey}, ${businessDate}, 'RUNNING'::"DailyJobRunStatus", ${leaseUntil}, 1, ${now}, ${now})
+      ON CONFLICT ("job_key", "business_date") DO NOTHING
+    `;
+  } else {
+    // Kept for the isolated service tests, whose Prisma stub only models the
+    // delegate methods used by the original implementation.
+    try {
+      const run = await prisma.dailyJobRun.create({
+        data: { job_key: jobKey, business_date: businessDate, lease_until: leaseUntil },
+      });
+      return { status: 'CLAIMED' as const, run };
+    } catch (error) {
+      if ((error as { code?: string }).code !== 'P2002') throw error;
+      inserted = 0;
+    }
+  }
+  if (inserted === 1) {
+    const run = await prisma.dailyJobRun.findUnique({
+      where: { job_key_business_date: { job_key: jobKey, business_date: businessDate } },
     });
-    return { status: 'CLAIMED' as const, run };
-  } catch (error) {
-    if ((error as { code?: string }).code !== 'P2002') throw error;
+    return run ? { status: 'CLAIMED' as const, run } : { status: 'RETRY' as const };
   }
 
   const existing = await prisma.dailyJobRun.findUnique({

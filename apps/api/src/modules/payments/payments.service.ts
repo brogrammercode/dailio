@@ -1,4 +1,4 @@
-import type { MemberStatus, Prisma, PaymentRequestStatus } from '@prisma/client';
+import { Prisma, type MemberStatus, type PaymentRequestStatus } from '@prisma/client';
 import { ulid } from 'ulid';
 
 import { prisma } from '../../lib/prisma';
@@ -363,16 +363,67 @@ export async function listPaymentRequests(
       ...(status ? { status } : {}),
       ...(bounds ? { created_at: { gte: bounds.start, lt: bounds.end } } : {}),
     },
-    include: {
+    select: {
+      id: true,
+      organization_id: true,
+      branch_id: true,
+      member_id: true,
+      subscription_id: true,
+      amount_minor_unit: true,
+      currency: true,
+      method: true,
+      reference: true,
+      note: true,
+      status: true,
+      rejection_reason: true,
+      created_at: true,
       member: {
-        include: {
-          user: true,
-          role: { select: { name: true } },
+        select: {
+          id: true,
+          user: { select: { id: true, name: true, email: true, phone: true, avatar_url: true } },
+          role: { select: { id: true, name: true, system_key: true } },
         },
       },
-      subscription: { include: { plan: true } },
-      evidence: true,
-      payment_attempt: { include: { receipt: true } },
+      subscription: {
+        select: {
+          id: true,
+          status: true,
+          start_date: true,
+          end_date: true,
+          agreed_amount_minor: true,
+          currency: true,
+          plan: { select: { id: true, name: true } },
+        },
+      },
+      evidence: {
+        select: {
+          id: true,
+          payment_request_id: true,
+          organization_id: true,
+          branch_id: true,
+          uploaded_by: true,
+          storage_key: true,
+          content_type: true,
+          size_bytes: true,
+          reference: true,
+          note: true,
+          created_at: true,
+        },
+      },
+      payment_attempt: {
+        select: {
+          id: true,
+          organization_id: true,
+          branch_id: true,
+          member_id: true,
+          amount: true,
+          currency: true,
+          method: true,
+          status: true,
+          posted_at: true,
+          receipt: { select: { id: true, receipt_number: true, issued_at: true, metadata: true } },
+        },
+      },
     },
     orderBy: { created_at: 'desc' },
   });
@@ -836,21 +887,105 @@ export async function listFees(
   };
   const members = await prisma.member.findMany({
     where,
-    include: {
-      user: true,
+    select: {
+      id: true,
+      member_number: true,
+      user: { select: { name: true, avatar_url: true } },
       role: { select: { name: true } },
-      subscriptions: { include: { plan: true }, orderBy: { end_date: 'desc' } },
-      ledger_entries: {
-        include: { allocations: { include: { payment_attempt: true } } },
-        orderBy: { created_at: 'asc' },
-      },
-      payment_requests: {
-        include: { payment_attempt: { include: { receipt: true } } },
-        orderBy: { created_at: 'desc' },
+      subscriptions: {
+        where: { status: { not: 'CANCELLED' } },
+        select: {
+          id: true,
+          status: true,
+          plan: { select: { name: true } },
+          start_date: true,
+          end_date: true,
+          agreed_amount_minor: true,
+          currency: true,
+        },
+        orderBy: { end_date: 'desc' },
       },
     },
     orderBy: { created_at: 'desc' },
   });
+
+  if (members.length === 0) {
+    return {
+      data: [],
+      meta: { total: 0, page: query.page, limit: query.limit },
+      period: { from: start, to: end },
+    };
+  }
+
+  const memberIds = members.map((member) => member.id);
+  const [ledgerTotals, paymentRequests] = await Promise.all([
+    // Aggregate ledger/allocation data in Postgres instead of loading every
+    // ledger row and payment-attempt relation into Node for every member.
+    prisma.$queryRaw<
+      Array<{
+        member_id: string;
+        subscription_id: string | null;
+        total_due: number;
+        paid_amount: number;
+        has_confirmed_payment: boolean;
+      }>
+    >(Prisma.sql`
+      SELECT
+        le.member_id,
+        le.subscription_id,
+        COALESCE(SUM(le.amount_minor_unit), 0)::int AS total_due,
+        COALESCE(SUM(
+          CASE WHEN pa.status = 'SUCCESS' THEN allocation.allocated_amount ELSE 0 END
+        ), 0)::int AS paid_amount,
+        COALESCE(BOOL_OR(pa.status = 'SUCCESS'), false) AS has_confirmed_payment
+      FROM ledger_entries le
+      LEFT JOIN payment_allocations allocation
+        ON allocation.ledger_entry_id = le.id
+      LEFT JOIN payment_attempts pa
+        ON pa.id = allocation.payment_attempt_id
+      WHERE le.organization_id = ${organizationId}
+        AND le.branch_id = ${branchId}
+        AND le.member_id IN (${Prisma.join(memberIds)})
+      GROUP BY le.member_id, le.subscription_id
+    `),
+    prisma.paymentRequest.findMany({
+      where: {
+        organization_id: organizationId,
+        branch_id: branchId,
+        member_id: { in: memberIds },
+        status: { in: ['REQUESTED', 'NEEDS_INFORMATION', 'APPROVED'] },
+      },
+      select: {
+        id: true,
+        member_id: true,
+        subscription_id: true,
+        status: true,
+        method: true,
+        created_at: true,
+        payment_attempt: {
+          select: {
+            status: true,
+            posted_at: true,
+            receipt: { select: { receipt_number: true } },
+          },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    }),
+  ]);
+
+  const ledgerByMember = new Map<string, typeof ledgerTotals>();
+  for (const row of ledgerTotals) {
+    const rows = ledgerByMember.get(row.member_id) ?? [];
+    rows.push(row);
+    ledgerByMember.set(row.member_id, rows);
+  }
+  const requestsByMember = new Map<string, typeof paymentRequests>();
+  for (const request of paymentRequests) {
+    const requests = requestsByMember.get(request.member_id) ?? [];
+    requests.push(request);
+    requestsByMember.set(request.member_id, requests);
+  }
 
   const warningDays = 7;
   const cards = members
@@ -863,31 +998,26 @@ export async function listFees(
       );
       const subscription =
         subscriptions[0] ?? member.subscriptions.find((item) => item.status !== 'CANCELLED');
-      const relevantEntries = member.ledger_entries.filter(
+      const memberLedger = ledgerByMember.get(member.id) ?? [];
+      const relevantEntries = memberLedger.filter(
         (entry) =>
           !subscription || !entry.subscription_id || entry.subscription_id === subscription.id,
       );
-      const totalDue = relevantEntries.reduce((sum, entry) => sum + entry.amount_minor_unit, 0);
+      const totalDue = relevantEntries.reduce((sum, entry) => sum + entry.total_due, 0);
       const balance = Math.max(totalDue, 0);
-      const pendingRequest = member.payment_requests.find(
+      const memberRequests = requestsByMember.get(member.id) ?? [];
+      const pendingRequest = memberRequests.find(
         (request) =>
           ['REQUESTED', 'NEEDS_INFORMATION'].includes(request.status) &&
           (!subscription || request.subscription_id === subscription.id),
       );
-      const latestApprovedRequest = member.payment_requests.find(
+      const latestApprovedRequest = memberRequests.find(
         (request) =>
           request.status === 'APPROVED' &&
           request.payment_attempt?.status === 'SUCCESS' &&
           (!subscription || request.subscription_id === subscription.id),
       );
-      const paidAmount = relevantEntries.reduce(
-        (sum, entry) =>
-          sum +
-          entry.allocations
-            .filter((allocation) => allocation.payment_attempt.status === 'SUCCESS')
-            .reduce((entrySum, allocation) => entrySum + allocation.allocated_amount, 0),
-        0,
-      );
+      const paidAmount = relevantEntries.reduce((sum, entry) => sum + entry.paid_amount, 0);
       const endDate = subscription?.end_date;
       const remainingDays = endDate ? branchLocalRemainingDays(endDate, branchTimezone) : null;
       const status = deriveFeeStatus({
@@ -895,9 +1025,7 @@ export async function listFees(
         hasSubscription: Boolean(subscription),
         remainingDays,
         balanceMinorUnit: balance,
-        hasConfirmedPayment: member.ledger_entries.some((entry) =>
-          entry.allocations.some((allocation) => allocation.payment_attempt.status === 'SUCCESS'),
-        ),
+        hasConfirmedPayment: memberLedger.some((entry) => entry.has_confirmed_payment),
         warningDays,
       });
       return {

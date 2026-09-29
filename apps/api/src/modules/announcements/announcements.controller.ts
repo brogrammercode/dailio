@@ -93,6 +93,7 @@ export async function cancelAnnouncement(req: Request, res: Response, next: Next
       req.branch!.id,
       req.params.announcement_id,
       req.user!.id,
+      req.permissions ?? new Set(),
     );
     res.status(204).send();
   } catch (error) {
@@ -226,16 +227,15 @@ export async function getAnnouncementMediaUrl(req: Request, res: Response, next:
   try {
     assertOrganization(req);
     const input = AnnouncementMediaUrlSchema.parse(req.query);
-    const announcement = await socialService.getAnnouncement(
+    const content = await announcementsService.getAnnouncementMediaContent(
       req.organization!.id,
       req.branch!.id,
-      req.member!.id,
-      req.user!.id,
       input.announcement_id,
+      req.member!.id,
       req.permissions ?? new Set(),
     );
-    const content = Array.isArray(announcement.content) ? announcement.content : [];
-    const ownsMedia = content.some(
+    const blocks = Array.isArray(content) ? content : [];
+    const ownsMedia = blocks.some(
       (block) =>
         block &&
         typeof block === 'object' &&

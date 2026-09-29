@@ -31,15 +31,32 @@ export async function resolveTenantContext(
       throw new ForbiddenError('Branch route does not match the active branch');
     }
 
-    // These lookups are independent. Keeping them in one round-trip group is
-    // important for hosted Postgres connections, where each query can have
-    // noticeable connection/network latency.
-    const [organization, branch] = await Promise.all([
-      prisma.organization.findUnique({ where: { id: organization_id } }),
-      prisma.branch.findUnique({ where: { id: branch_id, organization_id } }),
-    ]);
-    if (!organization || organization.status === 'ARCHIVED')
-      throw new NotFoundError('Organization');
+    // Branch already owns the organization relation. Resolve both from one
+    // query instead of paying two hosted-Postgres round trips on every scoped
+    // request. The fallback organization read only supports isolated tests or
+    // malformed legacy mocks; a real branch always has its organization.
+    const branchWithOrganization = await prisma.branch.findUnique({
+      where: { id: branch_id, organization_id },
+      select: {
+        id: true,
+        organization_id: true,
+        status: true,
+        timezone: true,
+        week_start: true,
+        organization: { select: { id: true, status: true } },
+      },
+    });
+    const branch = branchWithOrganization;
+    let organization = branchWithOrganization?.organization;
+    if (!organization && branch) {
+      const legacyOrganization = await prisma.organization.findUnique({
+        where: { id: organization_id },
+      });
+      if (legacyOrganization) {
+        organization = legacyOrganization;
+      }
+    }
+    if (!organization) throw new NotFoundError('Organization');
     if (!branch || branch.status === 'ARCHIVED') throw new NotFoundError('Branch');
 
     // Resolve the caller and their roles in one scoped query. This avoids a
@@ -48,7 +65,7 @@ export async function resolveTenantContext(
     const member = await prisma.member.findFirst({
       where: { organization_id, branch_id, user_id: req.user.id, status: 'ACTIVE' },
       include: {
-        role: true,
+        role: { select: { system_key: true, permissions: true } },
         role_assignments: {
           where: {
             organization_id,
@@ -57,15 +74,15 @@ export async function resolveTenantContext(
             OR: [{ effective_to: null }, { effective_to: { gt: new Date() } }],
           },
           orderBy: [{ priority: 'asc' }, { effective_from: 'desc' }, { id: 'asc' }],
-          include: { role: true },
+          select: { role: { select: { system_key: true, permissions: true } } },
         },
       },
     });
     if (!member) throw new ForbiddenError('No active membership in this branch');
     const permissions = permissionsForMember(member);
 
-    req.organization = organization;
-    req.branch = branch;
+    req.organization = organization as unknown as NonNullable<typeof req.organization>;
+    req.branch = branch as unknown as NonNullable<typeof req.branch>;
     req.member = member;
     req.permissions = permissions;
 

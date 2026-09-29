@@ -56,6 +56,7 @@ class JsonCacheStore extends ChangeNotifier {
   static const String _directoryName = 'dailio_json_cache';
 
   final Set<String> _refreshing = <String>{};
+  final Map<String, int> _invalidationVersions = <String, int>{};
   final Future<Directory> Function()? _directoryProvider;
   Future<Directory>? _directoryFuture;
   String? _userId;
@@ -66,6 +67,8 @@ class JsonCacheStore extends ChangeNotifier {
   void setUserId(String? userId) {
     _userId = userId;
   }
+
+  String? get userId => _userId;
 
   String scopedKey(String key) => 'user:${_userId ?? 'anonymous'}|$key';
 
@@ -164,12 +167,17 @@ class JsonCacheStore extends ChangeNotifier {
     void Function(T freshValue)? onFresh,
   }) {
     if (!_refreshing.add(key)) return;
+    final refreshVersion = _invalidationVersions[key] ?? 0;
     unawaited(() async {
       try {
         final payload = await fetch();
-        await write(key, cacheTransform?.call(payload) ?? payload,
-            scope: scope);
-        onFresh?.call(decode(payload));
+        // A mutation may have invalidated this key while the refresh was in
+        // flight. Never let that old response recreate stale JSON on disk.
+        if ((_invalidationVersions[key] ?? 0) == refreshVersion) {
+          await write(key, cacheTransform?.call(payload) ?? payload,
+              scope: scope);
+          onFresh?.call(decode(payload));
+        }
       } catch (_) {
         // Stale data remains useful when the network refresh is unavailable.
       } finally {
@@ -202,6 +210,8 @@ class JsonCacheStore extends ChangeNotifier {
 
   Future<void> clearKey(String key) async {
     try {
+      _invalidationVersions[key] = (_invalidationVersions[key] ?? 0) + 1;
+      _refreshing.remove(key);
       final file = await _fileFor(key);
       if (await file.exists()) await file.delete();
       notifyListeners();
