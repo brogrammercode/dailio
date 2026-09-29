@@ -787,7 +787,7 @@ This status is intentionally conservative: repository implementation is complete
 - `[x]` Added database-backed daily coordinator and authenticated `POST /api/v1/maintenance/daily-check`.
 - `[x]` Added mobile Firebase initialization, local notification channel, foreground display, tap routing, terminated-state handling, and token-refresh synchronization.
 - `[x]` Added Android 13 notification permission declaration.
-- `[x]` Added protected Vercel Cron route and hourly schedule; `[manual]` production `CRON_SECRET` entry and deployed verification are release actions.
+- `[x]` Added protected Vercel Cron route and once-daily Hobby-compatible fallback schedule; the first authenticated app open remains the primary trigger, and `[manual]` production `CRON_SECRET` entry/deployed verification are release actions.
 - `[x]` API type-check passed.
 - `[x]` Full API test suite passed: 30 test files / 102 tests.
 - `[x]` API production build passed.

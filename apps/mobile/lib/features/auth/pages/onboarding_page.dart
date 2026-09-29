@@ -66,49 +66,52 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   final loading = state is AuthLoading || _isRouting;
                   final error = state is AuthError ? state.message : null;
 
-                  return ListView(
+                  return Padding(
                     padding: EdgeInsets.fromLTRB(
                       18,
                       compact ? 14 : 22,
                       18,
                       20,
                     ),
-                    children: [
-                      _LoginHero(compact: compact),
-                      SizedBox(height: compact ? 22 : 28),
-                      Text(
-                        'Start with Dailio.',
-                        style: textTheme.headlineSmall?.copyWith(
-                          color: const Color(0xFF17120E),
-                          fontSize: compact ? 24 : 27,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.8,
+                    child: Column(
+                      children: [
+                        _LoginHero(compact: compact),
+                        SizedBox(height: compact ? 22 : 28),
+                        Text(
+                          'Start with Dailio.',
+                          style: textTheme.headlineSmall?.copyWith(
+                            color: const Color(0xFF17120E),
+                            fontSize: compact ? 24 : 27,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.8,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        'Your people, plans and progress — in sync.',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF817A75),
-                          fontSize: 13,
-                          height: 1.35,
+                        const SizedBox(height: 5),
+                        Text(
+                          'Your people, plans and progress — in sync.',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF817A75),
+                            fontSize: 13,
+                            height: 1.35,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: compact ? 18 : 22),
-                      if (error != null) ...[
-                        _LoginError(message: error),
-                        const SizedBox(height: 12),
+                        SizedBox(height: compact ? 18 : 22),
+                        Spacer(),
+                        if (error != null) ...[
+                          _LoginError(message: error),
+                          const SizedBox(height: 12),
+                        ],
+                        _GoogleSignInButton(
+                          loading: loading,
+                          onPressed: () =>
+                              context.read<AuthCubit>().signInWithGoogle(),
+                        ),
+                        const SizedBox(height: 13),
+                        const _TrustRow(),
+                        const SizedBox(height: 18),
+                        const _LegalCopy(),
                       ],
-                      _GoogleSignInButton(
-                        loading: loading,
-                        onPressed: () =>
-                            context.read<AuthCubit>().signInWithGoogle(),
-                      ),
-                      const SizedBox(height: 13),
-                      const _TrustRow(),
-                      const SizedBox(height: 18),
-                      const _LegalCopy(),
-                    ],
+                    ),
                   );
                 },
               );
