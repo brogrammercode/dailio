@@ -1,32 +1,57 @@
 import 'package:injectable/injectable.dart';
 import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/storage/json_cache_store.dart';
 import '../models/branch_discovery_model.dart';
 
 @lazySingleton
 class BranchRepository {
   final ApiClient apiClient;
+  final JsonCacheStore? cache;
 
-  BranchRepository({required this.apiClient});
+  BranchRepository({required this.apiClient, this.cache});
 
   Future<List<BranchDiscoveryModel>> discoverBranches({String? query}) async {
-    final response = await apiClient.dio.get(
-      '/branches/discover',
-      queryParameters:
-          query != null && query.isNotEmpty ? {'query': query} : null,
+    final queryParams =
+        query != null && query.isNotEmpty ? {'query': query} : null;
+    if (cache == null) {
+      final response = await apiClient.dio
+          .get('/branches/discover', queryParameters: queryParams);
+      return (response.data['data'] as List)
+          .map((e) => BranchDiscoveryModel.fromJson(e))
+          .toList();
+    }
+    return cache!.load<List<BranchDiscoveryModel>>(
+      key: cache!.scopedKey('branch-discovery:${query ?? ''}'),
+      scope: 'user',
+      fetch: () async => (await apiClient.dio
+              .get('/branches/discover', queryParameters: queryParams))
+          .data,
+      decode: (payload) => ((payload as Map)['data'] as List)
+          .map((e) => BranchDiscoveryModel.fromJson(e))
+          .toList(),
     );
-    final data = response.data['data'] as List;
-    return data.map((e) => BranchDiscoveryModel.fromJson(e)).toList();
   }
 
   /// Fetch all branches belonging to a specific org (used after QR scan).
   Future<List<BranchDiscoveryModel>> discoverBranchesByOrg(String orgId) async {
-    final response = await apiClient.dio.get(
-      '/branches/discover',
-      queryParameters: {'org_id': orgId},
+    if (cache == null) {
+      final response = await apiClient.dio
+          .get('/branches/discover', queryParameters: {'org_id': orgId});
+      return (response.data['data'] as List)
+          .map((e) => BranchDiscoveryModel.fromJson(e))
+          .toList();
+    }
+    return cache!.load<List<BranchDiscoveryModel>>(
+      key: cache!.scopedKey('branch-discovery-org:$orgId'),
+      scope: 'user',
+      fetch: () async => (await apiClient.dio
+              .get('/branches/discover', queryParameters: {'org_id': orgId}))
+          .data,
+      decode: (payload) => ((payload as Map)['data'] as List)
+          .map((e) => BranchDiscoveryModel.fromJson(e))
+          .toList(),
     );
-    final data = response.data['data'] as List;
-    return data.map((e) => BranchDiscoveryModel.fromJson(e)).toList();
   }
 
   Future<void> joinBranch(String branchId, {String? message}) async {
@@ -37,6 +62,7 @@ class BranchRepository {
       '/branches/$branchId/join',
       data: data,
     );
+    await cache?.clearScope('user');
   }
 
   Future<Map<String, dynamic>> resolveInvite(String token) async {

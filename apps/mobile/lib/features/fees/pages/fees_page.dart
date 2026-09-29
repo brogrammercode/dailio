@@ -2,9 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:iconsax/iconsax.dart';
 
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/dailio_compact_tile.dart';
+import '../../../core/widgets/dailio_member_profile_sheet.dart';
+import '../../../core/widgets/confirm_dialog.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
+import '../../../core/widgets/dailio_tab_strip.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/fees_repository.dart';
 import '../models/fee_models.dart';
 import 'member_subscription_detail_page.dart';
@@ -20,10 +29,8 @@ class _FeesPageState extends State<FeesPage> {
   late final FeesRepository _repository;
   bool _loading = true;
   String? _error;
-  String _period = 'this_month';
+  final String _period = 'this_month';
   String _status = 'ALL';
-  DateTime? _from;
-  DateTime? _to;
   List<FeeCardModel> _cards = [];
 
   @override
@@ -47,8 +54,13 @@ class _FeesPageState extends State<FeesPage> {
       _error = null;
     });
     try {
-      final cards = await _repository.listFees(branchId,
-          period: _period, from: _from, to: _to);
+      final cards = await _repository.listFees(
+        branchId,
+        period: _period,
+        onFresh: (freshCards) {
+          if (mounted) setState(() => _cards = freshCards);
+        },
+      );
       if (mounted) {
         setState(() {
           _cards = cards;
@@ -82,58 +94,85 @@ class _FeesPageState extends State<FeesPage> {
   @override
   Widget build(BuildContext context) {
     final preferences = context.watch<PreferencesStorage>();
-    final branchName = preferences.activeBranchName ?? 'Active branch';
     final canReadAll = preferences.canReadAllFees;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Fees & Subscriptions',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text(branchName,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-        ]),
+      backgroundColor: Colors.white,
+      appBar: DailioSimpleAppBar(
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Iconsax.refresh,
+            label: 'Refresh',
+          ),
+        ],
+        onMenuSelected: (_) => _load(),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? _ErrorState(message: _error!, onRetry: _load)
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-                    children: [
-                      if (canReadAll) ...[
-                        _buildSummary(),
-                        const SizedBox(height: 16),
-                        _buildPeriodTabs(),
-                        const SizedBox(height: 12),
-                        _buildStatusTabs(),
-                        const SizedBox(height: 16),
-                        if (_visibleCards.isEmpty)
-                          const _EmptyState()
-                        else
-                          ..._visibleCards.map(_buildCard),
-                      ] else ...[
-                        _buildMemberHeader(),
-                        const SizedBox(height: 16),
-                        if (_cards.isEmpty)
-                          const _EmptyState()
-                        else
-                          _buildCard(_cards.first),
-                        if (!_hasCurrentCoverage) ...[
-                          const SizedBox(height: 4),
-                          _buildBuyPlanButton(),
-                        ],
-                      ],
-                    ],
-                  ),
-                ),
+      body: Column(
+        children: [
+          _buildStatusTabs(),
+          Expanded(
+            child: _loading
+                ? ShimmerLoader.compactList()
+                : _error != null
+                    ? _ErrorState(message: _error!, onRetry: _load)
+                    : RefreshIndicator(
+                        onRefresh: _load,
+                        child: ListView(
+                          padding: const EdgeInsets.only(top: 12, bottom: 100),
+                          children: [
+                            if (canReadAll) ...[
+                              if (_visibleCards.isEmpty)
+                                const _EmptyState()
+                              else
+                                ..._buildFeeTiles(),
+                            ] else ...[
+                              if (_visibleCards.isEmpty)
+                                const _EmptyState()
+                              else
+                                _buildCard(_visibleCards.first),
+                              if (!_hasCurrentCoverage) ...[
+                                const SizedBox(height: 4),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  child: _buildBuyPlanButton(),
+                                ),
+                              ],
+                            ],
+                          ],
+                        ),
+                      ),
+          ),
+        ],
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: (canReadAll || !_hasCurrentCoverage)
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 78),
+              child: FloatingActionButton(
+                heroTag: 'buy_plan_fab',
+                tooltip: 'Buy plan',
+                backgroundColor: AppColors.brandAccent,
+                foregroundColor: Colors.white,
+                shape: const CircleBorder(),
+                onPressed: () => context.push(AppRoutes.buyPlan),
+                child: const Icon(Iconsax.medal_star, size: 27),
+              ),
+            )
+          : null,
     );
   }
 
+  Iterable<Widget> _buildFeeTiles() sync* {
+    for (var index = 0; index < _visibleCards.length; index++) {
+      yield _buildCard(_visibleCards[index]);
+      if (index < _visibleCards.length - 1) {
+        yield const SizedBox(height: 8);
+      }
+    }
+  }
+
+  // ignore: unused_element
   Widget _buildMemberHeader() => Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
@@ -141,8 +180,7 @@ class _FeesPageState extends State<FeesPage> {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(children: [
-          Icon(Icons.account_balance_wallet_outlined,
-              color: Colors.indigo.shade700, size: 30),
+          Icon(Iconsax.wallet, color: Colors.indigo.shade700, size: 30),
           const SizedBox(width: 12),
           const Expanded(
             child:
@@ -160,11 +198,12 @@ class _FeesPageState extends State<FeesPage> {
         width: double.infinity,
         child: FilledButton.icon(
           onPressed: () => context.push(AppRoutes.buyPlan),
-          icon: const Icon(Icons.add_card),
+          icon: const Icon(Iconsax.card_add),
           label: const Text('Buy a plan'),
         ),
       );
 
+  // ignore: unused_element
   Widget _buildSummary() {
     final counts = <String, int>{
       for (final state in _states)
@@ -213,66 +252,134 @@ class _FeesPageState extends State<FeesPage> {
   Widget _divider() =>
       Container(width: 1, height: 34, color: Colors.grey.shade200);
 
-  Widget _buildPeriodTabs() => SegmentedButton<String>(
-        segments: const [
-          ButtonSegment(value: 'this_month', label: Text('This Month')),
-          ButtonSegment(value: 'last_month', label: Text('Last Month')),
-          ButtonSegment(value: 'custom', label: Text('Custom')),
+  Widget _buildStatusTabs() => DailioTabStrip<String>(
+        tabs: const [
+          DailioTabItem(value: 'ALL', label: 'All'),
+          DailioTabItem(value: 'PAID', label: 'Paid'),
+          DailioTabItem(value: 'REQUESTED', label: 'Requested'),
+          DailioTabItem(value: 'PENDING', label: 'Pending'),
+          DailioTabItem(value: 'PARTIALLY_PAID', label: 'Partial'),
+          DailioTabItem(value: 'EXPIRING_SOON', label: 'Expiring'),
+          DailioTabItem(value: 'EXPIRED', label: 'Expired'),
         ],
-        selected: {_period},
-        onSelectionChanged: (selection) async {
-          final value = selection.first;
-          if (value == 'custom') {
-            final range = await showDateRangePicker(
-                context: context,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2100),
-                initialDateRange: DateTimeRange(
-                    start: DateTime.now().subtract(const Duration(days: 30)),
-                    end: DateTime.now()));
-            if (range == null) return;
-            setState(() {
-              _from = range.start;
-              _to = range.end;
-            });
-          }
-          if (value != 'custom') {
-            _from = null;
-            _to = null;
-          }
-          setState(() {
-            _period = value;
-            _status = 'ALL';
-          });
-          await _load();
-        },
+        selected: _status,
+        onChanged: (value) => setState(() => _status = value),
       );
 
-  Widget _buildStatusTabs() {
-    final tabs = <String, String>{
-      'ALL': 'All',
-      'PAID': 'Paid',
-      'REQUESTED': 'Requested',
-      'PENDING': 'Pending',
-      'PARTIALLY_PAID': 'Partial',
-      'EXPIRING_SOON': 'Expiring'
+  Widget _buildCard(FeeCardModel card) {
+    final color = _statusColor(card.status);
+    final roleLabel = card.memberRoleName ?? 'Member';
+    final amount = NumberFormat.currency(
+            locale: 'en_IN', symbol: '\u20B9', decimalDigits: 0)
+        .format((card.paidAmountMinorUnit > 0
+                ? card.paidAmountMinorUnit
+                : card.balanceMinorUnit) /
+            100);
+    final event = switch (card.status) {
+      'PAID' =>
+        'Paid $amount${card.paymentMethod == null ? '' : ' · ${card.paymentMethod}'}',
+      'REQUESTED' => 'Payment requested · $amount',
+      'EXPIRING_SOON' =>
+        'Expires in ${card.remainingDays ?? 0} days · $amount due',
+      'EXPIRED' => 'Expired · $amount due',
+      'PARTIALLY_PAID' => 'Partially paid · $amount',
+      _ => card.remainingDays == null
+          ? 'No active coverage · $amount due'
+          : '${card.remainingDays} days remaining · $amount due',
     };
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-          children: tabs.entries
-              .map((entry) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                        label: Text(entry.value),
-                        selected: _status == entry.key,
-                        onSelected: (_) => setState(() => _status = entry.key)),
-                  ))
-              .toList()),
+    final canReview = context.read<PreferencesStorage>().canReviewPayments;
+    final statusBadge = card.remainingDays != null && card.remainingDays! < 0
+        ? 'Expired'
+        : card.status == 'EXPIRED'
+            ? 'Expired'
+            : card.status == 'EXPIRING_SOON' ||
+                    (card.remainingDays != null && card.remainingDays! <= 7)
+                ? 'Expiring'
+                : card.subscriptionId != null
+                    ? 'Active'
+                    : 'Pending';
+    final statusBadgeColor = statusBadge == 'Expired'
+        ? AppColors.error
+        : statusBadge == 'Active'
+            ? AppColors.brandDark
+            : AppColors.brandAccent;
+    final statusIcon = statusBadge == 'Expired'
+        ? Iconsax.warning_2
+        : statusBadge == 'Expiring'
+            ? Iconsax.clock
+            : statusBadge == 'Active'
+                ? Iconsax.tick_circle
+                : Iconsax.timer;
+
+    return DailioCompactTile(
+      avatar: _avatar(card, color, statusIcon),
+      onAvatarTap: card.memberId.isEmpty
+          ? null
+          : () => showDailioMemberProfileSheet(
+                context,
+                DailioMemberPreview(
+                  memberId: card.memberId,
+                  name: card.memberName,
+                  role: roleLabel,
+                  status: card.status,
+                  avatarUrl: card.avatarUrl,
+                  subscriptionLabel: card.planName,
+                ),
+              ),
+      title: card.memberName,
+      titleBadge: roleLabel,
+      statusBadge: statusBadge,
+      statusBadgeColor: statusBadgeColor,
+      subtitle: _feeSubtitle(card, amount, event),
+      trailing: card.planName ?? 'No plan',
+      subtitleColor: color,
+      onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => MemberSubscriptionDetailPage(
+                  memberId: card.memberId,
+                  subscriptionId: card.subscriptionId))),
+      menuItems: [
+        const DailioMenuItem(
+          value: 'details',
+          icon: Iconsax.receipt_text,
+          label: 'View fee details',
+        ),
+        if (card.pendingRequestId != null && canReview)
+          const DailioMenuItem(
+            value: 'review',
+            icon: Iconsax.task,
+            label: 'Review payment',
+          ),
+      ],
+      onMenuSelected: (value) {
+        if (value == 'details') {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => MemberSubscriptionDetailPage(
+                      memberId: card.memberId,
+                      subscriptionId: card.subscriptionId)));
+        }
+        if (value == 'review' && card.pendingRequestId != null) {
+          _reviewPayment(card.pendingRequestId!);
+        }
+      },
     );
   }
 
-  Widget _buildCard(FeeCardModel card) {
+  String _feeSubtitle(FeeCardModel card, String amount, String fallback) {
+    final days = card.remainingDays;
+    if (days == null) return fallback;
+    final expiry =
+        days < 0 ? 'Expired ${days.abs()} days ago' : 'Expiring in $days days';
+    if (card.status == 'REQUESTED') return '$expiry · Payment requested';
+    if (card.status == 'PAID') return '$expiry · Paid $amount';
+    return '$expiry · ${card.balanceMinorUnit > 0 ? '$amount due' : 'No balance due'}';
+  }
+
+  // ignore: unused_element
+  Widget _buildCardLegacy(FeeCardModel card) {
     final color = _statusColor(card.status);
     final endDate = card.endDate == null
         ? 'No coverage'
@@ -354,7 +461,7 @@ class _FeesPageState extends State<FeesPage> {
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
                     onPressed: () => _reviewPayment(card.pendingRequestId!),
-                    icon: const Icon(Icons.fact_check, size: 16),
+                    icon: const Icon(Iconsax.task, size: 16),
                     label: const Text('Review payment'),
                   )),
             ],
@@ -364,19 +471,44 @@ class _FeesPageState extends State<FeesPage> {
     );
   }
 
-  Widget _avatar(FeeCardModel card) {
+  Widget _avatar(FeeCardModel card,
+      [Color? statusColor, IconData? statusIcon]) {
     final image = card.avatarUrl;
-    return CircleAvatar(
-      radius: 21,
-      backgroundColor: Colors.indigo.shade100,
-      backgroundImage:
-          image == null || image.isEmpty ? null : NetworkImage(image),
-      child: image == null || image.isEmpty
-          ? Text(
-              card.memberName.isEmpty ? '?' : card.memberName[0].toUpperCase(),
-              style: TextStyle(
-                  color: Colors.indigo.shade800, fontWeight: FontWeight.bold))
-          : null,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        CircleAvatar(
+          radius: 21,
+          backgroundColor: AppColors.brandAccent.withValues(alpha: 0.12),
+          backgroundImage:
+              image == null || image.isEmpty ? null : NetworkImage(image),
+          child: image == null || image.isEmpty
+              ? Text(
+                  card.memberName.isEmpty
+                      ? '?'
+                      : card.memberName[0].toUpperCase(),
+                  style: TextStyle(
+                      color: statusColor ?? AppColors.brandAccent,
+                      fontWeight: FontWeight.bold))
+              : null,
+        ),
+        Positioned(
+          right: -2,
+          bottom: -2,
+          child: Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              color: statusColor ?? AppColors.brandAccent,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: statusIcon == null
+                ? null
+                : Icon(statusIcon, size: 10, color: Colors.white),
+          ),
+        ),
+      ],
     );
   }
 
@@ -391,15 +523,15 @@ class _FeesPageState extends State<FeesPage> {
             title: Text('Review payment request'),
             subtitle: Text('Choose the server-side action')),
         ListTile(
-            leading: const Icon(Icons.check, color: Colors.green),
+            leading: const Icon(Iconsax.tick_circle, color: Colors.green),
             title: const Text('Approve'),
             onTap: () => Navigator.pop(sheetContext, 'approve')),
         ListTile(
-            leading: const Icon(Icons.close, color: Colors.red),
+            leading: const Icon(Iconsax.close_circle, color: Colors.red),
             title: const Text('Reject'),
             onTap: () => Navigator.pop(sheetContext, 'reject')),
         ListTile(
-            leading: const Icon(Icons.help_outline),
+            leading: const Icon(Iconsax.info_circle),
             title: const Text('Request information'),
             onTap: () => Navigator.pop(sheetContext, 'needs_information')),
       ])),
@@ -407,29 +539,16 @@ class _FeesPageState extends State<FeesPage> {
     if (action == null || !mounted) return;
     String? reason;
     if (action != 'approve') {
-      final controller = TextEditingController();
-      reason = await showDialog<String>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(action == 'reject'
-              ? 'Rejection reason'
-              : 'What information is needed?'),
-          content: TextField(
-              controller: controller,
-              maxLines: 3,
-              decoration: const InputDecoration(hintText: 'Enter a reason')),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel')),
-            FilledButton(
-                onPressed: () =>
-                    Navigator.pop(dialogContext, controller.text.trim()),
-                child: const Text('Continue')),
-          ],
-        ),
+      reason = await showReasonDialog(
+        context,
+        title: action == 'reject'
+            ? 'Rejection reason'
+            : 'What information is needed?',
+        confirmLabel: 'Continue',
+        hintText: 'Enter a reason',
+        isDestructive: action == 'reject',
+        icon: action == 'reject' ? Iconsax.close_circle : Iconsax.message_text,
       );
-      controller.dispose();
       if (reason == null || reason.isEmpty || !mounted) return;
     }
     try {
@@ -457,17 +576,17 @@ class _FeesPageState extends State<FeesPage> {
   Color _statusColor(String status) {
     switch (status) {
       case 'PAID':
-        return Colors.green.shade700;
+        return AppColors.brandDark;
       case 'REQUESTED':
-        return Colors.orange.shade800;
+        return AppColors.brandAccent;
       case 'EXPIRING_SOON':
-        return Colors.deepOrange.shade700;
+        return AppColors.brandAccent;
       case 'PARTIALLY_PAID':
-        return Colors.blue.shade700;
+        return AppColors.brandDark;
       case 'EXPIRED':
-        return Colors.red.shade700;
+        return AppColors.error;
       default:
-        return Colors.red.shade700;
+        return AppColors.error;
     }
   }
 }
@@ -490,7 +609,7 @@ class _ErrorState extends StatelessWidget {
       child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 42),
+            const Icon(Iconsax.warning_2, color: Colors.red, size: 42),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 12),

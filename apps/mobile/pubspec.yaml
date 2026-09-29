@@ -23,6 +23,7 @@ dependencies:
   # Local storage
   flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.3.0
+  path_provider: ^2.1.5
 
   # Code generation helpers
   freezed_annotation: ^2.4.4
@@ -62,6 +63,8 @@ dependencies:
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.4.2
   timezone: ^0.10.1
+  url_launcher: ^6.3.1
+  share_plus: ^10.1.4
 
   provider: any
 dev_dependencies:

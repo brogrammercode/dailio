@@ -14,6 +14,10 @@ import '../../context_selection/controllers/branch_repository.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/network/interceptors/logging_interceptor.dart';
 import '../../../core/widgets/shimmer_loader.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
+import '../../../core/widgets/dailio_picker_field.dart';
+import '../../../core/widgets/dailio_qr_sheet.dart';
 
 class EditBranchPage extends StatefulWidget {
   final String branchId;
@@ -491,18 +495,27 @@ class _EditBranchPageState extends State<EditBranchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Colors.white,
+      appBar: DailioSimpleAppBar(
+        onBack: () => context.pop(),
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Iconsax.refresh,
+            label: 'Reload branch',
+          ),
+        ],
+        onMenuSelected: (_) => _loadBranch(),
+      ),
       body: SafeArea(
         child: _isLoading
-            ? ShimmerLoader.profile()
+            ? ShimmerLoader.settingsForm()
             : Stack(
                 children: [
                   ListView(
                     padding:
-                        EdgeInsets.fromLTRB(24, 16, 24, _isDirty ? 140 : 40),
+                        EdgeInsets.fromLTRB(16, 16, 16, _isDirty ? 140 : 40),
                     children: [
-                      _buildHeader(context),
-                      const SizedBox(height: 24),
                       Form(
                         key: _formKey,
                         child: Column(
@@ -595,6 +608,8 @@ class _EditBranchPageState extends State<EditBranchPage> {
     );
   }
 
+  // Kept for the legacy form layout contract; the page now uses the shared bar.
+  // ignore: unused_element
   Widget _buildHeader(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -672,7 +687,7 @@ class _EditBranchPageState extends State<EditBranchPage> {
                     fontWeight: FontWeight.w600,
                     color: Colors.black87)),
             const SizedBox(height: 6),
-            DropdownButtonFormField<String>(
+            DailioPickerField<String>(
               initialValue: _timezone,
               items: const ['Asia/Kolkata', 'UTC', 'America/New_York']
                   .map((e) => DropdownMenuItem(
@@ -868,7 +883,7 @@ class _EditBranchPageState extends State<EditBranchPage> {
       icon: Iconsax.scan_barcode,
       children: [
         const Text(
-          'Create a permanent invite QR. Members can scan it to preview this branch and send a fast join request.',
+          'Permanent invite QR for branch discovery, fast join, and gate attendance.',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 24),
@@ -884,6 +899,34 @@ class _EditBranchPageState extends State<EditBranchPage> {
   }
 
   Future<void> _showJoinQr() async {
+    try {
+      final invite = await context
+          .read<BranchRepository>()
+          .createBranchInvite(widget.branchId);
+      if (!mounted) return;
+      final payload = invite['qr_payload']?.toString();
+      if (payload == null || payload.isEmpty) {
+        throw Exception('Invite QR was not created');
+      }
+      await showDailioQrSheet(
+        context,
+        title: 'Branch QR',
+        payload: payload,
+        subtitle:
+            "${invite['organization']?['name'] ?? 'Organization'} • ${_branch?['name'] ?? 'Branch'}",
+        detail: 'Keep this QR printed at the entrance for recurring use.',
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not create invite: $error')));
+      }
+    }
+  }
+
+  // Legacy implementation retained temporarily for reference.
+  // ignore: unused_element
+  Future<void> _showLegacyJoinQr() async {
     try {
       final invite = await context
           .read<BranchRepository>()
@@ -909,10 +952,10 @@ class _EditBranchPageState extends State<EditBranchPage> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-            const Text('Permanent QR • active until revoked',
+            const Text('Permanent QR • no expiry or revocation',
                 style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 8),
-            const Text('Regenerate this QR to revoke the previous one.',
+            const Text('Generating another QR never invalidates this one.',
                 textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
           ]),
           actions: [
@@ -1007,32 +1050,21 @@ class _EditBranchPageState extends State<EditBranchPage> {
       required IconData icon,
       Widget? action,
       required List<Widget> children}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(8)),
-                  child: Icon(icon, color: Colors.orange, size: 18)),
-              const SizedBox(width: 12),
               Expanded(
                   child: Text(title,
                       style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold))),
+                          fontSize: 13, fontWeight: FontWeight.w700))),
               if (action != null) action,
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           ...children,
         ],
       ),
@@ -1051,10 +1083,7 @@ class _EditBranchPageState extends State<EditBranchPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87)),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -1065,17 +1094,21 @@ class _EditBranchPageState extends State<EditBranchPage> {
             hintText: hint,
             hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
             filled: true,
-            fillColor: readOnly ? Colors.grey.shade50 : Colors.white,
+            fillColor: Colors.white,
             prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade300)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(color: Colors.grey.shade200)),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.grey.shade200)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide:
+                    BorderSide(color: Colors.orange.shade400, width: 1.5)),
           ),
           style: const TextStyle(fontSize: 13),
           validator: validator,

@@ -3,10 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../attendance/attendance_ui.dart';
 import '../../attendance/attendance_error.dart';
 import '../../attendance/controllers/attendance_repository.dart';
 import '../../branch/controllers/members_repository.dart';
 import '../controllers/organization_repository.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_picker_field.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 
 String attendancePolicyErrorMessage(Object error) {
   if (error is DioException) {
@@ -57,6 +61,24 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
     return attendancePolicyErrorMessage(error);
   }
 
+  void _applyPolicyFields(Map<String, dynamic> policy) {
+    _punchRequired = policy['punch_required'] ?? true;
+    _allowManualEntry = policy['allow_manual_entry'] ?? false;
+    _selfieOnClockIn = policy['selfie_on_clock_in'] ?? false;
+    _selfieOnClockOut = policy['selfie_on_clock_out'] ?? false;
+    _locationOnClockIn = policy['location_on_clock_in'] ?? false;
+    _locationOnClockOut = policy['location_on_clock_out'] ?? false;
+    _geofenceEnabled = policy['geofence_enabled'] ?? false;
+    _shiftEnforcementEnabled = policy['shift_enforcement_enabled'] ?? false;
+    _earlyArrivalMinutes = policy['early_arrival_minutes'] ?? 30;
+    _lateGraceMinutes = policy['late_grace_minutes'] ?? 15;
+    _maxOpenSessionHours = policy['max_open_session_hours'] ?? 24;
+    _geofenceRadiusMeters = policy['geofence_radius_meters'] ?? 100;
+    _geofenceAccuracyThreshold =
+        (policy['geofence_accuracy_threshold'] as num?)?.toInt() ?? 50;
+    _minSessionMinutes = policy['min_session_minutes'] ?? 0;
+  }
+
   Future<T?> _tryLoad<T>(Future<T> request) async {
     try {
       return await request;
@@ -83,12 +105,46 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
       final repo = context.read<AttendanceRepository>();
       final orgId = prefs.activeOrganizationId;
       final results = await Future.wait<dynamic>([
-        repo.getAttendancePolicies(branchId),
+        repo.getAttendancePolicies(
+          branchId,
+          onFresh: (freshPolicies) {
+            if (!mounted) return;
+            setState(() {
+              _policies = freshPolicies;
+              _applyPolicyFields(
+                _policyForScope(
+                  freshPolicies,
+                  _scope,
+                  _selectedRoleId,
+                  _selectedMemberId,
+                ),
+              );
+            });
+          },
+        ),
         if (orgId != null)
-          _tryLoad(context
-              .read<OrganizationRepository>()
-              .getRoles(orgId, branchId: branchId)),
-        _tryLoad(context.read<MembersRepository>().listMembers(branchId)),
+          _tryLoad(
+            context.read<OrganizationRepository>().getRoles(
+              orgId,
+              branchId: branchId,
+              onFresh: (freshRoles) {
+                if (mounted) setState(() => _roles = freshRoles);
+              },
+            ),
+          ),
+        _tryLoad(
+          context.read<MembersRepository>().listMembers(
+            branchId,
+            onFresh: (freshData) {
+              if (!mounted) return;
+              final freshMembers = ((freshData['data'] as List?) ?? const [])
+                  .whereType<Map>()
+                  .map((item) => Map<String, dynamic>.from(item))
+                  .toList();
+              setState(() => _members = freshMembers);
+            },
+          ),
+        ),
       ]);
       final policies = results[0] as List<Map<String, dynamic>>;
       final roles = orgId == null || results[1] is! List
@@ -107,22 +163,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
 
       if (mounted) {
         setState(() {
-          _punchRequired = policy['punch_required'] ?? true;
-          _allowManualEntry = policy['allow_manual_entry'] ?? false;
-          _selfieOnClockIn = policy['selfie_on_clock_in'] ?? false;
-          _selfieOnClockOut = policy['selfie_on_clock_out'] ?? false;
-          _locationOnClockIn = policy['location_on_clock_in'] ?? false;
-          _locationOnClockOut = policy['location_on_clock_out'] ?? false;
-          _geofenceEnabled = policy['geofence_enabled'] ?? false;
-          _shiftEnforcementEnabled =
-              policy['shift_enforcement_enabled'] ?? false;
-          _earlyArrivalMinutes = policy['early_arrival_minutes'] ?? 30;
-          _lateGraceMinutes = policy['late_grace_minutes'] ?? 15;
-          _maxOpenSessionHours = policy['max_open_session_hours'] ?? 24;
-          _geofenceRadiusMeters = policy['geofence_radius_meters'] ?? 100;
-          _geofenceAccuracyThreshold =
-              (policy['geofence_accuracy_threshold'] as num?)?.toInt() ?? 50;
-          _minSessionMinutes = policy['min_session_minutes'] ?? 0;
+          _applyPolicyFields(policy);
           _roles = roles;
           _members = members;
           _policies = policies;
@@ -146,21 +187,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
       _scope = scope;
       _selectedRoleId = scope == 'ROLE' ? roleId : null;
       _selectedMemberId = scope == 'MEMBER' ? memberId : null;
-      _punchRequired = policy['punch_required'] ?? true;
-      _allowManualEntry = policy['allow_manual_entry'] ?? false;
-      _selfieOnClockIn = policy['selfie_on_clock_in'] ?? false;
-      _selfieOnClockOut = policy['selfie_on_clock_out'] ?? false;
-      _locationOnClockIn = policy['location_on_clock_in'] ?? false;
-      _locationOnClockOut = policy['location_on_clock_out'] ?? false;
-      _geofenceEnabled = policy['geofence_enabled'] ?? false;
-      _shiftEnforcementEnabled = policy['shift_enforcement_enabled'] ?? false;
-      _earlyArrivalMinutes = policy['early_arrival_minutes'] ?? 30;
-      _lateGraceMinutes = policy['late_grace_minutes'] ?? 15;
-      _maxOpenSessionHours = policy['max_open_session_hours'] ?? 24;
-      _geofenceRadiusMeters = policy['geofence_radius_meters'] ?? 100;
-      _geofenceAccuracyThreshold =
-          (policy['geofence_accuracy_threshold'] as num?)?.toInt() ?? 50;
-      _minSessionMinutes = policy['min_session_minutes'] ?? 0;
+      _applyPolicyFields(policy);
     });
   }
 
@@ -193,21 +220,13 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
       ));
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Save attendance policy?'),
-        content: const Text(
-            'This creates a new policy version for future punches. Existing attendance sessions keep their original policy snapshot.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Save version')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Save attendance policy?',
+      message:
+          'A new policy version will apply to future punches. Existing sessions keep their current snapshot.',
+      confirmLabel: 'Save version',
+      icon: Iconsax.shield_tick,
     );
     if (confirmed != true || !mounted) return;
     setState(() => _isSaving = true);
@@ -317,18 +336,18 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: AttendanceUi.accentTint,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
-          Icon(Iconsax.people, size: 18, color: Colors.blue.shade700),
+          Icon(Iconsax.people, size: 18, color: AttendanceUi.accent),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Currently affects $count active ${count == 1 ? 'member' : 'members'}. Future punches use the next saved version.',
               style: TextStyle(
-                color: Colors.blue.shade900,
+                color: AttendanceUi.text,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -342,12 +361,21 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Attendance Policy',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Dailio',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.white,
+        foregroundColor: AttendanceUi.text,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          tooltip: 'Back',
+          onPressed: () => Navigator.maybePop(context),
+          icon: const Icon(Iconsax.arrow_left_2),
+        ),
         actions: [
           if (_isSaving)
             const Center(
@@ -357,13 +385,27 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2))))
-          else
+          else ...[
             TextButton(
               onPressed: _savePolicy,
               child: const Text('Save',
                   style: TextStyle(
-                      color: Colors.orange, fontWeight: FontWeight.bold)),
-            )
+                      color: AttendanceUi.accent, fontWeight: FontWeight.bold)),
+            ),
+            DailioOverflowMenu<String>(
+              items: const [
+                DailioMenuItem(
+                  value: 'refresh',
+                  icon: Iconsax.refresh,
+                  label: 'Refresh',
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'refresh') _loadPolicy();
+              },
+            ),
+            const SizedBox(width: 8),
+          ]
         ],
       ),
       body: _isLoading
@@ -398,7 +440,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                       title: 'Policy assignment',
                       icon: Iconsax.user_tag,
                       children: [
-                        DropdownButtonFormField<String>(
+                        DailioPickerField<String>(
                           initialValue: _scope,
                           decoration: const InputDecoration(
                               labelText: 'Apply policy to'),
@@ -417,7 +459,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                           const Text(
                               'No roles are available with the current permissions.')
                         else if (_scope == 'ROLE')
-                          DropdownButtonFormField<String>(
+                          DailioPickerField<String>(
                             initialValue: _selectedRoleId,
                             decoration:
                                 const InputDecoration(labelText: 'Role'),
@@ -435,7 +477,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                           const Text(
                               'No members are available with the current permissions.')
                         else if (_scope == 'MEMBER')
-                          DropdownButtonFormField<String>(
+                          DailioPickerField<String>(
                             initialValue: _selectedMemberId,
                             decoration:
                                 const InputDecoration(labelText: 'Member'),
@@ -590,7 +632,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: Colors.orange),
+              Icon(icon, size: 20, color: AttendanceUi.accent),
               const SizedBox(width: 8),
               Text(title,
                   style: const TextStyle(

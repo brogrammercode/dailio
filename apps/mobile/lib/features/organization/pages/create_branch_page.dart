@@ -13,6 +13,8 @@ import '../models/create_organization_models.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/network/interceptors/logging_interceptor.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/dailio_onboarding_widgets.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 
 class CreateBranchPage extends StatefulWidget {
   final CreateOrganizationInput organizationInput;
@@ -387,68 +389,189 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Colors.white,
+      appBar: DailioSimpleAppBar(onBack: () => context.pop()),
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            _buildProgress(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 96),
+            children: [
+              const Text('Create first branch',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 5),
+              const Text('Step 2 of 2 · Add the location people will use.',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF858585))),
+              const SizedBox(height: 20),
+              const LinearProgressIndicator(
+                  value: 1,
+                  minHeight: 3,
+                  backgroundColor: Color(0xFFF0E6DC),
+                  color: Color(0xFFCC5A00)),
+              const SizedBox(height: 22),
+              const DailioOnboardingSectionLabel('BRANCH DETAILS'),
+              TextFormField(
+                controller: _nameController,
+                decoration: dailioOnboardingInput('Branch name', Iconsax.shop),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Branch name is required'
+                    : null,
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _codeController,
+                decoration: dailioOnboardingInput(
+                  'Branch code',
+                  Iconsax.code,
+                  suffixIcon: _isCheckingCode
+                      ? const Padding(
+                          padding: EdgeInsets.all(13),
+                          child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2)),
+                        )
+                      : _codeController.text.isNotEmpty && _isCodeUnique
+                          ? const Icon(Iconsax.tick_circle5,
+                              color: Color(0xFF2E9D59), size: 18)
+                          : null,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const DailioOnboardingSectionLabel('LOCATION'),
+                  TextButton.icon(
+                    onPressed: _isDetectingLocation ? null : _detectLocation,
+                    icon: const Icon(Iconsax.gps, size: 15),
+                    label: Text(
+                        _isDetectingLocation ? 'Detecting…' : 'Use current'),
+                    style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFFCC5A00),
+                        padding: EdgeInsets.zero),
+                  ),
+                ],
+              ),
+              TextField(
+                controller: _searchController,
+                focusNode: _searchFocus,
+                onChanged: _onSearchChanged,
+                decoration: dailioOnboardingInput(
+                    'Search an address', Iconsax.search_normal_1),
+              ),
+              if (_suggestions.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 6),
+                  constraints: const BoxConstraints(maxHeight: 180),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE4E4E4)),
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: _suggestions.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, index) => ListTile(
+                      dense: true,
+                      leading: const Icon(Iconsax.location, size: 17),
+                      title: Text(_suggestions[index]['display_name'] ?? '',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12)),
+                      onTap: () => _onSuggestionSelected(_suggestions[index]),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  height: 190,
+                  child: Stack(
                     children: [
-                      _buildBasicInfo(),
-                      const SizedBox(height: 24),
-                      _buildLocationSection(),
+                      FlutterMap(
+                        mapController: _mapController,
+                        options: MapOptions(
+                          initialCenter: _currentLocation,
+                          initialZoom: 14,
+                          onPositionChanged: _onMapPositionChanged,
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate:
+                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.dailio.app',
+                          ),
+                        ],
+                      ),
+                      Center(child: _buildMarkerWidget(isGreen: false)),
                     ],
                   ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _streetController,
+                      readOnly: true,
+                      decoration: dailioOnboardingInput(
+                          'Street / area', Iconsax.location),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _cityController,
+                      readOnly: true,
+                      decoration:
+                          dailioOnboardingInput('City', Iconsax.building_4),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _stateController,
+                      readOnly: true,
+                      decoration: dailioOnboardingInput('State', Iconsax.map_1),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _postalController,
+                      readOnly: true,
+                      decoration:
+                          dailioOnboardingInput('Postal code', Iconsax.code),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-      bottomSheet: Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        decoration: BoxDecoration(color: Colors.white, boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -4))
-        ]),
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange.shade800,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            minimumSize: const Size(double.infinity, 0),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2))
-              : const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Complete Registration',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    SizedBox(width: 8),
-                    Icon(Iconsax.tick_circle, size: 18),
-                  ],
-                ),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: DailioOnboardingButton(
+          label: 'Create organization',
+          icon: Iconsax.tick_circle,
+          loading: _isLoading,
+          onPressed: _submit,
         ),
       ),
     );
   }
 
+  // Retained for compatibility with older branch setup variants.
+  // ignore: unused_element
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
@@ -484,6 +607,8 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     );
   }
 
+  // Retained for compatibility with older branch setup variants.
+  // ignore: unused_element
   Widget _buildProgress() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
@@ -511,6 +636,8 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     );
   }
 
+  // Retained for compatibility with older branch setup variants.
+  // ignore: unused_element
   Widget _buildBasicInfo() {
     return _buildSection(
       title: 'Branch Identification',
@@ -538,6 +665,8 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
     );
   }
 
+  // Retained for compatibility with older branch setup variants.
+  // ignore: unused_element
   Widget _buildLocationSection() {
     return _buildSection(
       title: 'Location Intelligence',

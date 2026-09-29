@@ -1,181 +1,116 @@
-import 'package:iconsax/iconsax.dart';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 
-import '../controllers/auth_cubit.dart';
-import '../controllers/auth_state.dart';
-import '../../organization/controllers/organization_repository.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../organization/controllers/organization_repository.dart';
+import '../controllers/auth_cubit.dart';
+import '../controllers/auth_state.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
+
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();
 }
 
 class _OnboardingPageState extends State<OnboardingPage> {
   bool _isRouting = false;
+
   Future<void> _handleAuthenticated() async {
     if (!mounted) return;
     setState(() => _isRouting = true);
     try {
-      final repo = context.read<OrganizationRepository>();
-      final orgs = await repo.getMyOrganizations();
-      if (orgs.isEmpty) {
-        if (mounted) context.go(AppRoutes.joinOrCreate);
+      final organizations =
+          await context.read<OrganizationRepository>().getMyOrganizations();
+      if (!mounted) return;
+      if (organizations.isEmpty) {
+        context.go(AppRoutes.joinOrCreate);
+        return;
+      }
+      final preferences = context.read<PreferencesStorage>();
+      if (preferences.activeOrganizationId == null ||
+          preferences.activeBranchId == null) {
+        context.go(AppRoutes.contextSwitcher);
       } else {
-        if (mounted) {
-          final prefs = context.read<PreferencesStorage>();
-          if (prefs.activeOrganizationId == null ||
-              prefs.activeBranchId == null) {
-            context.go(AppRoutes.contextSwitcher);
-            return;
-          }
-          context.go(AppRoutes.home);
-        }
+        context.go(AppRoutes.home);
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isRouting = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
-        context.read<AuthCubit>().signOut();
-      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isRouting = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Could not finish sign-in. Please try again.'),
+      ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is AuthAuthenticated) _handleAuthenticated();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF0F2F5),
+        backgroundColor: Colors.white,
         body: SafeArea(
-          child: BlocBuilder<AuthCubit, AuthState>(
-            builder: (context, state) {
-              final isLoading = (state is AuthLoading) || _isRouting;
-              return Column(
-                children: [
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        return SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minHeight: constraints.maxHeight,
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                // App icon
-                                Image.asset(
-                                  'assets/logo.png',
-                                  width: 64,
-                                  height: 64,
-                                ),
-                                const SizedBox(height: 16),
-                                const Text('Dailio',
-                                    style: TextStyle(
-                                        fontSize: 28,
-                                        letterSpacing: -1.0,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1A1A1A))),
-                                const SizedBox(height: 6),
-                                const Text(
-                                  'Enterprise Workforce & Location Intelligence',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      fontSize: 14,
-                                      color: Color(0xFF6B7280),
-                                      height: 1.4),
-                                ),
-                                const SizedBox(height: 32),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxHeight < 720;
+              return BlocBuilder<AuthCubit, AuthState>(
+                builder: (context, state) {
+                  final loading = state is AuthLoading || _isRouting;
+                  final error = state is AuthError ? state.message : null;
 
-                                // THE NEW SUPER CREATIVE VISUALIZATION (Scaled Down & Centered)
-                                const _HeroVisualizer(),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                  return ListView(
+                    padding: EdgeInsets.fromLTRB(
+                      18,
+                      compact ? 14 : 22,
+                      18,
+                      20,
                     ),
-                  ),
-
-                  // Bottom auth section
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (state is AuthError)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Text(state.message,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                    color: Color(0xFFDC2626), fontSize: 13)),
-                          ),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton(
-                            onPressed: isLoading
-                                ? null
-                                : () => context
-                                    .read<AuthCubit>()
-                                    .signInWithGoogle(),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF1A1A1A),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  side: const BorderSide(
-                                      color: Color(0xFFE5E7EB), width: 1.5)),
-                            ),
-                            child: isLoading
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Color(0xFFB45309))),
-                                  )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Image.network(
-                                          'https://cdn-icons-png.flaticon.com/512/281/281764.png',
-                                          width: 20,
-                                          height: 20),
-                                      const SizedBox(width: 12),
-                                      const Text('Continue with Google',
-                                          style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600)),
-                                    ],
-                                  ),
-                          ),
+                    children: [
+                      _LoginHero(compact: compact),
+                      SizedBox(height: compact ? 22 : 28),
+                      Text(
+                        'Start with Dailio.',
+                        style: textTheme.headlineSmall?.copyWith(
+                          color: const Color(0xFF17120E),
+                          fontSize: compact ? 24 : 27,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.8,
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
-                            'By continuing, you accept the Terms of Service and Privacy Policy.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                fontSize: 11, color: Color(0xFF9CA3AF))),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Your people, plans and progress — in sync.',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF817A75),
+                          fontSize: 13,
+                          height: 1.35,
+                        ),
+                      ),
+                      SizedBox(height: compact ? 18 : 22),
+                      if (error != null) ...[
+                        _LoginError(message: error),
+                        const SizedBox(height: 12),
                       ],
-                    ),
-                  ),
-                ],
+                      _GoogleSignInButton(
+                        loading: loading,
+                        onPressed: () =>
+                            context.read<AuthCubit>().signInWithGoogle(),
+                      ),
+                      const SizedBox(height: 13),
+                      const _TrustRow(),
+                      const SizedBox(height: 18),
+                      const _LegalCopy(),
+                    ],
+                  );
+                },
               );
             },
           ),
@@ -185,144 +120,225 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 }
 
-// ----------------------------------------------------------------------
-// SCALED DOWN HERO VISUALIZER
-// ----------------------------------------------------------------------
-class _HeroVisualizer extends StatefulWidget {
-  const _HeroVisualizer();
-  @override
-  State<_HeroVisualizer> createState() => _HeroVisualizerState();
-}
+class _LoginHero extends StatelessWidget {
+  const _LoginHero({required this.compact});
 
-class _HeroVisualizerState extends State<_HeroVisualizer>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 6),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 280, // Reduced height so footer doesn't need scrolling
-      width:
-          320, // Constrained width to perfectly cluster the elements around the center
-      child: Stack(
-        clipBehavior: Clip.none, // Prevent cropping
-        alignment: Alignment.center,
-        children: [
-          // 1. Faded Tech Grid Background
-          Positioned.fill(
-            child: ShaderMask(
-              shaderCallback: (Rect bounds) {
-                return RadialGradient(
-                  center: Alignment.center,
-                  radius: 0.5,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.8),
-                    Colors.transparent
-                  ],
-                  stops: const [0.2, 1.0],
-                ).createShader(bounds);
-              },
-              blendMode: BlendMode.dstIn,
-              child: CustomPaint(
-                painter: _GridPainter(),
-              ),
-            ),
-          ),
-
-          // 2. Pulsing Glow Orb
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              final pulse = sin(_controller.value * pi * 2);
-              return Transform.scale(
-                scale: 1.0 + (pulse * 0.08),
-                child: Container(
-                  width: 140, // Scaled down
-                  height: 140,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        const Color(0xFFB45309).withValues(alpha: 0.1),
-                        const Color(0xFFB45309).withValues(alpha: 0.0),
-                      ],
-                      stops: const [0.2, 1.0],
-                    ),
-                  ),
+      height: compact ? 264 : 306,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(color: Color(0xFF1A1715)),
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              Positioned(
+                top: -112,
+                right: -72,
+                child: _GlowCircle(
+                  size: 250,
+                  fill: AppColors.brandAccent.withValues(alpha: .22),
+                  stroke: AppColors.brandAccent.withValues(alpha: .35),
                 ),
-              );
-            },
+              ),
+              Positioned(
+                right: -24,
+                bottom: -110,
+                child: _GlowCircle(
+                  size: 210,
+                  fill: Colors.transparent,
+                  stroke: Colors.white.withValues(alpha: .08),
+                ),
+              ),
+              Positioned(
+                left: -108,
+                bottom: -142,
+                child: _GlowCircle(
+                  size: 270,
+                  fill: Colors.white.withValues(alpha: .025),
+                  stroke: Colors.white.withValues(alpha: .07),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 17, 18, 17),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _HeroBrandRow(),
+                    const Spacer(),
+                    Text(
+                      'Run the day.\nKeep it simple.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: compact ? 29 : 33,
+                        height: 1.02,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'A calmer way to manage everyday operations.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .64),
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                    SizedBox(height: compact ? 15 : 20),
+                    const _WorkspacePreview(),
+                  ],
+                ),
+              ),
+            ],
           ),
+        ),
+      ),
+    );
+  }
+}
 
-          // 3. Central Core Icon
-          Container(
-            width: 60, // Scaled down
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFF3F4F6), width: 3),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFB45309).withValues(alpha: 0.15),
-                  blurRadius: 16,
-                  spreadRadius: 4,
-                )
-              ],
-            ),
-            child: const Center(
-              child: Icon(Iconsax.building, color: Color(0xFFB45309), size: 24),
-            ),
-          ),
+class _HeroBrandRow extends StatelessWidget {
+  const _HeroBrandRow();
 
-          // 4. Floating Glassmorphism Feature Cards
-          // Repositioned to stay strictly within the 320x280 frame safely
-          _FloatingCard(
-            controller: _controller,
-            delayOffset: 0.0,
-            top: 20,
-            left: 0,
-            icon: Icons.hub,
-            label: 'Multi-Tenant',
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 39,
+          height: 39,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: .12)),
           ),
-          _FloatingCard(
-            controller: _controller,
-            delayOffset: 1.5,
-            top: 60,
-            right: 0,
-            icon: Icons.share_location,
-            label: 'Geofenced',
+          child: Image.asset('assets/logo.png', fit: BoxFit.cover),
+        ),
+        const SizedBox(width: 10),
+        const Text(
+          'Dailio',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -.3,
           ),
-          _FloatingCard(
-            controller: _controller,
-            delayOffset: 3.14,
-            bottom: 60,
-            left: 0,
-            icon: Icons.shield_outlined,
-            label: 'Role-Based Access',
+        ),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .07),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: Colors.white.withValues(alpha: .1)),
           ),
-          _FloatingCard(
-            controller: _controller,
-            delayOffset: 4.5,
-            bottom: 20,
-            right: 0,
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Iconsax.activity, color: Color(0xFFFFA15C), size: 13),
+              SizedBox(width: 5),
+              Text(
+                'IN SYNC',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: .8,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WorkspacePreview extends StatelessWidget {
+  const _WorkspacePreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: const [
+        Expanded(
+          child: _PreviewTile(
+            icon: Iconsax.activity,
+            label: 'Attendance',
+            value: 'Live',
+          ),
+        ),
+        SizedBox(width: 8),
+        Expanded(
+          child: _PreviewTile(
+            icon: Iconsax.people,
+            label: 'Members',
+            value: 'Together',
+          ),
+        ),
+        SizedBox(width: 8),
+        Expanded(
+          child: _PreviewTile(
             icon: Iconsax.wallet_3,
-            label: 'Live Payroll',
+            label: 'Payments',
+            value: 'Clear',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PreviewTile extends StatelessWidget {
+  const _PreviewTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(9, 9, 6, 9),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .075),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: Colors.white.withValues(alpha: .1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFFFFA15C), size: 15),
+          const SizedBox(height: 9),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .56),
+              fontSize: 9,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -330,90 +346,80 @@ class _HeroVisualizerState extends State<_HeroVisualizer>
   }
 }
 
-class _FloatingCard extends StatelessWidget {
-  final AnimationController controller;
-  final double delayOffset;
-  final double? top;
-  final double? bottom;
-  final double? left;
-  final double? right;
-  final IconData icon;
-  final String label;
-
-  const _FloatingCard({
-    required this.controller,
-    required this.delayOffset,
-    this.top,
-    this.bottom,
-    this.left,
-    this.right,
-    required this.icon,
-    required this.label,
+class _GlowCircle extends StatelessWidget {
+  const _GlowCircle({
+    required this.size,
+    required this.fill,
+    required this.stroke,
   });
+
+  final double size;
+  final Color fill;
+  final Color stroke;
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      top: top,
-      bottom: bottom,
-      left: left,
-      right: right,
-      child: AnimatedBuilder(
-        animation: controller,
-        builder: (context, child) {
-          final offset = sin((controller.value * 2 * pi) + delayOffset) *
-              8.0; // Reduced amplitude
-          return Transform.translate(
-            offset: Offset(0, offset),
-            child: child,
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 10, vertical: 8), // Scaled down padding
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.95),
-            borderRadius:
-                BorderRadius.circular(10), // Scaled down border radius
-            border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: const Color(0xFFB45309).withValues(alpha: 0.05),
-                blurRadius: 6,
-                spreadRadius: -2,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7ED),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(icon,
-                    size: 14,
-                    color: const Color(0xFFB45309)), // Scaled down icon
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11, // Scaled down font size
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1A1A),
-                  letterSpacing: -0.2,
-                ),
-              ),
-            ],
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: fill,
+        shape: BoxShape.circle,
+        border: Border.all(color: stroke),
+      ),
+    );
+  }
+}
+
+class _GoogleSignInButton extends StatelessWidget {
+  const _GoogleSignInButton({
+    required this.loading,
+    required this.onPressed,
+  });
+
+  final bool loading;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: Material(
+        color: const Color(0xFF191512),
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: loading ? null : onPressed,
+          borderRadius: BorderRadius.circular(16),
+          splashColor: AppColors.brandAccent.withValues(alpha: .2),
+          child: Center(
+            child: loading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _GoogleMark(),
+                      SizedBox(width: 11),
+                      Text(
+                        'Continue with Google',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Icon(Iconsax.arrow_right_3,
+                          color: Color(0xFFFFA15C), size: 17),
+                    ],
+                  ),
           ),
         ),
       ),
@@ -421,22 +427,121 @@ class _FloatingCard extends StatelessWidget {
   }
 }
 
-class _GridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFE5E7EB)
-      ..strokeWidth = 1;
+class _GoogleMark extends StatelessWidget {
+  const _GoogleMark();
 
-    const double step = 24.0;
-    for (double i = 0; i < size.width; i += step) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
-    }
-    for (double i = 0; i < size.height; i += step) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
-    }
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 25,
+      height: 25,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Text(
+        'G',
+        style: TextStyle(
+          color: Color(0xFF4285F4),
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
   }
+}
+
+class _TrustRow extends StatelessWidget {
+  const _TrustRow();
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Iconsax.shield_tick, size: 15, color: AppColors.brandAccent),
+        const SizedBox(width: 6),
+        Text(
+          'Secure sign-in · no password to remember',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: const Color(0xFF8B8580),
+                fontSize: 11,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LoginError extends StatelessWidget {
+  const _LoginError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF2F0),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFD7D2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Iconsax.danger, color: Color(0xFFB3261E), size: 17),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Color(0xFF8D2D27),
+                fontSize: 12,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegalCopy extends StatelessWidget {
+  const _LegalCopy();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        text: 'By continuing, you agree to Dailio’s ',
+        style: const TextStyle(
+          color: Color(0xFF9B9590),
+          fontSize: 10,
+          height: 1.35,
+        ),
+        children: const [
+          TextSpan(
+            text: 'Terms of Service',
+            style: TextStyle(
+              color: AppColors.brandDark,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          TextSpan(text: ' and '),
+          TextSpan(
+            text: 'Privacy Policy',
+            style: TextStyle(
+              color: AppColors.brandDark,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          TextSpan(text: '.'),
+        ],
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
 }

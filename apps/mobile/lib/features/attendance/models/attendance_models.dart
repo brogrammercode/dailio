@@ -72,8 +72,10 @@ class AttendanceSessionModel {
   final DateTime clockInServerTime;
   final DateTime? clockOutServerTime;
   final int? workedMinutes;
+  final String? memberId;
   final String? memberName; // populated from includes
   final String? memberAvatar; // populated from includes
+  final String? memberRoleName; // populated from includes
   final int? lateMinutes;
   final int? earlyLeaveMinutes;
   final String? shiftName;
@@ -97,8 +99,10 @@ class AttendanceSessionModel {
       required this.clockInServerTime,
       this.clockOutServerTime,
       this.workedMinutes,
+      this.memberId,
       this.memberName,
       this.memberAvatar,
+      this.memberRoleName,
       this.lateMinutes,
       this.earlyLeaveMinutes,
       this.shiftName,
@@ -130,8 +134,11 @@ class AttendanceSessionModel {
       clockOutServerTime:
           j['clock_out_at'] != null ? DateTime.parse(j['clock_out_at']) : null,
       workedMinutes: j['worked_minutes'],
+      memberId: member?['id']?.toString(),
       memberName: user?['name'],
       memberAvatar: user?['avatar_url'],
+      memberRoleName:
+          (member?['role'] as Map<String, dynamic>?)?['name']?.toString(),
       lateMinutes: (j['late_minutes'] as num?)?.toInt(),
       earlyLeaveMinutes: (j['early_leave_minutes'] as num?)?.toInt(),
       shiftName: snapshot['name']?.toString(),

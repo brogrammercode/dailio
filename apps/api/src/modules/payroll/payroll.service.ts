@@ -3,6 +3,7 @@ import { ulid } from 'ulid';
 
 import { prisma } from '../../lib/prisma';
 import { ForbiddenError, NotFoundError } from '../../lib/errors';
+import { findBranchRecipientUserIds, notify } from '../notifications/notifications.service';
 
 export async function listSalaryStructures(organization_id: string, branch_id?: string) {
   const structures = await prisma.salaryStructure.findMany({
@@ -79,6 +80,31 @@ export async function createSalaryStructure(
       after_state: { name: structure.name },
     },
   });
+  try {
+    const reviewers = await findBranchRecipientUserIds(
+      organization_id,
+      structure.branch_id ?? contextBranchId,
+      'PAYROLL_GENERATE',
+    );
+    await notify({
+      type: 'SALARY_STRUCTURE_CREATED',
+      organizationId: organization_id,
+      branchId: structure.branch_id ?? contextBranchId,
+      entityType: 'SalaryStructure',
+      entityId: structure.id,
+      recipientUserIds: reviewers.filter((id) => id !== actorId),
+      title: 'Payroll structure created',
+      body: `${structure.name} is now available for payroll configuration.`,
+      data: {
+        organization_id,
+        branch_id: structure.branch_id ?? contextBranchId,
+        entity_id: structure.id,
+      },
+      dedupeKey: `salary-structure:${structure.id}:created`,
+    });
+  } catch {
+    // Notification delivery must not undo the committed structure.
+  }
   return structure;
 }
 
@@ -95,6 +121,15 @@ export async function updateSalaryStructure(
   if (existing.branch_id && existing.branch_id !== contextBranchId && !permissions.has('ALL')) {
     throw new NotFoundError('Salary structure not found');
   }
+
+  const affectedMembers = await prisma.member.findMany({
+    where: {
+      organization_id,
+      branch_id: existing.branch_id ?? contextBranchId,
+      salary_structure_id: id,
+    },
+    select: { user_id: true },
+  });
 
   const updateData: any = { ...data };
   if (updateData.branch_id === 'none') updateData.branch_id = null;
@@ -117,6 +152,26 @@ export async function updateSalaryStructure(
       after_state: { name: updated.name },
     },
   });
+  try {
+    await notify({
+      type: 'SALARY_STRUCTURE_UPDATED',
+      organizationId: organization_id,
+      branchId: updated.branch_id ?? contextBranchId,
+      entityType: 'SalaryStructure',
+      entityId: updated.id,
+      recipientUserIds: affectedMembers.map((member) => member.user_id),
+      title: 'Payroll details updated',
+      body: `Your payroll structure, ${updated.name}, has been updated.`,
+      data: {
+        organization_id,
+        branch_id: updated.branch_id ?? contextBranchId,
+        entity_id: updated.id,
+      },
+      dedupeKey: `salary-structure:${updated.id}:updated:${updated.updated_at.toISOString()}`,
+    });
+  } catch {
+    // Notification delivery must not undo the committed structure.
+  }
   return updated;
 }
 
@@ -132,6 +187,14 @@ export async function deleteSalaryStructure(
   if (existing.branch_id && existing.branch_id !== contextBranchId && !permissions.has('ALL')) {
     throw new NotFoundError('Salary structure not found');
   }
+  const affectedMembers = await prisma.member.findMany({
+    where: {
+      organization_id,
+      branch_id: existing.branch_id ?? contextBranchId,
+      salary_structure_id: id,
+    },
+    select: { user_id: true },
+  });
   const deleted = await prisma.salaryStructure.delete({ where: { id } });
   await prisma.auditLog.create({
     data: {
@@ -145,5 +208,25 @@ export async function deleteSalaryStructure(
       before_state: { name: existing.name },
     },
   });
+  try {
+    await notify({
+      type: 'SALARY_STRUCTURE_DELETED',
+      organizationId: organization_id,
+      branchId: deleted.branch_id ?? contextBranchId,
+      entityType: 'SalaryStructure',
+      entityId: deleted.id,
+      recipientUserIds: affectedMembers.map((member) => member.user_id),
+      title: 'Payroll structure removed',
+      body: `Your payroll structure, ${deleted.name}, has been removed.`,
+      data: {
+        organization_id,
+        branch_id: deleted.branch_id ?? contextBranchId,
+        entity_id: deleted.id,
+      },
+      dedupeKey: `salary-structure:${deleted.id}:deleted`,
+    });
+  } catch {
+    // Notification delivery must not undo the committed structure deletion.
+  }
   return deleted;
 }

@@ -30,7 +30,25 @@ export async function updateProfile(user_id: string, data: UpdateProfileInput) {
     updateData.avatar_url = uploadResult.secure_url;
   }
 
-  return prisma.user.update({ where: { id: user_id }, data: updateData });
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.user.update({ where: { id: user_id }, data: updateData });
+    if (data.fcm_token) {
+      await tx.userDeviceToken.upsert({
+        where: { token: data.fcm_token },
+        create: { user_id, token: data.fcm_token },
+        update: { user_id, last_seen_at: new Date() },
+      });
+    }
+    return updated;
+  });
+}
+
+export async function removeDeviceToken(user_id: string, token: string) {
+  await prisma.userDeviceToken.deleteMany({ where: { user_id, token } });
+  await prisma.user.updateMany({
+    where: { id: user_id, fcm_token: token },
+    data: { fcm_token: null },
+  });
 }
 
 export async function getUserContexts(user_id: string) {
@@ -49,16 +67,19 @@ export async function deleteAccount(user_id: string) {
   if (!user) throw new NotFoundError('User');
 
   // Anonymize the user record
-  return prisma.user.update({
-    where: { id: user_id },
-    data: {
-      status: 'DISABLED',
-      email: null,
-      phone: null,
-      google_id: null,
-      name: 'Deleted User',
-      avatar_url: null,
-      fcm_token: null,
-    },
+  return prisma.$transaction(async (tx) => {
+    await tx.userDeviceToken.deleteMany({ where: { user_id } });
+    return tx.user.update({
+      where: { id: user_id },
+      data: {
+        status: 'DISABLED',
+        email: null,
+        phone: null,
+        google_id: null,
+        name: 'Deleted User',
+        avatar_url: null,
+        fcm_token: null,
+      },
+    });
   });
 }

@@ -18,14 +18,26 @@ class MemberSubscription {
   });
 
   factory MemberSubscription.fromJson(Map<String, dynamic> json) {
+    final start = DateTime.tryParse(
+          (json['start_date'] ?? json['startDate'] ?? '').toString(),
+        ) ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+    final end = DateTime.tryParse(
+          (json['end_date'] ?? json['endDate'] ?? '').toString(),
+        ) ??
+        DateTime.fromMillisecondsSinceEpoch(0);
     return MemberSubscription(
-      id: json['id'],
-      status: json['status'],
-      startDate: DateTime.parse(json['start_date'] ?? json['startDate']),
-      endDate: DateTime.parse(json['end_date'] ?? json['endDate']),
-      planName: json['plan']?['name'] ?? 'Custom Plan',
+      id: json['id']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'UNKNOWN',
+      startDate: start,
+      endDate: end,
+      planName: (json['plan'] as Map?)?['name']?.toString() ?? 'Custom Plan',
       amountMinor:
-          json['agreedAmountMinor'] ?? json['agreed_amount_minor'] ?? 0,
+          (json['agreedAmountMinor'] ?? json['agreed_amount_minor'] ?? 0) is num
+              ? ((json['agreedAmountMinor'] ?? json['agreed_amount_minor'] ?? 0)
+                      as num)
+                  .toInt()
+              : 0,
     );
   }
 }
@@ -46,6 +58,7 @@ class MemberModel {
   final String? managerMemberId;
   final String? salaryStructureId;
   final String? joinedAt;
+  final List<MemberSubscription> subscriptions;
   final MemberSubscription? activeSubscription;
 
   MemberModel({
@@ -64,6 +77,7 @@ class MemberModel {
     this.managerMemberId,
     this.salaryStructureId,
     this.joinedAt,
+    this.subscriptions = const [],
     this.activeSubscription,
   });
 
@@ -79,10 +93,16 @@ class MemberModel {
         .whereType<RoleModel>()
         .toList();
 
-    MemberSubscription? sub;
+    final subscriptions = <MemberSubscription>[];
     final subs = j['subscriptions'] as List?;
     if (subs != null && subs.isNotEmpty) {
-      sub = MemberSubscription.fromJson(subs.first);
+      subscriptions.addAll(
+        subs
+            .whereType<Map>()
+            .map((item) =>
+                MemberSubscription.fromJson(Map<String, dynamic>.from(item)))
+            .toList(),
+      );
     }
 
     return MemberModel(
@@ -101,7 +121,8 @@ class MemberModel {
       managerMemberId: j['manager_member_id']?.toString(),
       salaryStructureId: j['salary_structure_id'],
       joinedAt: j['created_at'],
-      activeSubscription: sub,
+      subscriptions: subscriptions,
+      activeSubscription: subscriptions.isEmpty ? null : subscriptions.first,
     );
   }
 

@@ -8,6 +8,7 @@ import admissionsRouter from '../modules/admissions/admissions.routes';
 import membersRouter from '../modules/members/members.routes';
 import attendanceRouter from '../modules/attendance/attendance.routes';
 import { rolesRouter } from '../modules/roles/roles.routes';
+import { usersRouter } from '../modules/users/users.routes';
 
 const router: Router = ExpressRouter();
 
@@ -23,6 +24,7 @@ router.get('/health', (_req, res) => {
 
 // Auth
 router.use('/auth', authRouter);
+router.use('/users', usersRouter);
 
 // Organizations
 router.use('/organizations', organizationsRouter);
@@ -47,6 +49,12 @@ import paymentsRouter from '../modules/payments/payments.routes';
 import invitesRouter from '../modules/invites/invites.routes';
 import notificationsRouter from '../modules/notifications/notifications.routes';
 import { getAttendanceMaintenanceStatus } from '../modules/attendance/attendance.maintenance';
+import leaveRouter from '../modules/leave/leave.routes';
+import announcementsRouter from '../modules/announcements/announcements.routes';
+import feedsRouter from '../modules/feeds/feeds.routes';
+router.use(leaveRouter);
+router.use('/organizations', announcementsRouter);
+router.use('/organizations', feedsRouter);
 router.use('/organizations', plansRouter);
 router.use('/organizations', shiftsRouter);
 router.use('/organizations', payrollRouter);

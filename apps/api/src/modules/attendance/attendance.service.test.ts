@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const prismaMock = vi.hoisted(() => ({
-  member: { findFirst: vi.fn() },
+  member: { findFirst: vi.fn(), findUnique: vi.fn() },
   role: { findFirst: vi.fn() },
   attendancePolicy: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn(), create: vi.fn() },
   attendanceSession: { findFirst: vi.fn(), update: vi.fn() },
@@ -30,6 +30,7 @@ describe('attendance policy resolution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prismaMock.member.findFirst.mockResolvedValue({ id: 'member-1', role_id: 'role-1' });
+    prismaMock.member.findUnique.mockResolvedValue({ user_id: 'member-user-1' });
     prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) =>
       callback(prismaMock),
     );

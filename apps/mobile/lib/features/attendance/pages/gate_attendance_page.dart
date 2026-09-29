@@ -3,9 +3,14 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:iconsax/iconsax.dart';
 
 import '../controllers/attendance_repository.dart';
 import '../attendance_error.dart';
+import '../attendance_ui.dart';
+import '../../../core/widgets/confirm_dialog.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 import 'attendance_detail_page.dart';
 
 List<String> gateAttendanceRequirementLabels(
@@ -116,24 +121,14 @@ class _GateAttendancePageState extends State<GateAttendancePage> {
           'For attendance safety, gate attendance must be scanned live with the camera. Return to the scanner and scan the printed QR directly.');
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(_action == 'CLOCK_OUT'
-            ? 'Clock out at gate?'
-            : 'Clock in at gate?'),
-        content: Text(
-          'Dailio will apply your assigned attendance policy, capture required evidence, and submit the server-confirmed attendance action for ${_branch['name'] ?? 'this branch'}.',
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Continue')),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title:
+          _action == 'CLOCK_OUT' ? 'Clock out at gate?' : 'Clock in at gate?',
+      message:
+          'Dailio will apply your attendance policy, capture required evidence, and submit the confirmed action for ${_branch['name'] ?? 'this branch'}.',
+      confirmLabel: 'Continue',
+      icon: _action == 'CLOCK_OUT' ? Iconsax.logout : Iconsax.login,
     );
     if (confirmed != true || !mounted) return;
 
@@ -186,8 +181,19 @@ class _GateAttendancePageState extends State<GateAttendancePage> {
     );
     final shift = gateAttendanceShift(_policy);
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(title: const Text('Gate attendance')),
+      backgroundColor: AttendanceUi.canvas,
+      appBar: DailioSimpleAppBar(
+        menuItems: const [
+          DailioMenuItem(
+            value: 'cancel',
+            icon: Icons.close,
+            label: 'Cancel',
+          ),
+        ],
+        onMenuSelected: (value) {
+          if (value == 'cancel') Navigator.of(context).pop();
+        },
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -198,27 +204,25 @@ class _GateAttendancePageState extends State<GateAttendancePage> {
             const SizedBox(height: 6),
             Text(clockOut ? 'Next action: Clock out' : 'Next action: Clock in',
                 style: TextStyle(
-                    color: clockOut
-                        ? Colors.orange.shade800
-                        : Colors.green.shade800,
-                    fontWeight: FontWeight.w700)),
+                    color: AttendanceUi.accent, fontWeight: FontWeight.w700)),
             if (_scanFromGallery) ...[
               const SizedBox(height: 12),
               _card(
                   Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Icon(Icons.camera_alt_outlined, color: Colors.orange),
+                const Icon(Icons.camera_alt_outlined,
+                    color: AttendanceUi.accent),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'This QR was selected from your gallery. Use the live camera scan for gate attendance; saved QR images can only be used for branch discovery.',
-                    style: TextStyle(color: Colors.orange.shade900),
+                    style: const TextStyle(color: AttendanceUi.accent),
                   ),
                 ),
               ])),
             ],
             const SizedBox(height: 18),
             Text('Your effective attendance requirements',
-                style: TextStyle(color: Colors.grey.shade700)),
+                style: const TextStyle(color: AttendanceUi.muted)),
             const SizedBox(height: 8),
             Text(requirements.isEmpty
                 ? 'No additional evidence required.'
@@ -226,19 +230,20 @@ class _GateAttendancePageState extends State<GateAttendancePage> {
             const SizedBox(height: 6),
             Text(
                 'Policy ${_policy['version'] ?? '-'} • ${_policy['source_scope'] ?? 'BRANCH_DEFAULT'}',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                style:
+                    const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
             if (shift != null) ...[
               const SizedBox(height: 4),
               Text(
                 'Shift: ${shift['name'] ?? 'Scheduled'} (${shift['start_time'] ?? '--'}–${shift['end_time'] ?? '--'})',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                style: const TextStyle(color: AttendanceUi.muted, fontSize: 12),
               ),
             ],
           ])),
           const SizedBox(height: 16),
           if (_error != null)
             _card(Row(children: [
-              const Icon(Icons.error_outline, color: Colors.red),
+              const Icon(Icons.error_outline, color: AttendanceUi.text),
               const SizedBox(width: 8),
               Expanded(child: Text(_error!)),
             ])),
@@ -254,8 +259,9 @@ class _GateAttendancePageState extends State<GateAttendancePage> {
             label: Text(_loading
                 ? 'Submitting…'
                 : (clockOut ? 'Confirm clock out' : 'Confirm clock in')),
-            style:
-                FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            style: AttendanceUi.primaryButton().copyWith(
+              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(52)),
+            ),
           ),
         ],
       ),
@@ -267,7 +273,7 @@ class _GateAttendancePageState extends State<GateAttendancePage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AttendanceUi.divider),
         ),
         child: child,
       );

@@ -1,14 +1,14 @@
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import '../storage/preferences_storage.dart';
-import '../../features/attendance/pages/self_attendance_page.dart';
-import '../router/route_names.dart';
+import '../theme/app_colors.dart';
+import 'app_shell_toast.dart';
+import 'dailio_nav_badges.dart';
 
 import '../../features/attendance/pages/attendance_page.dart';
+import '../../features/announcements/pages/announcements_page.dart';
 import '../../features/fees/pages/fees_page.dart';
-import '../../features/fees/controllers/fees_repository.dart';
 import '../../features/payments/pages/payments_page.dart';
 import '../../features/settings/pages/settings_page.dart';
 
@@ -20,13 +20,26 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
+  static const _badgeKeys = [
+    'announcements',
+    'attendance',
+    '',
+    'payments',
+    '',
+  ];
   int _currentIndex = 0;
-  String? _loadedContextKey;
-  bool _memberHasCurrentPlan = false;
+  String? _lastContextKey;
 
-  final _labels = const ['Attendance', 'Fees', 'Payments', 'Settings'];
+  final _labels = const [
+    'Announcements',
+    'Attendance',
+    'Fees',
+    'Payments',
+    'Settings'
+  ];
 
   final _icons = const [
+    Iconsax.message_text,
     Iconsax.clock,
     Iconsax.receipt,
     Iconsax.wallet_3,
@@ -34,6 +47,7 @@ class _AppShellState extends State<AppShell> {
   ];
 
   final _activeIcons = const [
+    Iconsax.message_text,
     Iconsax.clock,
     Iconsax.receipt,
     Iconsax.wallet_3,
@@ -44,37 +58,12 @@ class _AppShellState extends State<AppShell> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final preferences = context.read<PreferencesStorage>();
-    final key =
+    final contextKey =
         '${preferences.activeOrganizationId}:${preferences.activeBranchId}';
-    if (_loadedContextKey != key) {
-      _loadedContextKey = key;
-      _refreshPlanAvailability(preferences);
+    if (_lastContextKey != null && _lastContextKey != contextKey) {
+      DailioNavBadgeController.reset();
     }
-  }
-
-  Future<void> _refreshPlanAvailability(PreferencesStorage preferences) async {
-    if (preferences.canReadAllFees || preferences.activeBranchId == null) {
-      if (mounted) setState(() => _memberHasCurrentPlan = false);
-      return;
-    }
-    try {
-      final cards = await context.read<FeesRepository>().listFees(
-            preferences.activeBranchId!,
-            period: 'this_month',
-          );
-      final hasCurrentPlan = cards.any((card) {
-        final status = card.subscriptionStatus?.toUpperCase();
-        return card.subscriptionId != null &&
-            card.endDate != null &&
-            card.endDate!.isAfter(DateTime.now()) &&
-            status != 'CANCELLED' &&
-            status != 'EXPIRED';
-      });
-      if (mounted) setState(() => _memberHasCurrentPlan = hasCurrentPlan);
-    } catch (_) {
-      // Keep the action available if availability cannot be determined.
-      if (mounted) setState(() => _memberHasCurrentPlan = false);
-    }
+    _lastContextKey = contextKey;
   }
 
   @override
@@ -82,10 +71,8 @@ class _AppShellState extends State<AppShell> {
     final preferences = context.watch<PreferencesStorage>();
     final contextKey =
         '${preferences.activeOrganizationId}:${preferences.activeBranchId}';
-    final isFeesTab = _currentIndex == 1;
-    final showBuyPlan =
-        isFeesTab && (preferences.canReadAllFees || !_memberHasCurrentPlan);
     final pages = [
+      AnnouncementsPage(key: ValueKey('announcements-$contextKey')),
       AttendancePage(key: ValueKey('attendance-$contextKey')),
       FeesPage(key: ValueKey('fees-$contextKey')),
       PaymentsPage(key: ValueKey('payments-$contextKey')),
@@ -99,33 +86,7 @@ class _AppShellState extends State<AppShell> {
             index: _currentIndex,
             children: pages,
           ),
-          Positioned(
-            bottom: 90, // Above the custom bottom nav
-            right: 24,
-            child: showBuyPlan || !isFeesTab
-                ? FloatingActionButton(
-                    heroTag: isFeesTab ? 'buy_plan_fab' : 'self_attendance_fab',
-                    tooltip: isFeesTab ? 'Buy plan' : 'Self attendance',
-                    backgroundColor: isFeesTab
-                        ? const Color(0xFF4F46E5)
-                        : const Color(0xFF8D490B),
-                    foregroundColor: Colors.white,
-                    shape: const CircleBorder(),
-                    onPressed: () {
-                      if (isFeesTab) {
-                        context.push(AppRoutes.buyPlan);
-                        return;
-                      }
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const SelfAttendancePage()));
-                    },
-                    child: Icon(
-                      isFeesTab ? Iconsax.medal_star : Iconsax.finger_scan,
-                      size: 28,
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          )
+          const AppShellToast(),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -148,15 +109,21 @@ class _AppShellState extends State<AppShell> {
                 ),
               ],
             ),
-            child: Row(
-              children: List.generate(
-                _labels.length,
-                (index) => _BottomNavButton(
-                  isActive: _currentIndex == index,
-                  icon: _icons[index],
-                  activeIcon: _activeIcons[index],
-                  label: _labels[index],
-                  onTap: () => setState(() => _currentIndex = index),
+            child: ValueListenableBuilder<Map<String, int>>(
+              valueListenable: DailioNavBadgeController.counts,
+              builder: (context, badges, _) => Row(
+                children: List.generate(
+                  _labels.length,
+                  (index) => _BottomNavButton(
+                    isActive: _currentIndex == index,
+                    icon: _icons[index],
+                    activeIcon: _activeIcons[index],
+                    label: _labels[index],
+                    badge: _badgeKeys[index].isEmpty
+                        ? null
+                        : badges[_badgeKeys[index]],
+                    onTap: () => setState(() => _currentIndex = index),
+                  ),
                 ),
               ),
             ),
@@ -172,6 +139,7 @@ class _BottomNavButton extends StatelessWidget {
   final IconData icon;
   final IconData activeIcon;
   final String label;
+  final int? badge;
   final VoidCallback onTap;
 
   const _BottomNavButton({
@@ -179,14 +147,13 @@ class _BottomNavButton extends StatelessWidget {
     required this.icon,
     required this.activeIcon,
     required this.label,
+    this.badge,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive
-        ? const Color(0xFF4F46E5)
-        : const Color(0xFF6B7280); // Indigo vs Gray
+    final color = isActive ? AppColors.brandAccent : const Color(0xFF6B7280);
     return Expanded(
       child: Tooltip(
         message: label,
@@ -197,20 +164,43 @@ class _BottomNavButton extends StatelessWidget {
             duration: const Duration(milliseconds: 180),
             height: 46,
             decoration: BoxDecoration(
-              color: isActive
-                  ? const Color(0xFFEEF2FF) // Light Indigo BG
-                  : Colors.transparent,
+              color: isActive ? const Color(0xFFFFF1E6) : Colors.transparent,
               borderRadius: BorderRadius.circular(24),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isActive ? activeIcon : icon,
-                  size: isActive ? 22 : 20,
-                  color: color,
-                ),
-              ],
+            child: Center(
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    isActive ? activeIcon : icon,
+                    size: isActive ? 22 : 20,
+                    color: color,
+                  ),
+                  if (badge != null && badge! > 0)
+                    Positioned(
+                      top: -8,
+                      right: -11,
+                      child: Container(
+                        constraints: const BoxConstraints(minWidth: 16),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDC2626),
+                          borderRadius: BorderRadius.circular(9),
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                        child: Text(
+                          badge! > 99 ? '99+' : '$badge',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),

@@ -17,8 +17,6 @@ const attendanceMock = vi.hoisted(() => ({
 vi.mock('../../lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('../attendance/attendance.service', () => attendanceMock);
 
-import { NotFoundError } from '../../lib/errors';
-
 import { punchAttendanceFromInvite, resolveInvite } from './invites.service';
 
 describe('permanent gate QR idempotency', () => {
@@ -112,7 +110,7 @@ describe('permanent gate QR idempotency', () => {
     );
   });
 
-  it('returns pending and inactive states without exposing attendance action', async () => {
+  it('allows inactive members to use fast join again but blocks suspended members', async () => {
     prismaMock.inviteToken.findUnique.mockResolvedValue(invite());
     prismaMock.member.findFirst.mockResolvedValueOnce(null);
     prismaMock.joinRequest.findFirst.mockResolvedValue({
@@ -132,8 +130,19 @@ describe('permanent gate QR idempotency', () => {
     prismaMock.joinRequest.findFirst.mockResolvedValue(null);
 
     const inactive = await resolveInvite('user-1', 'raw-token');
-    expect(inactive.joinability).toBe('MEMBERSHIP_INACTIVE');
+    expect(inactive.joinability).toBe('JOINABLE');
     expect(inactive.attendance_action).toBeNull();
+
+    prismaMock.member.findFirst.mockResolvedValueOnce({
+      id: 'member-1',
+      status: 'SUSPENDED',
+      shift: null,
+    });
+    prismaMock.joinRequest.findFirst.mockResolvedValue(null);
+
+    const suspended = await resolveInvite('user-1', 'raw-token');
+    expect(suspended.joinability).toBe('MEMBERSHIP_INACTIVE');
+    expect(suspended.attendance_action).toBeNull();
   });
 
   it('exposes a disabled attendance state when the effective policy does not require punches', async () => {
@@ -161,9 +170,7 @@ describe('permanent gate QR idempotency', () => {
 
     expect(result.attendance_action).toBe('ATTENDANCE_DISABLED');
     expect(result.attendance_available).toBe(false);
-    expect(result.attendance_policy).toEqual(
-      expect.objectContaining({ punch_required: false }),
-    );
+    expect(result.attendance_policy).toEqual(expect.objectContaining({ punch_required: false }));
   });
 
   it('keeps clock-out available for an existing open session after a disabled policy snapshot', async () => {
@@ -198,13 +205,15 @@ describe('permanent gate QR idempotency', () => {
     expect(result.attendance_available).toBe(true);
   });
 
-  it('rejects revoked and expired gate credentials', async () => {
+  it('keeps legacy revoked and expired rows permanently usable', async () => {
     prismaMock.inviteToken.findUnique.mockResolvedValue(invite({ revoked_at: new Date() }));
-    await expect(resolveInvite('user-1', 'raw-token')).rejects.toBeInstanceOf(NotFoundError);
+    const revoked = await resolveInvite('user-1', 'raw-token');
+    expect(revoked.joinability).toBe('JOINABLE');
 
     prismaMock.inviteToken.findUnique.mockResolvedValue(
       invite({ expires_at: new Date(Date.now() - 1_000) }),
     );
-    await expect(resolveInvite('user-1', 'raw-token')).rejects.toBeInstanceOf(NotFoundError);
+    const expired = await resolveInvite('user-1', 'raw-token');
+    expect(expired.joinability).toBe('JOINABLE');
   });
 });

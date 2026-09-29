@@ -15,7 +15,7 @@ import {
 } from '../../lib/errors';
 import { getUploadSignature } from '../../lib/cloudinary';
 import { cloudinary } from '../../lib/cloudinary';
-import { getFirebaseMessaging } from '../../lib/firebase';
+import { notify } from '../notifications/notifications.service';
 
 import type {
   ClockInInput,
@@ -70,34 +70,26 @@ async function notifyAttendance(
   body: string,
   data: Record<string, string>,
   dedupeKey: string,
+  branchId?: string,
 ) {
   try {
-    const existing = await prisma.notification.findUnique({ where: { dedupe_key: dedupeKey } });
-    if (existing) return;
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { fcm_token: true },
+    await notify({
+      type: data.type ?? 'ATTENDANCE_UPDATE',
+      organizationId,
+      branchId,
+      actorUserId: userId,
+      entityType: 'AttendanceSession',
+      entityId: data.session_id,
+      recipientUserIds: [userId],
+      title,
+      body,
+      data,
+      dedupeKey,
     });
-    await prisma.notification.create({
-      data: {
-        id: ulid(),
-        user_id: userId,
-        organization_id: organizationId,
-        title,
-        body,
-        channel: 'IN_APP',
-        status: 'SENT',
-        sent_at: new Date(),
-        dedupe_key: dedupeKey,
-        data,
-      },
-    });
-    const messaging = getFirebaseMessaging();
-    if (messaging && user?.fcm_token) {
-      await messaging.send({ token: user.fcm_token, notification: { title, body }, data });
-    }
-  } catch {
+  } catch (error) {
     // Notifications are auxiliary; never fail an attendance command or scheduler pass.
+    // The central service records delivery failures when its database is available.
+    void error;
   }
 }
 
@@ -110,6 +102,7 @@ export function getAttendanceFailureMessage(error: unknown) {
 async function notifyAttendanceFailure(
   userId: string,
   organizationId: string,
+  branchId: string,
   action: 'clock_in' | 'clock_out',
   idempotencyKey: string,
   error: unknown,
@@ -122,6 +115,7 @@ async function notifyAttendanceFailure(
     `${action === 'clock_in' ? 'Clock-in' : 'Clock-out'} was not completed: ${message}`,
     { type: 'ATTENDANCE_ACTION_FAILED', action },
     `attendance-failure:${idempotencyKey}`,
+    branchId,
   );
 }
 
@@ -486,6 +480,17 @@ function sanitizeEvidence<T>(evidence: T) {
   );
 }
 
+// Precise coordinates remain private evidence. They are returned only from a
+// session detail response after the caller has passed the existing evidence
+// authorization check; list responses continue to omit them.
+function sanitizeEvidenceForAuthorizedDetail(evidence: any) {
+  return {
+    ...sanitizeEvidence(evidence),
+    latitude: evidence.latitude ?? null,
+    longitude: evidence.longitude ?? null,
+  };
+}
+
 function buildAttendanceTimeline(session: any, corrections: any[] = []) {
   const events = [
     {
@@ -701,6 +706,7 @@ export async function reviewOpenAttendanceSessions(batchSize = 500) {
     select: {
       id: true,
       organization_id: true,
+      branch_id: true,
       member_id: true,
       clock_in_at: true,
       policy_snapshot: true,
@@ -725,6 +731,7 @@ export async function reviewOpenAttendanceSessions(batchSize = 500) {
       'Your attendance session is still open beyond the configured maximum. Please clock out or contact an administrator.',
       { type: 'ATTENDANCE_MISSING_CLOCK_OUT', session_id: session.id },
       `attendance-missing-clock-out:${session.id}:${new Date().toISOString().slice(0, 10)}`,
+      session.branch_id,
     );
     notified += 1;
   }
@@ -756,6 +763,21 @@ export async function getEffectivePolicyForMember(
   });
   if (!member) return fallbackPolicy;
 
+  return resolveEffectivePolicyForMemberContext(organization_id, branch_id, member, now);
+}
+
+type EffectivePolicyMemberContext = {
+  id: string;
+  role_id: string | null;
+  role_assignments: Array<{ role_id: string }>;
+};
+
+async function resolveEffectivePolicyForMemberContext(
+  organization_id: string,
+  branch_id: string,
+  member: EffectivePolicyMemberContext,
+  now = new Date(),
+) {
   const assignments = member.role_assignments ?? [];
   const roleIds =
     assignments.length > 0
@@ -803,6 +825,7 @@ async function getAttendanceScopeMemberIds(
   organization_id: string,
   branch_id: string,
   permissions: Set<string>,
+  actor_member_id?: string,
 ) {
   if (
     permissions.has('ALL') ||
@@ -812,10 +835,12 @@ async function getAttendanceScopeMemberIds(
     return null;
   }
 
-  const actor = await prisma.member.findFirst({
-    where: { organization_id, branch_id, user_id: actor_id, status: 'ACTIVE' },
-    select: { id: true },
-  });
+  const actor = actor_member_id
+    ? { id: actor_member_id }
+    : await prisma.member.findFirst({
+        where: { organization_id, branch_id, user_id: actor_id, status: 'ACTIVE' },
+        select: { id: true },
+      });
   if (!actor) return [];
   if (!permissions.has('ATTENDANCE_READ_TEAM')) return [actor.id];
 
@@ -907,6 +932,7 @@ export async function clockIn(
     void notifyAttendanceFailure(
       actor_id,
       organization_id,
+      branch_id,
       'clock_in',
       data.idempotency_key,
       error,
@@ -1020,8 +1046,18 @@ export async function clockIn(
         'Your attendance was recorded after the scheduled grace period.',
         { type: 'ATTENDANCE_LATE', session_id: created.id },
         `attendance-late:${created.id}`,
+        branch_id,
       );
     }
+    void notifyAttendance(
+      actor_id,
+      organization_id,
+      'Clock-in confirmed',
+      'Your attendance clock-in was recorded successfully.',
+      { type: 'ATTENDANCE_CLOCK_IN_CONFIRMED', session_id: created.id },
+      `attendance-clock-in:${created.id}`,
+      branch_id,
+    );
     return created;
   } catch (error) {
     const code = (error as { code?: string })?.code;
@@ -1062,7 +1098,12 @@ export async function clockOut(
       branch: { status: 'ACTIVE' },
     },
     include: {
-      member: { include: { user: { select: { id: true, name: true, avatar_url: true } } } },
+      member: {
+        include: {
+          user: { select: { id: true, name: true, avatar_url: true } },
+          role: { select: { name: true } },
+        },
+      },
     },
   });
 
@@ -1116,6 +1157,7 @@ export async function clockOut(
     void notifyAttendanceFailure(
       actor_id,
       organization_id,
+      branch_id,
       'clock_out',
       data.idempotency_key,
       error,
@@ -1254,8 +1296,18 @@ export async function clockOut(
         : 'Your attendance was recorded before the scheduled shift end.',
       { type: `ATTENDANCE_${updated.derived_status}`, session_id: updated.id },
       `attendance-status:${updated.id}:${updated.derived_status}`,
+      branch_id,
     );
   }
+  void notifyAttendance(
+    actor_id,
+    organization_id,
+    'Clock-out confirmed',
+    'Your attendance clock-out was recorded successfully.',
+    { type: 'ATTENDANCE_CLOCK_OUT_CONFIRMED', session_id: updated.id },
+    `attendance-clock-out:${updated.id}`,
+    branch_id,
+  );
   return updated;
 }
 
@@ -1447,10 +1499,23 @@ export async function listSessions(
   branch_id: string,
   query: ListSessionsQuery,
   permissions: Set<string>,
+  context?: AttendanceListContext,
 ) {
-  const result = await listSessionsPage(actor_id, organization_id, branch_id, query, permissions);
+  const result = await listSessionsPage(
+    actor_id,
+    organization_id,
+    branch_id,
+    query,
+    permissions,
+    context,
+  );
   return result.data;
 }
+
+type AttendanceListContext = {
+  branch?: { timezone: string; week_start: number };
+  actor_member_id?: string;
+};
 
 export async function listSessionsPage(
   actor_id: string,
@@ -1458,13 +1523,16 @@ export async function listSessionsPage(
   branch_id: string,
   query: ListSessionsQuery,
   permissions: Set<string>,
+  context?: AttendanceListContext,
 ) {
   const { period, date_from, date_to, member_id, status, role_id, limit, cursor } = query;
 
-  const branch = await prisma.branch.findFirst({
-    where: { id: branch_id, organization_id },
-    select: { timezone: true, week_start: true },
-  });
+  const branch =
+    context?.branch ??
+    (await prisma.branch.findFirst({
+      where: { id: branch_id, organization_id },
+      select: { timezone: true, week_start: true },
+    }));
   const timezone = branch?.timezone ?? 'UTC';
   const now = new Date();
   const today = localDate(now, timezone);
@@ -1527,6 +1595,7 @@ export async function listSessionsPage(
     organization_id,
     branch_id,
     permissions,
+    context?.actor_member_id,
   );
   if (scopeMemberIds === null) {
     if (member_id) {
@@ -1562,7 +1631,10 @@ export async function listSessionsPage(
     where,
     include: {
       member: {
-        include: { user: { select: { id: true, name: true, avatar_url: true } } },
+        include: {
+          user: { select: { id: true, name: true, avatar_url: true } },
+          role: { select: { name: true } },
+        },
       },
       evidence: true,
       corrections: { orderBy: { created_at: 'asc' } },
@@ -1679,7 +1751,12 @@ export async function getSessionDetail(
       ...(scopeMemberIds === null ? {} : { member_id: { in: scopeMemberIds } }),
     },
     include: {
-      member: { include: { user: { select: { id: true, name: true, avatar_url: true } } } },
+      member: {
+        include: {
+          user: { select: { id: true, name: true, avatar_url: true } },
+          role: { select: { name: true } },
+        },
+      },
       evidence: true,
       corrections: { orderBy: { created_at: 'asc' } },
     },
@@ -1692,9 +1769,11 @@ export async function getSessionDetail(
       : session.member?.user_id === actor_id &&
         (permissions.has('ATTENDANCE_EVIDENCE_READ_SELF') ||
           permissions.has('ATTENDANCE_READ_SELF'));
-  const safeEvidence = session.evidence.map(sanitizeEvidence);
+  const safeEvidence = canReadEvidence
+    ? session.evidence.map(sanitizeEvidenceForAuthorizedDetail)
+    : [];
   const timeline = buildAttendanceTimeline(
-    { ...session, evidence: canReadEvidence ? safeEvidence : [] },
+    { ...session, evidence: safeEvidence },
     session.corrections,
   );
   return canReadEvidence
@@ -1757,10 +1836,12 @@ export async function getPolicy(
   target_member_id?: string,
 ) {
   if (actor_id) {
-    const actorMembership = await prisma.member.findFirst({
-      where: { organization_id, branch_id, user_id: actor_id, status: 'ACTIVE' },
-      select: { id: true },
-    });
+    const actorMembership = target_member_id
+      ? await prisma.member.findFirst({
+          where: { organization_id, branch_id, user_id: actor_id, status: 'ACTIVE' },
+          select: { id: true },
+        })
+      : null;
     const membership = await prisma.member.findFirst({
       where: {
         organization_id,
@@ -1768,27 +1849,50 @@ export async function getPolicy(
         status: 'ACTIVE',
         ...(target_member_id ? { id: target_member_id } : { user_id: actor_id }),
       },
-      include: { branch: true, shift: true },
+      include: {
+        branch: true,
+        shift: true,
+        role_assignments: {
+          where: {
+            organization_id,
+            branch_id,
+            effective_from: { lte: new Date() },
+            OR: [{ effective_to: null }, { effective_to: { gt: new Date() } }],
+          },
+          orderBy: [{ priority: 'asc' }, { effective_from: 'desc' }, { id: 'asc' }],
+          select: { role_id: true },
+        },
+      },
     });
     if (target_member_id && !membership) throw new NotFoundError('Member policy target');
-    if (target_member_id && membership && membership.id !== actorMembership?.id) {
-      const scopeMemberIds = await getAttendanceScopeMemberIds(
-        actor_id,
-        organization_id,
-        branch_id,
-        permissions,
-      );
-      const canManagePolicy =
-        permissions.has('ALL') ||
-        permissions.has('ATTENDANCE_POLICY_READ') ||
-        permissions.has('ATTENDANCE_POLICY_ASSIGN') ||
-        permissions.has('ATTENDANCE_POLICY_MANAGE');
-      if (!canManagePolicy && scopeMemberIds !== null && !scopeMemberIds.includes(membership.id)) {
-        throw new ForbiddenError('You cannot inspect this member attendance policy');
+    if (target_member_id && membership) {
+      if (membership.id !== actorMembership?.id) {
+        const scopeMemberIds = await getAttendanceScopeMemberIds(
+          actor_id,
+          organization_id,
+          branch_id,
+          permissions,
+        );
+        const canManagePolicy =
+          permissions.has('ALL') ||
+          permissions.has('ATTENDANCE_POLICY_READ') ||
+          permissions.has('ATTENDANCE_POLICY_ASSIGN') ||
+          permissions.has('ATTENDANCE_POLICY_MANAGE');
+        if (
+          !canManagePolicy &&
+          scopeMemberIds !== null &&
+          !scopeMemberIds.includes(membership.id)
+        ) {
+          throw new ForbiddenError('You cannot inspect this member attendance policy');
+        }
       }
     }
     if (membership) {
-      const policy = await getEffectivePolicyForMember(organization_id, branch_id, membership.id);
+      const policy = await resolveEffectivePolicyForMemberContext(
+        organization_id,
+        branch_id,
+        membership,
+      );
       return {
         ...policy,
         location_required:
@@ -2034,12 +2138,21 @@ export async function correctSession(
     throw new ForbiddenError('Attendance correction permission is required');
   }
   try {
-    return await prisma.$transaction(
+    const corrected = await prisma.$transaction(
       async (tx) => {
         const txClient = tx as typeof prisma;
 
         const session = await txClient.attendanceSession.findFirst({
           where: { id: session_id, organization_id, branch_id },
+          select: {
+            id: true,
+            member_id: true,
+            clock_in_at: true,
+            clock_out_at: true,
+            state: true,
+            derived_status: true,
+            correction_version: true,
+          },
         });
 
         if (!session) {
@@ -2122,10 +2235,39 @@ export async function correctSession(
           },
         });
 
-        return updatedSession;
+        const member = await txClient.member.findUnique({
+          where: { id: session.member_id },
+          select: { user_id: true },
+        });
+
+        return { session: updatedSession, memberUserId: member?.user_id ?? null };
       },
       { ...attendanceTransactionOptions, isolationLevel: 'Serializable' },
     );
+    const recipients = [corrected.memberUserId, actor_id].filter(
+      (userId, index, all): userId is string => Boolean(userId) && all.indexOf(userId) === index,
+    );
+    void notifyAttendance(
+      recipients[0] ?? actor_id,
+      organization_id,
+      'Attendance record corrected',
+      'An authorized correction was applied to your attendance record.',
+      { type: 'ATTENDANCE_CORRECTION_APPLIED', session_id },
+      `attendance-correction:${session_id}:${corrected.session.correction_version}`,
+      branch_id,
+    );
+    if (recipients.length > 1) {
+      void notifyAttendance(
+        recipients[1],
+        organization_id,
+        'Attendance record corrected',
+        'An authorized correction was applied to an attendance record.',
+        { type: 'ATTENDANCE_CORRECTION_APPLIED', session_id },
+        `attendance-correction:${session_id}:${corrected.session.correction_version}:${recipients[1]}`,
+        branch_id,
+      );
+    }
+    return corrected.session;
   } catch (error) {
     const code = (error as { code?: string })?.code;
     if (code === 'P2002' || code === 'P2034') {

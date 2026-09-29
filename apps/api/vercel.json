@@ -11,5 +11,11 @@
       "src": "/(.*)",
       "dest": "src/index.ts"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/v1/maintenance/daily-check/cron",
+      "schedule": "0 * * * *"
+    }
   ]
 }

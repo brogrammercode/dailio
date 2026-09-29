@@ -1,0 +1,2 @@
+ALTER TABLE "feed_posts"
+ADD COLUMN "content" JSONB NOT NULL DEFAULT '[]';

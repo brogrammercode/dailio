@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -8,7 +8,10 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/shimmer_loader.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
+import '../../../core/widgets/dailio_picker_field.dart';
 import '../controllers/organization_repository.dart';
 
 class EditOrganizationPage extends StatefulWidget {
@@ -216,10 +219,21 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Colors.white,
+      appBar: DailioSimpleAppBar(
+        onBack: () => context.pop(),
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Iconsax.refresh,
+            label: 'Reload organization',
+          ),
+        ],
+        onMenuSelected: (_) => _fetchOrganization(),
+      ),
       body: SafeArea(
         child: _isLoading
-            ? ShimmerLoader.profile()
+            ? ShimmerLoader.settingsForm()
             : _errorMessage != null
                 ? _buildErrorState()
                 : Stack(
@@ -232,64 +246,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                           _isDirty ? 140 : 40,
                         ),
                         children: [
-                          //  Header 
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              GestureDetector(
-                                onTap: () => context.pop(),
-                                child: Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    border:
-                                        Border.all(color: Colors.grey.shade300),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child:
-                                      const Icon(Iconsax.arrow_left, size: 18),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              const Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Edit Organization',
-                                        style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold)),
-                                    Text(
-                                      'Update organization legal identity & settings',
-                                      style: TextStyle(
-                                          fontSize: 11, color: Colors.grey),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (_isDirty)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                        color: Colors.orange.shade200),
-                                  ),
-                                  child: Text(
-                                    'Unsaved',
-                                    style: TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.orange.shade800,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-
-                          //  Logo Section 
+                          //  Logo Section
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -379,7 +336,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                           ),
                           const SizedBox(height: 28),
 
-                          //  Form Fields 
+                          //  Form Fields
                           _buildFormSection(
                             title: 'Organization Legal / Brand Name',
                             badge: 'REQUIRED',
@@ -494,14 +451,14 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                         ],
                       ),
 
-                      //  Save / Discard bar (only when dirty) 
+                      //  Save / Discard bar (only when dirty)
                       if (_isDirty)
                         Positioned(
                           bottom: 0,
                           left: 0,
                           right: 0,
                           child: Container(
-                            padding: const EdgeInsets.fromLTRB(24, 14, 24, 28),
+                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               boxShadow: [
@@ -577,7 +534,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
     );
   }
 
-  //  Helpers 
+  //  Helpers
 
   Widget _buildErrorState() {
     return Center(
@@ -703,41 +660,34 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
     required List<String> items,
     required ValueChanged<String?> onChanged,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+    return DailioPickerField<String>(
+      initialValue: items.contains(value) ? value : items.first,
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, size: 16, color: Colors.grey),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFE7E7E7)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFE7E7E7)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFFF8A00), width: 1.4),
+        ),
       ),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: Colors.grey),
-          const SizedBox(width: 12),
-          Expanded(
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: items.contains(value) ? value : items.first,
-                isExpanded: true,
-                icon: const Icon(Iconsax.arrow_down_1,
-                    size: 16, color: Colors.grey),
-                style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black,
-                    fontFamily: 'Inter'), // Use your default font family
-                onChanged: onChanged,
-                items: items.map((String item) {
-                  return DropdownMenuItem<String>(
-                    value: item,
-                    child: Text(item),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
+      onChanged: onChanged,
+      items: items
+          .map((item) => DropdownMenuItem<String>(
+                value: item,
+                child: Text(item, style: const TextStyle(fontSize: 13)),
+              ))
+          .toList(),
     );
   }
 }
-

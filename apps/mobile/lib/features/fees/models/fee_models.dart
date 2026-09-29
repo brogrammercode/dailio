@@ -3,6 +3,7 @@ import 'financial_models.dart';
 class FeeCardModel {
   final String memberId;
   final String memberName;
+  final String? memberRoleName;
   final String? memberNumber;
   final String? avatarUrl;
   final String status;
@@ -25,6 +26,7 @@ class FeeCardModel {
   const FeeCardModel({
     required this.memberId,
     required this.memberName,
+    this.memberRoleName,
     this.memberNumber,
     this.avatarUrl,
     required this.status,
@@ -54,6 +56,7 @@ class FeeCardModel {
     return FeeCardModel(
       memberId: member['id']?.toString() ?? '',
       memberName: member['name']?.toString() ?? 'Member',
+      memberRoleName: member['role_name']?.toString(),
       memberNumber: member['member_number']?.toString(),
       avatarUrl: member['avatar_url']?.toString(),
       status: json['status']?.toString() ?? 'PENDING',
@@ -90,7 +93,9 @@ class PaymentRequestModel {
   final List<PaymentEvidenceModel> evidence;
   final PaymentModel? payment;
   final String? memberName;
+  final String? memberId;
   final String? memberAvatarUrl;
+  final String? memberRoleName;
   final String? planName;
 
   const PaymentRequestModel({
@@ -106,7 +111,9 @@ class PaymentRequestModel {
     this.evidence = const [],
     this.payment,
     this.memberName,
+    this.memberId,
     this.memberAvatarUrl,
+    this.memberRoleName,
     this.planName,
   });
 
@@ -137,7 +144,9 @@ class PaymentRequestModel {
               Map<String, dynamic>.from(json['payment_attempt'] as Map))
           : null,
       memberName: user?['name']?.toString(),
+      memberId: member?['id']?.toString(),
       memberAvatarUrl: user?['avatar_url']?.toString(),
+      memberRoleName: (member?['role'] as Map?)?['name']?.toString(),
       planName: plan?['name']?.toString(),
     );
   }

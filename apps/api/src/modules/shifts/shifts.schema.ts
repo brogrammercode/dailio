@@ -17,8 +17,14 @@ export const CreateShiftSchema = z.object({
 export const UpdateShiftSchema = z.object({
   body: z.object({
     name: z.string().min(1).optional(),
-    start_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
-    end_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
+    start_time: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):([0-5]\d)$/)
+      .optional(),
+    end_time: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):([0-5]\d)$/)
+      .optional(),
     is_overnight: z.boolean().optional(),
     break_minutes: z.number().int().nonnegative().optional(),
     grace_in_min: z.number().int().nonnegative().optional(),

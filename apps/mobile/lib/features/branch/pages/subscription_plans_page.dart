@@ -5,6 +5,12 @@ import 'package:iconsax/iconsax.dart';
 
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/widgets/branch_filter_tabs.dart';
+import '../../../core/widgets/dailio_overflow_menu.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
+import '../../../core/widgets/dailio_picker_field.dart';
+import '../../../core/widgets/dailio_tab_strip.dart';
+import '../../../core/widgets/dailio_qr_sheet.dart';
+import '../../../core/widgets/shimmer_loader.dart';
 import '../../organization/controllers/organization_repository.dart';
 import '../../context_selection/controllers/branch_repository.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -77,8 +83,17 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
       final repository = context.read<OrganizationRepository>();
       final prefs = context.read<PreferencesStorage>();
       final orgId = prefs.activeOrganizationId!;
-      final plans = await repository.getOrganizationPlans(orgId,
-          branchId: _selectedFilterBranchId);
+      final plans = await repository.getOrganizationPlans(
+        orgId,
+        branchId: _selectedFilterBranchId,
+        onFresh: (freshPlans) {
+          if (!mounted) return;
+          setState(() {
+            _allPlans = freshPlans;
+            if (_filteredPlans.isNotEmpty && !_isCreating) _selectPlan(0);
+          });
+        },
+      );
       final branches = await repository.getOrganizationBranches(orgId);
 
       if (mounted) {
@@ -222,6 +237,55 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
           .read<BranchRepository>()
           .createPlanInvite(branchId, planId);
       if (!mounted) return;
+      final payload = invite['qr_payload']?.toString();
+      if (payload == null || payload.isEmpty) {
+        throw Exception('Plan QR was not created');
+      }
+      await showDailioQrSheet(
+        context,
+        title: 'Plan QR',
+        payload: payload,
+        subtitle:
+            '${plan['name'] ?? 'Plan'} • ${plan['currency'] ?? 'INR'} ${(plan['amount_minor_unit'] as num? ?? 0) / 100}',
+        detail: 'Permanent QR for recurring member purchases.',
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not create plan QR: $error')));
+      }
+    }
+  }
+
+  // Legacy implementation retained temporarily for reference.
+  // ignore: unused_element
+  Future<void> _showLegacyPlanQr() async {
+    if (!_canManage) return;
+    if (_isCreating ||
+        _selectedIndex < 0 ||
+        _selectedIndex >= _filteredPlans.length) {
+      return;
+    }
+    final plan = _filteredPlans[_selectedIndex];
+    if (plan['is_active'] != true) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Only active plans can have a purchase QR.')));
+      return;
+    }
+    final branchId =
+        (plan['branch_id'] ?? context.read<PreferencesStorage>().activeBranchId)
+            ?.toString();
+    final planId = plan['id']?.toString();
+    if (branchId == null || planId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Select an active branch before creating a plan QR.')));
+      return;
+    }
+    try {
+      final invite = await context
+          .read<BranchRepository>()
+          .createPlanInvite(branchId, planId);
+      if (!mounted) return;
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -244,10 +308,10 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                 'Admission fee: ${plan['currency'] ?? 'INR'} ${((plan['joining_fee_minor'] as num? ?? 0) / 100).toStringAsFixed(2)}',
                 style: const TextStyle(color: Colors.grey, fontSize: 12)),
             const SizedBox(height: 6),
-            const Text('Permanent QR • active until revoked',
+            const Text('Permanent QR • no expiry or revocation',
                 style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 8),
-            const Text('Regenerating revokes the previous QR.',
+            const Text('Generating another QR never invalidates this one.',
                 textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
           ]),
           actions: [
@@ -276,11 +340,21 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Colors.white,
+      appBar: DailioSimpleAppBar(
+        onBack: () => context.pop(),
+        menuItems: const [
+          DailioMenuItem(
+            value: 'refresh',
+            icon: Iconsax.refresh,
+            label: 'Refresh plans',
+          ),
+        ],
+        onMenuSelected: (_) => _loadPlans(),
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context),
             const SizedBox(height: 8),
             BranchFilterTabs(
               selectedBranchId: _selectedFilterBranchId,
@@ -310,7 +384,12 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
     );
   }
 
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton() => ShimmerLoader.planEditor();
+
+  // Legacy skeleton retained temporarily for reference while the shared
+  // plan-editor geometry is used by the page.
+  // ignore: unused_element
+  Widget _buildLegacySkeleton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -351,10 +430,8 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
     return Stack(
       children: [
         ListView(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
           children: [
-            _buildCatalogHeader(),
-            const SizedBox(height: 16),
             if (_filteredPlans.isEmpty && !_isCreating)
               _buildEmptyState()
             else
@@ -407,6 +484,8 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
     );
   }
 
+  // Kept for the legacy layout contract; the page now uses the shared bar.
+  // ignore: unused_element
   Widget _buildHeader(BuildContext context) {
     final prefs = context.read<PreferencesStorage>();
     return Padding(
@@ -442,6 +521,8 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
     );
   }
 
+  // Legacy catalog summary retained for compatibility with older routes.
+  // ignore: unused_element
   Widget _buildCatalogHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -546,40 +627,28 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   }
 
   Widget _buildEmptyState() {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200)),
+    return Padding(
+      padding: const EdgeInsets.only(top: 48),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-                color: Colors.orange.shade50, shape: BoxShape.circle),
-            child: const Icon(Iconsax.card, size: 40, color: Colors.orange),
-          ),
-          const SizedBox(height: 24),
-          const Text('No Subscription Plans',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          const Text(
-              'Create membership tiers, set pricing, and configure durations to start admitting members.',
+          const Icon(Iconsax.card, size: 30, color: Colors.orange),
+          const SizedBox(height: 12),
+          const Text('No plans yet',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          const Text('Create a plan with its price and duration.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 13)),
-          const SizedBox(height: 32),
+              style: TextStyle(color: Colors.grey, fontSize: 11)),
+          const SizedBox(height: 18),
           ElevatedButton.icon(
             onPressed: _startCreating,
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange.shade800,
                 foregroundColor: Colors.white,
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
-            icon: const Icon(Iconsax.add, size: 18),
-            label: const Text('Create First Plan'),
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 11)),
+            icon: const Icon(Iconsax.add, size: 16),
+            label: const Text('Create plan'),
           ),
         ],
       ),
@@ -615,6 +684,179 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   }
 
   Widget _buildEditor() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildPlanTabs(),
+        const SizedBox(height: 16),
+        Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _isCreating ? 'Create plan' : 'Plan details',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  if (!_isCreating)
+                    IconButton(
+                      tooltip: 'Show plan purchase QR',
+                      onPressed: _showPlanQr,
+                      icon: const Icon(Iconsax.scan_barcode, size: 19),
+                      padding: EdgeInsets.zero,
+                      constraints:
+                          const BoxConstraints(minWidth: 32, minHeight: 32),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (_branches.isNotEmpty) ...[
+                _buildFieldLabel('Branch'),
+                DailioPickerField<String>(
+                  initialValue: _formBranchId,
+                  decoration: _buildInputDecoration(
+                      'Select branch', Iconsax.building_4),
+                  items: [
+                    const DropdownMenuItem<String>(
+                        value: null, child: Text('No Branch (HQ)')),
+                    ..._branches.map((b) => DropdownMenuItem<String>(
+                        value: b['id'], child: Text(b['name']))),
+                  ],
+                  onChanged: _canManage
+                      ? (val) => setState(() => _formBranchId = val)
+                      : null,
+                ),
+                const SizedBox(height: 14),
+              ],
+              _buildTextField('Plan name', _nameCtrl, 'e.g. 3 Months',
+                  TextInputType.text, Iconsax.card),
+              const SizedBox(height: 14),
+              _buildTextField('Plan amount (₹)', _amountCtrl, 'e.g. 2500',
+                  TextInputType.number, Iconsax.wallet_2),
+              const SizedBox(height: 14),
+              _buildTextField('Admission fee (₹)', _joiningFeeCtrl, '0 if none',
+                  TextInputType.number, Iconsax.money_recive),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField('Duration (days)', _durationCtrl,
+                        'e.g. 90', TextInputType.number, Iconsax.calendar_1),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildTextField('Grace (days)', _graceDaysCtrl,
+                        '0 if none', TextInputType.number, Iconsax.clock),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _buildActiveRow(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlanTabs() {
+    if (_filteredPlans.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      children: [
+        Expanded(
+          child: DailioTabStrip<int>(
+            tabs: List.generate(
+              _filteredPlans.length,
+              (index) => DailioTabItem<int>(
+                value: index,
+                label: _filteredPlans[index]['name'] ?? 'Plan ${index + 1}',
+              ),
+            ),
+            selected: _isCreating ? -1 : _selectedIndex,
+            onChanged: _selectPlan,
+          ),
+        ),
+        if (_canManage)
+          IconButton(
+            tooltip: 'Create plan',
+            onPressed: _startCreating,
+            icon: const Icon(Iconsax.add_circle, color: Colors.orange),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildActiveRow() {
+    return Row(
+      children: [
+        const Icon(Iconsax.eye, size: 17, color: Colors.grey),
+        const SizedBox(width: 10),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Available for purchase',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              Text('Members can see and buy this plan.',
+                  style: TextStyle(fontSize: 10, color: Colors.grey)),
+            ],
+          ),
+        ),
+        Switch(
+          value: _isActive,
+          onChanged:
+              _canManage ? (value) => setState(() => _isActive = value) : null,
+          activeThumbColor: Colors.orange,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+    );
+  }
+
+  InputDecoration _buildInputDecoration(String hint, [IconData? icon]) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+      prefixIcon:
+          icon == null ? null : Icon(icon, size: 16, color: Colors.grey),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5),
+      ),
+    );
+  }
+
+  // Legacy editor retained below temporarily for reference while the clean
+  // plan form is rolled out.
+  // ignore: unused_element
+  Widget _buildLegacyEditor() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -736,7 +978,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Divider(height: 1)),
                 if (_branches.isNotEmpty) ...[
-                  DropdownButtonFormField<String>(
+                  DailioPickerField<String>(
                     initialValue: _formBranchId,
                     decoration: const InputDecoration(
                         labelText: 'Branch', border: OutlineInputBorder()),
@@ -787,32 +1029,18 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   }
 
   Widget _buildTextField(String label, TextEditingController controller,
-      String hint, TextInputType type) {
+      String hint, TextInputType type,
+      [IconData? icon]) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
+        _buildFieldLabel(label),
         TextFormField(
           controller: controller,
           enabled: _canManage,
           keyboardType: type,
           validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-            filled: true,
-            fillColor: Colors.grey.shade50,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade300)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade200)),
-          ),
+          decoration: _buildInputDecoration(hint, icon),
           style: const TextStyle(fontSize: 13),
         ),
       ],

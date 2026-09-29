@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -7,8 +9,10 @@ import 'core/network/api_client.dart';
 import 'core/router/app_router.dart';
 import 'core/router/route_names.dart';
 import 'core/storage/preferences_storage.dart';
+import 'core/storage/json_cache_store.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/theme/app_theme.dart';
+import 'core/notifications/notification_runtime.dart';
 import 'features/auth/controllers/auth_cubit.dart';
 import 'features/auth/controllers/auth_repository.dart';
 import 'features/auth/controllers/auth_state.dart';
@@ -34,6 +38,7 @@ class MainApp extends StatefulWidget {
   final PayrollRepository payrollRepository;
   final AttendanceRepository attendanceRepository;
   final FeesRepository feesRepository;
+  final JsonCacheStore cacheStore;
   final String initialRoute;
 
   const MainApp({
@@ -50,6 +55,7 @@ class MainApp extends StatefulWidget {
     required this.payrollRepository,
     required this.attendanceRepository,
     required this.feesRepository,
+    required this.cacheStore,
     required this.initialRoute,
   });
 
@@ -65,6 +71,26 @@ class _MainAppState extends State<MainApp> {
     super.initState();
     // Cache the router so hot reload doesn't reset the navigation stack
     _router = buildRouter(widget.initialRoute, widget.preferencesStorage);
+    NotificationRuntime.setRouter(_router);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(NotificationRuntime.initialize());
+      unawaited(_runDailyCheck());
+    });
+  }
+
+  Future<void> _runDailyCheck() async {
+    if (widget.preferencesStorage.activeBranchId == null ||
+        widget.preferencesStorage.activeOrganizationId == null) {
+      return;
+    }
+    final token = await widget.secureStorage.getAccessToken();
+    if (token == null) return;
+    try {
+      await widget.apiClient.dio.post('/maintenance/daily-check');
+    } catch (_) {
+      // Daily coordination is best-effort; the next app open or cron fallback
+      // can claim the job again.
+    }
   }
 
   @override
@@ -73,6 +99,7 @@ class _MainAppState extends State<MainApp> {
       providers: [
         RepositoryProvider.value(value: widget.apiClient),
         ChangeNotifierProvider.value(value: widget.preferencesStorage),
+        ChangeNotifierProvider.value(value: widget.cacheStore),
         RepositoryProvider.value(value: widget.branchRepository),
         RepositoryProvider.value(value: widget.admissionRepository),
         RepositoryProvider.value(value: widget.organizationRepository),

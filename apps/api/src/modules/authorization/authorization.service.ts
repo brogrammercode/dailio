@@ -1,12 +1,43 @@
 import { prisma } from '../../lib/prisma';
 
+type PermissionRole = {
+  system_key: string | null;
+  permissions: string[];
+};
+
+type MemberWithPermissionRoles = {
+  role: PermissionRole | null;
+  role_assignments: Array<{ role: PermissionRole | null }>;
+};
+
+export function permissionsForMember(member: MemberWithPermissionRoles): Set<string> {
+  const permissions = new Set<string>();
+  const roles =
+    member.role_assignments.length > 0
+      ? member.role_assignments
+          .map((assignment) => assignment.role)
+          .filter((role): role is PermissionRole => role != null)
+      : member.role
+        ? [member.role]
+        : [];
+
+  // Owner role grants ALL. Check every effective assignment so a legacy member
+  // with a null primary role cannot lose owner privileges or bypass scoping.
+  if (roles.some((role) => role.system_key === 'OWNER')) {
+    permissions.add('ALL');
+  } else {
+    for (const role of roles) {
+      for (const permission of role.permissions) permissions.add(permission);
+    }
+  }
+  return permissions;
+}
+
 export async function resolveEffectivePermissions(
   user_id: string,
   organization_id: string,
   branch_id: string,
 ): Promise<Set<string>> {
-  const permissions = new Set<string>();
-
   // Get active member
   const member = await prisma.member.findFirst({
     where: {
@@ -30,28 +61,9 @@ export async function resolveEffectivePermissions(
     },
   });
 
-  if (!member) return permissions;
+  if (!member) return new Set<string>();
 
-  const roles =
-    member.role_assignments.length > 0
-      ? member.role_assignments.map((assignment) => assignment.role)
-      : member.role
-        ? [member.role]
-        : [];
-
-  // Owner role grants ALL. Check every effective assignment so a legacy member
-  // with a null primary role cannot lose owner privileges or bypass scoping.
-  if (roles.some((role) => role.system_key === 'OWNER')) {
-    permissions.add('ALL');
-  } else {
-    for (const role of roles) {
-      for (const perm of role.permissions) {
-        permissions.add(perm);
-      }
-    }
-  }
-
-  return permissions;
+  return permissionsForMember(member);
 }
 
 export async function getMemberForUser(

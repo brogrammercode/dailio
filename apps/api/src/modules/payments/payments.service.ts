@@ -1,7 +1,8 @@
-import type { MemberStatus, Prisma, PaymentRequestStatus } from '@prisma/client';
+import { Prisma, type MemberStatus, type PaymentRequestStatus } from '@prisma/client';
 import { ulid } from 'ulid';
 
 import { prisma } from '../../lib/prisma';
+import { findBranchRecipientUserIds, notify } from '../notifications/notifications.service';
 import { ConflictError, ForbiddenError, NotFoundError, UnprocessableError } from '../../lib/errors';
 import { cloudinary, getUploadSignature } from '../../lib/cloudinary';
 
@@ -211,7 +212,7 @@ export async function createPaymentRequest(
     return existing;
   }
 
-  return prisma.$transaction(
+  const created = await prisma.$transaction(
     async (tx) => {
       const member = await tx.member.findFirst({
         where: {
@@ -309,6 +310,31 @@ export async function createPaymentRequest(
       timeout: 30_000,
     },
   );
+
+  try {
+    const reviewerUserIds = await findBranchRecipientUserIds(
+      organizationId,
+      branchId,
+      'PAYMENT_REQUEST_REVIEW',
+    );
+    await notify({
+      type: 'PAYMENT_REQUEST_SUBMITTED',
+      organizationId,
+      branchId,
+      entityType: 'PaymentRequest',
+      entityId: created.id,
+      recipientUserIds: [...new Set([actorId, ...reviewerUserIds])],
+      title: 'Payment request submitted',
+      body: reviewerUserIds.length
+        ? 'A payment request is ready for branch review.'
+        : 'Your payment evidence has been submitted for branch review.',
+      data: { organization_id: organizationId, branch_id: branchId, entity_id: created.id },
+      dedupeKey: `payment-request:${created.id}:submitted`,
+    });
+  } catch {
+    // Notification delivery must not undo a committed payment request.
+  }
+  return created;
 }
 
 export async function listPaymentRequests(
@@ -337,11 +363,67 @@ export async function listPaymentRequests(
       ...(status ? { status } : {}),
       ...(bounds ? { created_at: { gte: bounds.start, lt: bounds.end } } : {}),
     },
-    include: {
-      member: { include: { user: true } },
-      subscription: { include: { plan: true } },
-      evidence: true,
-      payment_attempt: { include: { receipt: true } },
+    select: {
+      id: true,
+      organization_id: true,
+      branch_id: true,
+      member_id: true,
+      subscription_id: true,
+      amount_minor_unit: true,
+      currency: true,
+      method: true,
+      reference: true,
+      note: true,
+      status: true,
+      rejection_reason: true,
+      created_at: true,
+      member: {
+        select: {
+          id: true,
+          user: { select: { id: true, name: true, email: true, phone: true, avatar_url: true } },
+          role: { select: { id: true, name: true, system_key: true } },
+        },
+      },
+      subscription: {
+        select: {
+          id: true,
+          status: true,
+          start_date: true,
+          end_date: true,
+          agreed_amount_minor: true,
+          currency: true,
+          plan: { select: { id: true, name: true } },
+        },
+      },
+      evidence: {
+        select: {
+          id: true,
+          payment_request_id: true,
+          organization_id: true,
+          branch_id: true,
+          uploaded_by: true,
+          storage_key: true,
+          content_type: true,
+          size_bytes: true,
+          reference: true,
+          note: true,
+          created_at: true,
+        },
+      },
+      payment_attempt: {
+        select: {
+          id: true,
+          organization_id: true,
+          branch_id: true,
+          member_id: true,
+          amount: true,
+          currency: true,
+          method: true,
+          status: true,
+          posted_at: true,
+          receipt: { select: { id: true, receipt_number: true, issued_at: true, metadata: true } },
+        },
+      },
     },
     orderBy: { created_at: 'desc' },
   });
@@ -366,7 +448,12 @@ export async function getPaymentRequest(
       ...(canReadAll ? {} : { member_id: memberId }),
     },
     include: {
-      member: { include: { user: true } },
+      member: {
+        include: {
+          user: true,
+          role: { select: { name: true } },
+        },
+      },
       subscription: { include: { plan: true } },
       evidence: true,
       payment_attempt: { include: { receipt: true } },
@@ -384,7 +471,7 @@ export async function reviewPaymentRequest(
   action: 'approve' | 'reject' | 'needs_information',
   data: ReviewPaymentRequestInput,
 ) {
-  return prisma.$transaction(
+  const reviewed = await prisma.$transaction(
     async (tx) => {
       const request = await tx.paymentRequest.findFirst({
         where: { id: requestId, organization_id: organizationId, branch_id: branchId },
@@ -528,6 +615,82 @@ export async function reviewPaymentRequest(
       timeout: 30_000,
     },
   );
+
+  try {
+    const member = await prisma.member.findFirst({
+      where: {
+        id: reviewed.member_id,
+        organization_id: organizationId,
+        branch_id: branchId,
+      },
+      select: { user_id: true },
+    });
+    if (member) {
+      const isApproved = reviewed.status === 'APPROVED';
+      const isRejected = reviewed.status === 'REJECTED';
+      await notify({
+        type: isApproved
+          ? 'PAYMENT_REQUEST_APPROVED'
+          : isRejected
+            ? 'PAYMENT_REQUEST_REJECTED'
+            : 'PAYMENT_EVIDENCE_NEEDS_INFORMATION',
+        organizationId,
+        branchId,
+        entityType: 'PaymentRequest',
+        entityId: reviewed.id,
+        recipientUserIds: [member.user_id],
+        title: isApproved
+          ? 'Payment approved'
+          : isRejected
+            ? 'Payment request rejected'
+            : 'Payment information needed',
+        body: isApproved
+          ? 'Your payment has been approved and your receipt is available.'
+          : isRejected
+            ? (data.reason ?? 'Your payment request was rejected.')
+            : (data.reason ?? 'Please provide updated payment information.'),
+        data: { organization_id: organizationId, branch_id: branchId, entity_id: reviewed.id },
+        dedupeKey: `payment-request:${reviewed.id}:${reviewed.status.toLowerCase()}`,
+      });
+      if (isApproved && reviewed.payment_attempt_id) {
+        await notify({
+          type: 'PAYMENT_POSTED',
+          organizationId,
+          branchId,
+          entityType: 'PaymentAttempt',
+          entityId: reviewed.payment_attempt_id,
+          recipientUserIds: [member.user_id],
+          title: 'Payment posted',
+          body: 'Your payment has been posted to the branch ledger.',
+          data: {
+            organization_id: organizationId,
+            branch_id: branchId,
+            entity_id: reviewed.payment_attempt_id,
+          },
+          dedupeKey: `payment:${reviewed.payment_attempt_id}:posted`,
+        });
+        await notify({
+          type: 'RECEIPT_GENERATED',
+          organizationId,
+          branchId,
+          entityType: 'PaymentAttempt',
+          entityId: reviewed.payment_attempt_id,
+          recipientUserIds: [member.user_id],
+          title: 'Official receipt ready',
+          body: 'Your official payment receipt is ready to view in Dailio.',
+          data: {
+            organization_id: organizationId,
+            branch_id: branchId,
+            entity_id: reviewed.payment_attempt_id,
+          },
+          dedupeKey: `payment:${reviewed.payment_attempt_id}:receipt`,
+        });
+      }
+    }
+  } catch {
+    // Notification delivery must not undo a committed payment review.
+  }
+  return reviewed;
 }
 
 export async function correctPayment(
@@ -538,7 +701,7 @@ export async function correctPayment(
   action: 'refund' | 'void',
   data: PaymentCorrectionInput,
 ) {
-  return prisma.$transaction(
+  const corrected = await prisma.$transaction(
     async (tx) => {
       const payment = await tx.paymentAttempt.findFirst({
         where: {
@@ -597,6 +760,32 @@ export async function correctPayment(
       timeout: 30_000,
     },
   );
+  try {
+    const payment = await prisma.paymentAttempt.findFirst({
+      where: { id: paymentAttemptId, organization_id: organizationId, branch_id: branchId },
+      select: { member: { select: { user_id: true } } },
+    });
+    if (payment?.member?.user_id) {
+      await notify({
+        type: action === 'refund' ? 'PAYMENT_REFUNDED' : 'PAYMENT_VOIDED',
+        organizationId,
+        branchId,
+        entityType: 'PaymentAttempt',
+        entityId: paymentAttemptId,
+        recipientUserIds: [payment.member.user_id],
+        title: action === 'refund' ? 'Payment refunded' : 'Payment voided',
+        body:
+          action === 'refund'
+            ? `Your payment was refunded: ${data.reason}`
+            : `Your payment was voided: ${data.reason}`,
+        data: { organization_id: organizationId, branch_id: branchId, entity_id: paymentAttemptId },
+        dedupeKey: `payment:${paymentAttemptId}:${action}`,
+      });
+    }
+  } catch {
+    // Notification delivery must not undo a committed payment correction.
+  }
+  return corrected;
 }
 
 export async function getReceipt(
@@ -698,20 +887,105 @@ export async function listFees(
   };
   const members = await prisma.member.findMany({
     where,
-    include: {
-      user: true,
-      subscriptions: { include: { plan: true }, orderBy: { end_date: 'desc' } },
-      ledger_entries: {
-        include: { allocations: { include: { payment_attempt: true } } },
-        orderBy: { created_at: 'asc' },
-      },
-      payment_requests: {
-        include: { payment_attempt: { include: { receipt: true } } },
-        orderBy: { created_at: 'desc' },
+    select: {
+      id: true,
+      member_number: true,
+      user: { select: { name: true, avatar_url: true } },
+      role: { select: { name: true } },
+      subscriptions: {
+        where: { status: { not: 'CANCELLED' } },
+        select: {
+          id: true,
+          status: true,
+          plan: { select: { name: true } },
+          start_date: true,
+          end_date: true,
+          agreed_amount_minor: true,
+          currency: true,
+        },
+        orderBy: { end_date: 'desc' },
       },
     },
     orderBy: { created_at: 'desc' },
   });
+
+  if (members.length === 0) {
+    return {
+      data: [],
+      meta: { total: 0, page: query.page, limit: query.limit },
+      period: { from: start, to: end },
+    };
+  }
+
+  const memberIds = members.map((member) => member.id);
+  const [ledgerTotals, paymentRequests] = await Promise.all([
+    // Aggregate ledger/allocation data in Postgres instead of loading every
+    // ledger row and payment-attempt relation into Node for every member.
+    prisma.$queryRaw<
+      Array<{
+        member_id: string;
+        subscription_id: string | null;
+        total_due: number;
+        paid_amount: number;
+        has_confirmed_payment: boolean;
+      }>
+    >(Prisma.sql`
+      SELECT
+        le.member_id,
+        le.subscription_id,
+        COALESCE(SUM(le.amount_minor_unit), 0)::int AS total_due,
+        COALESCE(SUM(
+          CASE WHEN pa.status = 'SUCCESS' THEN allocation.allocated_amount ELSE 0 END
+        ), 0)::int AS paid_amount,
+        COALESCE(BOOL_OR(pa.status = 'SUCCESS'), false) AS has_confirmed_payment
+      FROM ledger_entries le
+      LEFT JOIN payment_allocations allocation
+        ON allocation.ledger_entry_id = le.id
+      LEFT JOIN payment_attempts pa
+        ON pa.id = allocation.payment_attempt_id
+      WHERE le.organization_id = ${organizationId}
+        AND le.branch_id = ${branchId}
+        AND le.member_id IN (${Prisma.join(memberIds)})
+      GROUP BY le.member_id, le.subscription_id
+    `),
+    prisma.paymentRequest.findMany({
+      where: {
+        organization_id: organizationId,
+        branch_id: branchId,
+        member_id: { in: memberIds },
+        status: { in: ['REQUESTED', 'NEEDS_INFORMATION', 'APPROVED'] },
+      },
+      select: {
+        id: true,
+        member_id: true,
+        subscription_id: true,
+        status: true,
+        method: true,
+        created_at: true,
+        payment_attempt: {
+          select: {
+            status: true,
+            posted_at: true,
+            receipt: { select: { receipt_number: true } },
+          },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    }),
+  ]);
+
+  const ledgerByMember = new Map<string, typeof ledgerTotals>();
+  for (const row of ledgerTotals) {
+    const rows = ledgerByMember.get(row.member_id) ?? [];
+    rows.push(row);
+    ledgerByMember.set(row.member_id, rows);
+  }
+  const requestsByMember = new Map<string, typeof paymentRequests>();
+  for (const request of paymentRequests) {
+    const requests = requestsByMember.get(request.member_id) ?? [];
+    requests.push(request);
+    requestsByMember.set(request.member_id, requests);
+  }
 
   const warningDays = 7;
   const cards = members
@@ -724,31 +998,26 @@ export async function listFees(
       );
       const subscription =
         subscriptions[0] ?? member.subscriptions.find((item) => item.status !== 'CANCELLED');
-      const relevantEntries = member.ledger_entries.filter(
+      const memberLedger = ledgerByMember.get(member.id) ?? [];
+      const relevantEntries = memberLedger.filter(
         (entry) =>
           !subscription || !entry.subscription_id || entry.subscription_id === subscription.id,
       );
-      const totalDue = relevantEntries.reduce((sum, entry) => sum + entry.amount_minor_unit, 0);
+      const totalDue = relevantEntries.reduce((sum, entry) => sum + entry.total_due, 0);
       const balance = Math.max(totalDue, 0);
-      const pendingRequest = member.payment_requests.find(
+      const memberRequests = requestsByMember.get(member.id) ?? [];
+      const pendingRequest = memberRequests.find(
         (request) =>
           ['REQUESTED', 'NEEDS_INFORMATION'].includes(request.status) &&
           (!subscription || request.subscription_id === subscription.id),
       );
-      const latestApprovedRequest = member.payment_requests.find(
+      const latestApprovedRequest = memberRequests.find(
         (request) =>
           request.status === 'APPROVED' &&
           request.payment_attempt?.status === 'SUCCESS' &&
           (!subscription || request.subscription_id === subscription.id),
       );
-      const paidAmount = relevantEntries.reduce(
-        (sum, entry) =>
-          sum +
-          entry.allocations
-            .filter((allocation) => allocation.payment_attempt.status === 'SUCCESS')
-            .reduce((entrySum, allocation) => entrySum + allocation.allocated_amount, 0),
-        0,
-      );
+      const paidAmount = relevantEntries.reduce((sum, entry) => sum + entry.paid_amount, 0);
       const endDate = subscription?.end_date;
       const remainingDays = endDate ? branchLocalRemainingDays(endDate, branchTimezone) : null;
       const status = deriveFeeStatus({
@@ -756,9 +1025,7 @@ export async function listFees(
         hasSubscription: Boolean(subscription),
         remainingDays,
         balanceMinorUnit: balance,
-        hasConfirmedPayment: member.ledger_entries.some((entry) =>
-          entry.allocations.some((allocation) => allocation.payment_attempt.status === 'SUCCESS'),
-        ),
+        hasConfirmedPayment: memberLedger.some((entry) => entry.has_confirmed_payment),
         warningDays,
       });
       return {
@@ -767,6 +1034,7 @@ export async function listFees(
           name: member.user.name,
           member_number: member.member_number,
           avatar_url: member.user.avatar_url,
+          role_name: member.role?.name ?? null,
         },
         subscription: subscription
           ? {

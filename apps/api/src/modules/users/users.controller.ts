@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
+import { z } from 'zod';
 
 import { UpdateProfileSchema } from './users.schema';
-import { updateProfile, getUserContexts } from './users.service';
+import { updateProfile, getUserContexts, removeDeviceToken } from './users.service';
 
 export async function updateMyProfile(req: Request, res: Response, next: NextFunction) {
   try {
@@ -28,6 +29,16 @@ export async function deleteMyAccount(req: Request, res: Response, next: NextFun
     const { deleteAccount } = await import('./users.service');
     await deleteAccount(req.user!.id);
     res.status(200).json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeMyDeviceToken(req: Request, res: Response, next: NextFunction) {
+  try {
+    const token = z.string().min(1).max(4096).parse(req.body?.token);
+    await removeDeviceToken(req.user!.id, token);
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

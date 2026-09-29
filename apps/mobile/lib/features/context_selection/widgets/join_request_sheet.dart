@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:iconsax/iconsax.dart';
-import '../models/branch_discovery_model.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:iconsax/iconsax.dart';
+
+import '../../../core/widgets/dailio_onboarding_widgets.dart';
 import '../../auth/controllers/auth_repository.dart';
+import '../models/branch_discovery_model.dart';
 
 class JoinRequestSheet extends StatefulWidget {
   final BranchDiscoveryModel branch;
-  final Function(String? message, String? emergencyName, String? emergencyPhone,
-      String? dob) onSubmit;
+  final Future<void> Function(String? message, String? emergencyName,
+      String? emergencyPhone, String? dob) onSubmit;
 
   const JoinRequestSheet({
     super.key,
@@ -26,55 +27,50 @@ class _JoinRequestSheetState extends State<JoinRequestSheet> {
   final _emergencyNameController = TextEditingController();
   final _emergencyPhoneController = TextEditingController();
   final _dobController = TextEditingController();
-
   bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    // Pre-fill existing user info if any (can be implemented later)
+  void dispose() {
+    _messageController.dispose();
+    _emergencyNameController.dispose();
+    _emergencyPhoneController.dispose();
+    _dobController.dispose();
+    super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
-
     try {
-      final msg = _messageController.text.trim();
-      final eName = _emergencyNameController.text.trim();
-      final ePhone = _emergencyPhoneController.text.trim();
+      final message = _messageController.text.trim();
+      final emergencyName = _emergencyNameController.text.trim();
+      final emergencyPhone = _emergencyPhoneController.text.trim();
       final dob = _dobController.text.trim();
-
-      // Update global profile first if any field is filled
-      if (eName.isNotEmpty || ePhone.isNotEmpty || dob.isNotEmpty) {
-        final authRepo = context.read<AuthRepository>();
-        await authRepo.updateProfile(
-          emergencyContactName: eName.isNotEmpty ? eName : null,
-          emergencyContactPhone: ePhone.isNotEmpty ? ePhone : null,
-          dateOfBirth: dob.isNotEmpty ? dob : null,
-        );
+      if (emergencyName.isNotEmpty ||
+          emergencyPhone.isNotEmpty ||
+          dob.isNotEmpty) {
+        await context.read<AuthRepository>().updateProfile(
+              emergencyContactName:
+                  emergencyName.isEmpty ? null : emergencyName,
+              emergencyContactPhone:
+                  emergencyPhone.isEmpty ? null : emergencyPhone,
+              dateOfBirth: dob.isEmpty ? null : dob,
+            );
       }
-
       await widget.onSubmit(
-        msg.isNotEmpty ? msg : null,
-        eName.isNotEmpty ? eName : null,
-        ePhone.isNotEmpty ? ePhone : null,
-        dob.isNotEmpty ? dob : null,
+        message.isEmpty ? null : message,
+        emergencyName.isEmpty ? null : emergencyName,
+        emergencyPhone.isEmpty ? null : emergencyPhone,
+        dob.isEmpty ? null : dob,
       );
-
-      if (mounted) {
-        context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Join request sent successfully.')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
-      }
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Join request sent successfully.')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not send your join request.')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -88,116 +84,80 @@ class _JoinRequestSheetState extends State<JoinRequestSheet> {
       lastDate: DateTime.now(),
     );
     if (picked != null) {
-      setState(() {
-        _dobController.text = picked.toIso8601String().split('T').first;
-      });
+      setState(() =>
+          _dobController.text = picked.toIso8601String().split('T').first);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-          24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Join ${widget.branch.name}',
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
+    return SafeArea(
+      child: Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 34,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: const Color(0xFFD5D5D5),
+                        borderRadius: BorderRadius.circular(99)),
                   ),
-                  IconButton(
-                    onPressed: () => context.pop(),
-                    icon: const Icon(Icons.close),
+                ),
+                const SizedBox(height: 16),
+                Text('Join ${widget.branch.name}',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                const Text('Add only the information needed for admission.',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF858585))),
+                const SizedBox(height: 18),
+                TextFormField(
+                  controller: _messageController,
+                  maxLines: 2,
+                  decoration: dailioOnboardingInput(
+                      'Message (optional)', Iconsax.message_text),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _emergencyNameController,
+                  decoration: dailioOnboardingInput(
+                      'Emergency contact name', Iconsax.user),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _emergencyPhoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: dailioOnboardingInput(
+                      'Emergency contact phone', Iconsax.call),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _dobController,
+                  readOnly: true,
+                  onTap: _pickDate,
+                  decoration: dailioOnboardingInput(
+                    'Date of birth',
+                    Iconsax.calendar_1,
+                    suffixIcon: const Icon(Iconsax.arrow_down_1, size: 17),
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Complete your profile to join this branch. Your emergency contact and DOB will be saved to your profile securely.',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _messageController,
-                maxLines: 2,
-                decoration: InputDecoration(
-                  labelText: 'Message (Optional)',
-                  hintText: 'Introduce yourself to the manager',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Iconsax.message),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _emergencyNameController,
-                decoration: InputDecoration(
-                  labelText: 'Emergency Contact Name (Optional)',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Iconsax.user),
+                const SizedBox(height: 16),
+                DailioOnboardingButton(
+                  label: 'Send join request',
+                  icon: Iconsax.send_1,
+                  loading: _isLoading,
+                  onPressed: _submit,
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _emergencyPhoneController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: 'Emergency Contact Phone (Optional)',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Iconsax.call),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _dobController,
-                readOnly: true,
-                onTap: _pickDate,
-                decoration: InputDecoration(
-                  labelText: 'Date of Birth (Optional)',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Iconsax.calendar),
-                ),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _isLoading ? null : _submit,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF92400E),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Text('Submit Request',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

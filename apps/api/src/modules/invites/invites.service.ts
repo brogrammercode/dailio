@@ -82,9 +82,11 @@ function inviteResponse(invite: InviteResponseInput, rawToken?: string) {
           is_active: invite.plan.is_active,
         }
       : null,
-    expires_at: invite.expires_at,
-    revoked_at: invite.revoked_at,
-    active: !invite.revoked_at,
+    // Legacy lifecycle columns remain for schema compatibility, but QR
+    // credentials are permanent and never expire or revoke.
+    expires_at: null,
+    revoked_at: null,
+    active: true,
     ...(rawToken ? { token: rawToken, qr_payload: qrPayload(rawToken) } : {}),
   };
 }
@@ -134,17 +136,6 @@ async function createInvite(
       if (!plan) throw new NotFoundError('Active plan');
     }
 
-    await tx.inviteToken.updateMany({
-      where: {
-        organization_id: organizationId,
-        branch_id: branchId,
-        purpose,
-        ...(planId ? { plan_id: planId } : { plan_id: null }),
-        revoked_at: null,
-      },
-      data: { revoked_at: new Date() },
-    });
-
     const created = await tx.inviteToken.create({
       data: {
         id: ulid(),
@@ -193,7 +184,7 @@ async function findActiveInvite(rawToken: string) {
     where: { token_hash: hashInviteToken(rawToken) },
     include: inviteInclude,
   });
-  if (!invite || invite.revoked_at || (invite.expires_at && invite.expires_at <= new Date())) {
+  if (!invite) {
     throw new NotFoundError('Invite');
   }
   if (invite.branch.status !== 'ACTIVE') throw new ConflictError('Branch is not available');
@@ -262,7 +253,7 @@ export async function resolveInvite(userId: string, rawToken: string) {
         ? 'ALREADY_MEMBER'
         : pending
           ? 'ALREADY_PENDING'
-          : member
+          : member?.status === 'SUSPENDED'
             ? 'MEMBERSHIP_INACTIVE'
             : 'JOINABLE',
     existing_request_id: pending?.id ?? null,
@@ -730,26 +721,9 @@ export async function revokeInvite(
   branchId: string,
   inviteId: string,
 ) {
-  const invite = await prisma.inviteToken.findFirst({
-    where: { id: inviteId, organization_id: organizationId, branch_id: branchId },
-  });
-  if (!invite) throw new NotFoundError('Invite');
-  if (invite.revoked_at) return invite;
-  const updated = await prisma.inviteToken.update({
-    where: { id: invite.id },
-    data: { revoked_at: new Date() },
-  });
-  await prisma.auditLog.create({
-    data: {
-      id: ulid(),
-      organization_id: organizationId,
-      branch_id: branchId,
-      actor_id: actorId,
-      action: 'ARCHIVE',
-      target_type: 'InviteToken',
-      target_id: invite.id,
-      after_state: { revoked_at: updated.revoked_at },
-    },
-  });
-  return updated;
+  void actorId;
+  void organizationId;
+  void branchId;
+  void inviteId;
+  throw new ConflictError('Permanent QR codes cannot be revoked');
 }

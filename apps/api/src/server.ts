@@ -24,10 +24,6 @@ function runAttendanceMaintenance() {
   });
 }
 
-// Run once on startup so a deployment or restart does not defer maintenance
-// until the next interval. Both jobs are idempotent and safe across instances.
-runAttendanceMaintenance();
-
 const server = app.listen(env.PORT, () => {
   logger.info(`🏋️  Organization Management API running`, {
     port: env.PORT,
@@ -35,6 +31,12 @@ const server = app.listen(env.PORT, () => {
     docs: `http://localhost:${env.PORT}/api/docs`,
   });
 });
+
+// Let the API accept normal traffic before maintenance uses the database
+// connection pool. Both jobs are idempotent and also run on their normal
+// schedules below, so a restart does not make the first user request wait.
+const startupMaintenanceTimer = setTimeout(runAttendanceMaintenance, 15_000);
+startupMaintenanceTimer.unref();
 
 const retentionTimer = setInterval(
   () =>

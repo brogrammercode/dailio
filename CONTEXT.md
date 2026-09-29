@@ -178,6 +178,8 @@ These rules apply to all Stitch generations and implementation unless a later de
 - Use the **canonical supplied app logo only** wherever a logo is required. Do not substitute, redraw, recolor arbitrarily, or invent another logo.
 - Derive accent/theme direction from the canonical logo while keeping contrast and accessibility intact.
 - Font: **Space Grotesk** throughout the product UI.
+- **Confirmed Dailio UI palette:** preserve the existing bottom navigation and font; use the canonical logo orange (`AppColors.brandAccent`) with white surfaces and black text/controls as the primary visual palette. Do not introduce WhatsApp teal or unrelated blue/green/purple accents in redesigned screens.
+- **Confirmed compact-page standard:** redesigned pages use a Dailio app bar with overflow actions, left-aligned primary and secondary tabs, compact flat rows with role/status badges, avatar event badges, consistent top/list spacing, and geometry-matched loading skeletons. The only tab alignment exception is the centered period strip inside Self Attendance → Attendance Record. Settings follows the same row pattern; it has no Workspace Settings section or large sign-out panel, and sign out is available from the app-bar overflow menu.
 - Overall scale should be slightly reduced compared with default mobile mockup proportions: smaller but still readable typography, compact controls, disciplined icon sizes, and more visible content per viewport.
 - The result must remain **super clean, professional, spacious, calm, and premium**.
 - Prefer whitespace, clear grouping, thin dividers, low-noise surfaces, and restrained accent usage.
@@ -1255,6 +1257,10 @@ Audience:
 
 Store recipient snapshot at publication so later hierarchy/role changes do not rewrite historical audience.
 
+Published announcements expose an Instagram-like, tenant-scoped feed. Announcement content is stored as validated JSON blocks (text marks, headings, quotes, dividers, images, and slides) while private media is stored by an authenticated storage key. Members can react, comment, and reply to comments; comments are soft-deleted and retry-safe. Announcement media URLs are short-lived and are issued only after the viewer is authorized for the parent announcement. The mobile shell exposes Announcements as its first primary destination, and announcement notifications deep-link to that feed/detail route.
+
+Private feeds live inside the Announcements destination as internal tabs: `Announcement`, then each participant-scoped feed, followed by a permission-aware add action. A feed stores its name, active member participants, whether participants may post, an optional post timeout in minutes, a disbanded state, and a report threshold. Owners or members with the feed-management permissions create and manage feeds; members only see feeds for which they have an active participant record. The creator is always included as a participant. When participant posting is disabled, only feed managers may post; when enabled, active participants may post. Feed posts, reactions, threaded comments/replies, read receipts, and reports are all organization/branch scoped. Posts past their timeout are hidden from normal readers, and reaching the report threshold hides the post for moderation without automatically disbanding the feed. Feed notifications use the central in-app/push/email service and feed lists/posts use the JSON-file stale-while-refresh cache.
+
 ### 15.2 Notifications
 
 Generate events for at least:
@@ -1441,6 +1447,16 @@ Not every permission requires every scope.
 - `ANNOUNCEMENT_CREATE`
 - `ANNOUNCEMENT_UPDATE`
 - `ANNOUNCEMENT_DELETE`
+- `FEED_READ`
+- `FEED_CREATE`
+- `FEED_UPDATE`
+- `FEED_DISBAND`
+- `FEED_PARTICIPANT_MANAGE`
+- `FEED_POST`
+- `FEED_REACT`
+- `FEED_COMMENT`
+- `FEED_REPORT`
+- `FEED_MODERATE`
 - `REPORT_READ`
 - `REPORT_EXPORT`
 - `AUDIT_READ`
@@ -1521,6 +1537,15 @@ Logical model only. Adapt names to repository conventions without changing owner
 | `Reminder` | Scheduled/ad-hoc notification | org + branch + target |
 | `Announcement` | Targeted content | org; optional branch |
 | `AnnouncementRecipient` | Publication audience snapshot | announcement scope |
+| `AnnouncementReaction` | One reaction per user per announcement | org + announcement + user |
+| `AnnouncementComment` | Threaded announcement comment/reply with soft deletion | org + announcement + user |
+| `Feed` | Private participant-scoped communication space | organization + branch |
+| `FeedParticipant` | Active/removed branch member participation | feed + member |
+| `FeedPost` | Expiring or durable feed content with read/reaction/comment/report state | organization + branch + feed |
+| `FeedPostRead` | Member read receipt for a feed post | post + member |
+| `FeedReaction` | One reaction per member per feed post | organization + branch + post + member |
+| `FeedComment` | Threaded feed post comment/reply with soft deletion | organization + branch + post + member |
+| `FeedReport` | Member report and moderation threshold record | organization + branch + post + reporter |
 | `MediaAsset` | Private logo/evidence/selfie/attachment metadata | tenant scope |
 | `Notification` | Delivery/read state | recipient + tenant |
 | `AuditLog` | Append-only sensitive operation trail | org; optional branch |
@@ -1593,6 +1618,8 @@ Use existing repository API style. If none exists, use versioned REST under `/ap
 - `/branches/{branchId}/payslips`
 - `/branches/{branchId}/reminders`
 - `/branches/{branchId}/announcements`
+- `/organizations/{organizationId}/announcements/{announcementId}/comments`
+- `/organizations/{organizationId}/announcements/{announcementId}/reaction`
 - `/branches/{branchId}/reports`
 - `/branches/{branchId}/audit-logs`
 
@@ -2017,7 +2044,7 @@ Every implemented page must document/encode:
 ### 26.1a QR-first branch admission
 
 1. Owner/admin creates a permanent branch join invite.
-2. The server stores only a SHA-256 hash of the opaque invite token; regeneration revokes the prior active invite for that purpose. The invite remains valid until explicitly revoked.
+2. The server stores only a SHA-256 hash of the opaque invite token. Every generated invite remains permanently valid; generating another QR never invalidates an existing QR, and invite revocation is not supported.
 3. A signed-in user scans the Dailio invite QR and receives a server-resolved organization/branch preview.
 4. After explicit confirmation, the server derives the organization, branch, and user identity from the invite/session and creates one idempotent `PENDING` join request.
 5. Owner/admin approves the request transactionally; the server reuses or creates the branch membership, assigns the protected default `MEMBER` role, and emits audit/notification records.
@@ -2059,7 +2086,7 @@ Every implemented page must document/encode:
 
 ### 26.4a Permanent branch QR attendance
 
-The permanent branch join QR is also the branch gate QR. It remains reusable until the owner/admin explicitly revokes or replaces it; raw tokens are never stored.
+The permanent branch join QR is also the branch gate QR. It remains reusable permanently; generating another QR never invalidates an existing printed QR, and raw tokens are never stored.
 
 1. Owner/admin opens the branch QR display, prints the permanent QR, and posts it at the entrance.
 2. A signed-in person scans the QR with the Dailio camera. Gallery QR selection may resolve the branch for discovery, but a QR punch must follow the configured anti-spoof/evidence policy and may require a live camera scan.
@@ -2072,7 +2099,7 @@ The permanent branch join QR is also the branch gate QR. It remains reusable unt
 
 ### 26.5 Subscription purchase with evidence
 
-QR plan purchase is also supported: the owner/admin creates a permanent purpose-bound plan invite, the member scans it, and the server rejects revoked, inactive, or incompatible invites. The server confirms active branch membership, creates an idempotent `DRAFT` subscription using snapshotted authoritative plan terms and server-calculated dates, and pre-fills the purchase form. The member submits evidence/reference as `REQUESTED`; only authorized review can create the confirmed payment, immutable ledger allocation, receipt, and active subscription.
+QR plan purchase is also supported: the owner/admin creates a permanent purpose-bound plan invite, the member scans it, and the server rejects inactive or incompatible invites. The server confirms active branch membership, creates an idempotent `DRAFT` subscription using snapshotted authoritative plan terms and server-calculated dates, and pre-fills the purchase form. The member submits evidence/reference as `REQUESTED`; only authorized review can create the confirmed payment, immutable ledger allocation, receipt, and active subscription.
 
 1. Member opens Buy Subscription.
 2. Select plan card.
@@ -2122,7 +2149,7 @@ QR plan purchase is also supported: the owner/admin creates a permanent purpose-
 | Currency | INR, paise for first release. |
 | Subscription overlap | Only non-overlapping future renewal by default. |
 | Partial payment | Supported. |
-| QR invite lifetime/reuse | QR join and plan invites are permanent and reusable until explicitly revoked; regeneration revokes the previous token; raw tokens are never persisted. |
+| QR invite lifetime/reuse | QR join and plan invites are permanent and reusable. No expiry, replacement invalidation, automatic invalidation, or revocation is supported; generating another QR leaves all previous QRs valid. |
 | Overpayment | Reject by default unless account-credit behavior is approved. |
 | Payment evidence | Supported; manual evidence creates Requested state until reviewed. |
 | Pending fee definition | Active/recently attending member without valid renewed subscription coverage for period. |
@@ -2313,12 +2340,17 @@ A feature is complete only when all applicable items are true:
 | 2026-09-09 | Fees period tabs use Paid / Requested / Pending; Requested is evidence-backed unconfirmed payment; Pending includes active/recently attending members without renewed coverage. | Latest Fees direction. |
 | 2026-09-09 | Multiple attendance policies managed in Settings and assigned to employees. | Replaces branch-wide attendance configuration. |
 | 2026-09-09 | Reporting hierarchy is modeled independently from role permissions; team access requires both hierarchy and suitable permission. | Required to support hierarchy safely without implicit admin power. |
-| 2026-09-25 | Branch admission and plan purchase use purpose-bound opaque QR invites, permanent and reusable until explicitly revoked or replaced. | Supports the approved fast-join/customer journey while preserving tenant derivation, server pricing, idempotency, and auditability. |
-| 2026-09-25 | QR codes are lifetime permanent by product decision; expiry inputs and expiry checks are removed. Manual revocation remains available for security/operational control. | QR displays can remain posted for recurring customer use without requiring regeneration every 24 hours. |
+| 2026-09-25 | Branch admission and plan purchase use purpose-bound opaque QR invites that are permanently reusable; generating another QR never replaces or invalidates a previous one. | Supports the approved fast-join/customer journey while preserving tenant derivation, server pricing, idempotency, and auditability. |
+| 2026-09-25 | QR codes are lifetime permanent by product decision; expiry inputs, expiry checks, replacement invalidation, and revocation are removed. | Printed QR displays remain valid for recurring customer use without regeneration or operator maintenance. |
 | 2026-09-26 | Attendance policy applies to every active branch member, with precedence direct member override > effective role policy > branch default. | Supports different rules for people and roles without making employee status a prerequisite; sessions snapshot the resolved policy. |
 | 2026-09-26 | The permanent branch join QR is also the reusable physical gate QR. Active members use it to trigger the server-determined next punch (clock-in or clock-out); non-members retain the fast-join flow. | One printed branch QR supports admission and attendance while preserving server-side membership, policy, evidence, geofence, idempotency, and tenant checks. |
 | 2026-09-26 | Attendance operations use branch-local time, stable cursor pagination, live activity refresh, and deduplicated in-app/push alerts for late, incomplete, evidence-failure, and missing-clock-out events. | Keeps reporting consistent across timezones and makes operational exceptions visible without allowing notification delivery to affect attendance state. |
 | 2026-09-26 | Attendance authorization uses explicit self/team/branch/all read scopes, self/all evidence scopes, and dedicated policy read/assign/manage permissions; `ATTENDANCE_CREATE_ALL` is the authorized cross-member clock-out scope. | Aligns the product permission catalog with the server-enforced authorization contract and prevents UI-only policy management or evidence disclosure. |
+| 2026-09-26 | Attendance UI redesign keeps the existing bottom navigation, Space Grotesk font, and canonical Dailio logo; redesigned Attendance screens use only the logo orange, white, and black as the primary palette with compact WhatsApp-like information hierarchy. | Approved screen-by-screen UI direction for the member and attendance-policy flows. |
+| 2026-09-27 | The compact Dailio row standard is the baseline for all future page reworks: Dailio app bar, left-aligned tabs, compact event rows, avatar status badges, consistent spacing, and geometry-matched loading skeletons. Settings removes Workspace Settings and the large sign-out panel; sign out remains in the overflow menu. | Consolidates the approved Attendance, Fees, Payments, and Settings visual language for the remaining screens. |
+| 2026-09-27 | Self Attendance removes the redundant app-bar subtitle; its Attendance Record period strip is intentionally centered, while its Today view uses a large branch-local time, concentric direct-punch/QR action control, accurate Check in/Check out/Total hrs metrics, compact policy parameters, and a live timeline for an open session. | Makes personal attendance more glanceable without changing evidence collection, server confirmation, or self-scope rules. |
+| 2026-09-29 | Announcements use validated rich JSON content, permanent durable reactions, threaded soft-deletable comments, authenticated private media, and a first-position mobile feed with notification deep links. | Provides the approved simple Instagram-like announcement experience without introducing a separate social service or unscoped public media. |
+| 2026-09-29 | Feeds are private participant-scoped tabs inside Announcements. Feed managers create/disband/manage participants; participant posting is configurable; post timeouts hide expired posts; report thresholds hide posts for moderation; read receipts, reactions, threaded comments/replies, notifications, and JSON stale-while-refresh cache are included. | Adds focused team communication without a separate bottom-nav destination or cross-tenant audience. |
 
 ---
 

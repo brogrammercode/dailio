@@ -11,10 +11,7 @@ export async function joinBranch(req: Request, res: Response) {
 }
 
 export async function getJoinRequests(req: Request, res: Response) {
-  const result = await admissionsService.listPendingRequests(
-    req.organization!.id,
-    req.branch!.id,
-  );
+  const result = await admissionsService.listPendingRequests(req.organization!.id, req.branch!.id);
   res.json(result);
 }
 

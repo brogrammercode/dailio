@@ -1,10 +1,14 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/widgets/dailio_onboarding_widgets.dart';
+import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../auth/controllers/auth_cubit.dart';
 import '../../auth/controllers/auth_state.dart';
 import '../../organization/controllers/organization_repository.dart';
@@ -18,25 +22,14 @@ class PendingJoinPage extends StatefulWidget {
 
 class _PendingJoinPageState extends State<PendingJoinPage> {
   Timer? _pollTimer;
-  int _dotCount = 0;
-  int _checkCount = 0;
+  bool _isChecking = false;
 
   @override
   void initState() {
     super.initState();
-    // Animate the dots
-    Timer.periodic(const Duration(milliseconds: 600), (t) {
-      if (!mounted) {
-        t.cancel();
-        return;
-      }
-      setState(() => _dotCount = (_dotCount + 1) % 4);
-    });
-    // Poll for membership approval every 15 seconds
-    _pollTimer =
-        Timer.periodic(const Duration(seconds: 15), (_) => _checkApproval());
-    // Check immediately on mount too
-    Future.delayed(const Duration(seconds: 3), _checkApproval);
+    _pollTimer = Timer.periodic(
+        const Duration(seconds: 15), (_) => _checkApproval(silent: true));
+    Future.delayed(const Duration(seconds: 2), _checkApproval);
   }
 
   @override
@@ -45,153 +38,112 @@ class _PendingJoinPageState extends State<PendingJoinPage> {
     super.dispose();
   }
 
-  Future<void> _checkApproval() async {
-    if (!mounted) return;
-    _checkCount++;
-
+  Future<void> _checkApproval({bool silent = false}) async {
+    if (!mounted || _isChecking) return;
+    setState(() => _isChecking = true);
     try {
-      final repo = context.read<OrganizationRepository>();
-      final orgs = await repo.getMyOrganizations();
-
+      final organizations =
+          await context.read<OrganizationRepository>().getMyOrganizations();
       if (!mounted) return;
-
-      // If user now has an active membership, route them home
-      if (orgs.isNotEmpty) {
-        _pollTimer?.cancel();
-        final prefs = context.read<PreferencesStorage>();
-        // Auto-select the first available org+branch if not already set
+      final prefs = context.read<PreferencesStorage>();
+      if (organizations.isNotEmpty) {
         if (prefs.activeOrganizationId == null ||
             prefs.activeBranchId == null) {
-          final firstOrg = orgs.first;
-          final locationMemberships =
-              firstOrg['location_memberships'] as List? ?? [];
-          if (locationMemberships.isNotEmpty) {
-            final firstBranch =
-                locationMemberships.first['location'] as Map<String, dynamic>?;
-            if (firstBranch != null) {
-              await prefs.setActiveContext(
-                organizationId: firstOrg['organization']['id'],
-                branchId: firstBranch['id'],
-                organizationName: firstOrg['organization']['name'],
-                branchName: firstBranch['name'],
-                branchTimezone: firstBranch['timezone']?.toString(),
-                roleSystemKey:
-                    (locationMemberships.first['role'] as Map?)?['system_key']
-                        ?.toString(),
-                permissions: ((locationMemberships.first['role']
-                        as Map?)?['permissions'] as List?)
-                    ?.cast<String>(),
-              );
-            }
+          final firstOrganization = organizations.first;
+          final memberships =
+              (firstOrganization['location_memberships'] as List?) ?? [];
+          if (memberships.isNotEmpty) {
+            final firstMembership =
+                Map<String, dynamic>.from(memberships.first as Map);
+            final branch =
+                Map<String, dynamic>.from(firstMembership['location'] as Map);
+            final role =
+                (firstMembership['role'] as Map?)?.cast<String, dynamic>();
+            await prefs.setActiveContext(
+              organizationId: firstOrganization['organization']['id'],
+              branchId: branch['id'],
+              organizationName: firstOrganization['organization']['name'],
+              branchName: branch['name'],
+              branchTimezone: branch['timezone']?.toString(),
+              roleSystemKey: role?['system_key']?.toString(),
+              permissions: (role?['permissions'] as List?)?.cast<String>(),
+            );
           }
         }
-        if (mounted) context.go(AppRoutes.home);
+        if (!mounted) return;
+        _pollTimer?.cancel();
+        context.go(AppRoutes.home);
+      } else if (!silent) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Your request is still waiting for approval.')));
       }
     } catch (_) {
-      // Silently ignore network errors during polling
+      if (!mounted || silent) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not check status. Please try again.')));
+    } finally {
+      if (mounted) setState(() => _isChecking = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Also listen for FCM-triggered auth state refresh
     return BlocListener<AuthCubit, AuthState>(
-      listener: (context, state) {
-        if (state is AuthAuthenticated) {
-          _checkApproval();
-        }
+      listener: (_, state) {
+        if (state is AuthAuthenticated) _checkApproval(silent: true);
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF0F2F5),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFFF0F2F5),
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
-              onPressed: () => context.go(AppRoutes.joinOrCreate),
-            ),
-          ],
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEF3C7),
-                    shape: BoxShape.circle,
-                    border:
-                        Border.all(color: const Color(0xFFFDE68A), width: 4),
-                  ),
-                  child: const Icon(Icons.hourglass_top_rounded,
-                      size: 48, color: Color(0xFFD97706)),
+        backgroundColor: Colors.white,
+        appBar: DailioSimpleAppBar(
+            onBack: () => context.go(AppRoutes.joinOrCreate)),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+            children: [
+              const Text('Request pending',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 5),
+              const Text('The branch owner needs to approve your membership.',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF858585))),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7EF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFFE0C2)),
                 ),
-                const SizedBox(height: 32),
-                const Text(
-                  'Approval Pending',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Your request to join the organization has been sent. You will be notified once the branch manager or admin approves your admission.',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Color(0xFF6B7280),
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Checking for approval${_checkCount > 0 ? " ($_checkCount checks)" : ""}${"." * _dotCount}',
-                  style:
-                      const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
-                ),
-                const SizedBox(height: 48),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    OutlinedButton(
-                      onPressed: _checkApproval,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF92400E),
-                        side: const BorderSide(color: Color(0xFF92400E)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
+                    Icon(Iconsax.clock, color: Color(0xFFCC5A00), size: 21),
+                    SizedBox(width: 11),
+                    Expanded(
+                      child: Text(
+                        'You can check again after the owner reviews your request. Access will appear automatically once approved.',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF68401F),
+                            height: 1.4),
                       ),
-                      child: const Text('Check Now',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
-                    ),
-                    const SizedBox(width: 12),
-                    OutlinedButton(
-                      onPressed: () => context.go(AppRoutes.joinOrCreate),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF4B5563),
-                        side: const BorderSide(color: Color(0xFFD1D5DB)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Go Back',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 22),
+              DailioOnboardingButton(
+                label: 'Check approval status',
+                icon: Iconsax.refresh,
+                loading: _isChecking,
+                onPressed: _checkApproval,
+              ),
+              const SizedBox(height: 10),
+              DailioOnboardingButton(
+                label: 'Back to join or create',
+                outlined: true,
+                onPressed: () => context.go(AppRoutes.joinOrCreate),
+              ),
+            ],
           ),
         ),
       ),

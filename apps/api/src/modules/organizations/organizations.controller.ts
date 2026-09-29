@@ -2,15 +2,23 @@ import { NextFunction, Request, Response } from 'express';
 
 import { cloudinary } from '../../lib/cloudinary';
 
-import { CreateLocationSchema, CreateOrganizationSchema, UpdateOrganizationSchema } from './organizations.schema';
-import { createOrganizationWithFirstLocation, getOrganization, getUserOrganizations, updateOrganization as updateOrgService } from './organizations.service';
-
+import {
+  CreateLocationSchema,
+  CreateOrganizationSchema,
+  UpdateOrganizationSchema,
+} from './organizations.schema';
+import {
+  createOrganizationWithFirstLocation,
+  getOrganization,
+  getUserOrganizations,
+  updateOrganization as updateOrgService,
+} from './organizations.service';
 
 export async function createOrganization(req: Request, res: Response, next: NextFunction) {
   try {
     const orgPayload = CreateOrganizationSchema.parse(req.body.organization);
     const locationData = CreateLocationSchema.parse(req.body.location);
-    
+
     const { logo_base64, ...organizationData } = orgPayload;
     let logo_url: string | undefined = undefined;
 
@@ -22,7 +30,11 @@ export async function createOrganization(req: Request, res: Response, next: Next
     }
 
     const finalOrgData = { ...organizationData, logo_url };
-    const result = await createOrganizationWithFirstLocation(req.user!.id, finalOrgData, locationData);
+    const result = await createOrganizationWithFirstLocation(
+      req.user!.id,
+      finalOrgData,
+      locationData,
+    );
     res.status(201).json(result);
   } catch (err) {
     next(err);
@@ -61,10 +73,13 @@ export async function updateOrganization(req: Request, res: Response, next: Next
     }
 
     const finalData = { ...organizationData, ...(logo_url && { logo_url }) };
-    const organization = await updateOrgService(req.params.organization_id, req.user!.id, finalData);
+    const organization = await updateOrgService(
+      req.params.organization_id,
+      req.user!.id,
+      finalData,
+    );
     res.status(200).json({ organization });
   } catch (err) {
     next(err);
   }
 }
-
