@@ -21,7 +21,15 @@ class DailioStreakCard extends StatelessWidget {
           return _card(context, current: '—', best: '—', loading: true);
         }
         if (snapshot.hasError || snapshot.data == null) {
-          return const SizedBox.shrink();
+          // Keep the surface stable when a background refresh is unavailable.
+          // A transient API/cache error must not make the settings card flash
+          // and disappear from the page.
+          return _card(
+            context,
+            current: '—',
+            best: '—',
+            subtitle: 'Unable to refresh right now',
+          );
         }
         final data = snapshot.data!;
         return _card(
@@ -34,7 +42,10 @@ class DailioStreakCard extends StatelessWidget {
   }
 
   Widget _card(BuildContext context,
-      {required String current, required String best, bool loading = false}) {
+      {required String current,
+      required String best,
+      bool loading = false,
+      String? subtitle}) {
     final foreground = dark ? Colors.white : AppColors.brandDark;
     final muted = dark ? const Color(0xFFA7ADB5) : const Color(0xFF777777);
     return Container(
@@ -72,9 +83,10 @@ class DailioStreakCard extends StatelessWidget {
                         fontWeight: FontWeight.w800)),
                 const SizedBox(height: 3),
                 Text(
-                    loading
-                        ? 'Calculating consistency…'
-                        : 'Keep showing up consistently',
+                    subtitle ??
+                        (loading
+                            ? 'Calculating consistency…'
+                            : 'Keep showing up consistently'),
                     style: TextStyle(color: muted, fontSize: 11)),
               ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [

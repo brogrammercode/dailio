@@ -27,10 +27,16 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   Map<String, dynamic>? _orgData;
   bool _isLoadingOrg = true;
+  Future<Map<String, dynamic>>? _streakFuture;
 
   @override
   void initState() {
     super.initState();
+    final prefs = context.read<PreferencesStorage>();
+    final branchId = prefs.activeBranchId;
+    if (branchId != null) {
+      _streakFuture = context.read<StreakRepository>().getMyStreak(branchId);
+    }
     _loadOrgData();
   }
 
@@ -75,7 +81,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final uri = Uri(
       scheme: 'https',
       host: 'wa.me',
-      path: '916204251844',
+      path: '916204254184',
       queryParameters: const {
         'text': 'Hi Harsh, I am facing issue in ...',
       },
@@ -146,12 +152,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
                   //  Profile Card
                   _buildProfileCard(context, user, prefs),
-                  if (prefs.activeBranchId != null &&
-                      prefs.hasPermission('ATTENDANCE_READ_SELF'))
+                  if (_streakFuture != null)
                     DailioStreakCard(
-                      future: context.read<StreakRepository>().getMyStreak(
-                            prefs.activeBranchId!,
-                          ),
+                      future: _streakFuture!,
                     ),
                   const SizedBox(height: 16),
 

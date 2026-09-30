@@ -269,8 +269,7 @@ class _DailioMemberProfileSurface extends StatelessWidget {
   Widget _streakCard() {
     final preferences = parentContext.read<PreferencesStorage>();
     final branchId = preferences.activeBranchId;
-    final canRead = preferences.hasPermission('ATTENDANCE_READ_ALL');
-    if (branchId == null || !canRead) return const SizedBox.shrink();
+    if (branchId == null) return const SizedBox.shrink();
     return DailioStreakCard(
       dark: true,
       future: parentContext.read<StreakRepository>().getMemberStreak(

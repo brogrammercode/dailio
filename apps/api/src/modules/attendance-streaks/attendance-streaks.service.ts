@@ -1,4 +1,4 @@
-import { ForbiddenError, NotFoundError } from '../../lib/errors';
+import { NotFoundError } from '../../lib/errors';
 import { prisma } from '../../lib/prisma';
 import { normalizedHolidayDates } from '../holidays/holidays.service';
 
@@ -163,20 +163,12 @@ export async function calculateMemberStreak(
   return streak;
 }
 
-export async function getMemberStreak(
-  organizationId: string,
-  branchId: string,
-  memberId: string,
-  requestingMemberId: string,
-  permissions: Set<string>,
-) {
-  if (
-    memberId !== requestingMemberId &&
-    !permissions.has('ALL') &&
-    !permissions.has('ATTENDANCE_READ_ALL')
-  ) {
-    throw new ForbiddenError('You can only view your own attendance streak');
-  }
+export async function getMemberStreak(organizationId: string, branchId: string, memberId: string) {
+  // Streaks are an intentionally lightweight member-facing signal. The
+  // route is already restricted to an authenticated active branch member;
+  // keep the target lookup scoped below so this never becomes a cross-tenant
+  // attendance read. Detailed attendance records and evidence remain
+  // permission-scoped elsewhere.
   const member = await prisma.member.findFirst({
     where: { id: memberId, organization_id: organizationId, branch_id: branchId, status: 'ACTIVE' },
     select: { id: true },

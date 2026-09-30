@@ -174,13 +174,12 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
         children: [
           _profileHeader(member),
-          if (_preferences.hasPermission('ATTENDANCE_READ_ALL'))
-            DailioStreakCard(
-              future: context.read<StreakRepository>().getMemberStreak(
-                    _branchId,
-                    member.id,
-                  ),
-            ),
+          DailioStreakCard(
+            future: context.read<StreakRepository>().getMemberStreak(
+                  _branchId,
+                  member.id,
+                ),
+          ),
           const SizedBox(height: 22),
           _sectionLabel('Subscription'),
           const SizedBox(height: 8),

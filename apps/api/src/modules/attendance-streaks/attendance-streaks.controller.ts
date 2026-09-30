@@ -9,8 +9,6 @@ export async function getMyStreak(req: Request, res: Response, next: NextFunctio
         req.organization!.id,
         req.branch!.id,
         req.member!.id,
-        req.member!.id,
-        req.permissions ?? new Set(),
       ),
     });
   } catch (error) {
@@ -25,8 +23,6 @@ export async function getMemberStreak(req: Request, res: Response, next: NextFun
         req.organization!.id,
         req.branch!.id,
         req.params.member_id,
-        req.member!.id,
-        req.permissions ?? new Set(),
       ),
     });
   } catch (error) {
