@@ -11,6 +11,7 @@ import '../../../core/storage/preferences_storage.dart';
 import '../../../core/utils/branch_time.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/app_shell_toast.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/dailio_compact_tile.dart';
 import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
@@ -56,6 +57,7 @@ class _AttendancePageState extends State<AttendancePage>
   String? _selectedRoleId;
   late final bool _canCreateManual;
   late final bool _canCorrect;
+  late final bool _canDelete;
 
   List<AttendanceSessionModel> _sessions = [];
   bool _isLoading = false;
@@ -77,6 +79,8 @@ class _AttendancePageState extends State<AttendancePage>
     _branchTimezone = prefs.activeBranchTimezone ?? 'Asia/Kolkata';
     _canCreateManual = prefs.hasPermission('ATTENDANCE_CREATE_ALL');
     _canCorrect = prefs.hasPermission('ATTENDANCE_UPDATE');
+    _canDelete = prefs.hasPermission('ATTENDANCE_VOID') ||
+        prefs.hasPermission('ATTENDANCE_DELETE');
 
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleTabChange);
@@ -412,6 +416,34 @@ class _AttendancePageState extends State<AttendancePage>
     );
   }
 
+  Future<void> _removeAttendance(AttendanceSessionModel session) async {
+    final reason = await showReasonDialog(
+      context,
+      title: 'Remove attendance record?',
+      message:
+          'This hides the record from attendance lists and keeps its evidence and audit history. Enter a reason to continue.',
+      confirmLabel: 'Remove record',
+      hintText: 'Reason for removal',
+      isDestructive: true,
+      icon: Iconsax.trash,
+    );
+    if (reason == null || !mounted) return;
+    try {
+      await _repository.voidSession(_locationId, session.id, reason);
+      if (!mounted) return;
+      setState(() => _sessions.removeWhere((item) => item.id == session.id));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Attendance record removed.'),
+      ));
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(attendanceErrorMessage(error))),
+        );
+      }
+    }
+  }
+
   Widget _buildAttendanceCard(AttendanceSessionModel session) {
     final branchTimezone = session.branchTimezone ?? _branchTimezone;
     final clockInWall =
@@ -471,10 +503,17 @@ class _AttendancePageState extends State<AttendancePage>
             icon: Iconsax.edit_2,
             label: 'Correct record',
           ),
+        if (_canDelete)
+          const DailioMenuItem(
+            value: 'delete',
+            icon: Iconsax.trash,
+            label: 'Delete record',
+          ),
       ],
       onMenuSelected: (value) {
         if (value == 'details') _openDetail(session);
         if (value == 'correct') _openCorrectionModal(session);
+        if (value == 'delete') _removeAttendance(session);
       },
     );
   }
@@ -580,10 +619,17 @@ class _AttendancePageState extends State<AttendancePage>
                         icon: Iconsax.edit_2,
                         label: 'Correct record',
                       ),
+                    if (_canDelete)
+                      const DailioMenuItem(
+                        value: 'delete',
+                        icon: Iconsax.trash,
+                        label: 'Delete record',
+                      ),
                   ],
                   onSelected: (value) {
                     if (value == 'details') _openDetail(session);
                     if (value == 'correct') _openCorrectionModal(session);
+                    if (value == 'delete') _removeAttendance(session);
                   },
                 ),
               ],

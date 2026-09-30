@@ -7,6 +7,7 @@ import {
   ClockInSchema,
   ClockOutSchema,
   CorrectSessionSchema,
+  VoidSessionSchema,
   CreateManualSessionSchema,
   ListSessionsQuerySchema,
   UpdatePolicySchema,
@@ -241,6 +242,23 @@ export async function correctSessionHandler(req: Request, res: Response, next: N
       req.permissions ?? new Set<string>(),
     );
 
+    res.status(200).json({ data: session });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function voidSessionHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = VoidSessionSchema.parse({ body: req.body }).body;
+    const session = await attendanceService.voidSession(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      req.params.session_id,
+      body,
+      req.permissions ?? new Set<string>(),
+    );
     res.status(200).json({ data: session });
   } catch (error) {
     next(error);

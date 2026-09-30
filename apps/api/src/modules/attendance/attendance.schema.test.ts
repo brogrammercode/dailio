@@ -7,6 +7,7 @@ import {
   ListSessionsQuerySchema,
   QrPunchSchema,
   UpdatePolicySchema,
+  VoidSessionSchema,
 } from './attendance.schema';
 
 describe('attendance command contracts', () => {
@@ -92,5 +93,12 @@ describe('attendance command contracts', () => {
         body: { qr_scan_on_clock_in: true, qr_scan_on_clock_out: false },
       }).body,
     ).toMatchObject({ qr_scan_on_clock_in: true, qr_scan_on_clock_out: false });
+  });
+
+  it('requires a meaningful reason before an attendance record can be removed', () => {
+    expect(() => VoidSessionSchema.parse({ body: { reason: 'No' } })).toThrow();
+    expect(
+      VoidSessionSchema.parse({ body: { reason: 'Duplicate attendance record' } }).body.reason,
+    ).toBe('Duplicate attendance record');
   });
 });

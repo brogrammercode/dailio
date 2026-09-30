@@ -15,6 +15,7 @@ vi.mock('../../lib/prisma', () => ({ prisma: prismaMock }));
 import {
   assertQrScanRequirement,
   correctSession,
+  voidSession,
   getEffectivePolicyForMember,
   updatePolicy,
 } from './attendance.service';
@@ -209,6 +210,52 @@ describe('attendance policy resolution', () => {
     expect(prismaMock.attendanceSession.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ correction_version: 1, state: 'CORRECTED' }),
+      }),
+    );
+  });
+
+  it('voids a session while retaining its audit trail and evidence relationship', async () => {
+    const original = {
+      id: 'session-void-1',
+      member_id: 'member-1',
+      state: 'CLOSED',
+      derived_status: 'PRESENT',
+      clock_in_at: new Date('2026-09-26T08:00:00.000Z'),
+      clock_out_at: new Date('2026-09-26T16:00:00.000Z'),
+      correction_version: 0,
+    };
+    prismaMock.attendanceSession.findFirst.mockResolvedValue(original);
+    prismaMock.attendanceSession.update.mockResolvedValue({
+      ...original,
+      state: 'VOID',
+      derived_status: 'VOID',
+      correction_version: 1,
+    });
+
+    const result = await voidSession(
+      'actor-1',
+      'org-1',
+      'branch-1',
+      original.id,
+      { reason: 'Duplicate attendance record' },
+      new Set(['ATTENDANCE_VOID']),
+    );
+
+    expect(result.state).toBe('VOID');
+    expect(prismaMock.attendanceSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: original.id },
+        data: expect.objectContaining({ state: 'VOID', derived_status: 'VOID' }),
+      }),
+    );
+    expect(prismaMock.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'VOID',
+          target_type: 'AttendanceSession',
+          target_id: original.id,
+          reason: 'Duplicate attendance record',
+        }),
       }),
     );
   });

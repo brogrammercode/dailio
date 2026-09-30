@@ -18,6 +18,7 @@ import {
   listPoliciesHandler,
   updatePolicyHandler,
   correctSessionHandler,
+  voidSessionHandler,
 } from './attendance.controller';
 
 const router: Router = Router();
@@ -138,6 +139,14 @@ router.patch(
   resolveTenantContext,
   requirePermission('ATTENDANCE_UPDATE'),
   correctSessionHandler,
+);
+
+router.post(
+  '/branches/:branch_id/attendance/:session_id/void',
+  authenticate,
+  resolveTenantContext,
+  requireAnyPermission('ATTENDANCE_VOID', 'ATTENDANCE_DELETE'),
+  voidSessionHandler,
 );
 
 export default router;

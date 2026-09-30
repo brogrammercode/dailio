@@ -24,6 +24,7 @@ import type {
   ListSessionsQuery,
   UpdatePolicyInput,
   CorrectSessionInput,
+  VoidSessionInput,
 } from './attendance.schema';
 
 const fallbackPolicy = {
@@ -1600,6 +1601,7 @@ export async function listSessionsPage(
   const where: Prisma.AttendanceSessionWhereInput = {
     organization_id,
     branch_id,
+    state: { not: 'VOID' },
     clock_in_at: { gte: startDate, lt: endDate },
   };
 
@@ -2328,6 +2330,121 @@ export async function correctSession(
     const code = (error as { code?: string })?.code;
     if (code === 'P2002' || code === 'P2034') {
       throw new ConflictError('This attendance record was corrected by another action; refresh it');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Removes a record from operational attendance lists without destroying the
+ * attendance session, evidence, or audit history. Attendance history is
+ * intentionally voided rather than hard-deleted.
+ */
+export async function voidSession(
+  actor_id: string,
+  organization_id: string,
+  branch_id: string,
+  session_id: string,
+  data: VoidSessionInput,
+  permissions: Set<string>,
+) {
+  if (
+    !permissions.has('ALL') &&
+    !permissions.has('ATTENDANCE_VOID') &&
+    !permissions.has('ATTENDANCE_DELETE')
+  ) {
+    throw new ForbiddenError('Attendance record removal permission is required');
+  }
+
+  try {
+    const voided = await prisma.$transaction(
+      async (tx) => {
+        const txClient = tx as typeof prisma;
+        const session = await txClient.attendanceSession.findFirst({
+          where: { id: session_id, organization_id, branch_id },
+          select: {
+            id: true,
+            member_id: true,
+            state: true,
+            derived_status: true,
+            clock_in_at: true,
+            clock_out_at: true,
+            correction_version: true,
+          },
+        });
+
+        if (!session) throw new NotFoundError('Attendance session not found');
+        if (session.state === 'VOID') {
+          throw new ConflictError('This attendance record has already been removed');
+        }
+
+        const updatedSession = await txClient.attendanceSession.update({
+          where: { id: session.id },
+          data: {
+            state: 'VOID',
+            derived_status: 'VOID',
+            corrected_at: new Date(),
+            corrected_by: actor_id,
+            correction_reason: data.reason,
+            correction_version: session.correction_version + 1,
+          },
+        });
+
+        await txClient.auditLog.create({
+          data: {
+            id: ulid(),
+            organization_id,
+            branch_id,
+            actor_id,
+            action: 'VOID',
+            target_type: 'AttendanceSession',
+            target_id: session.id,
+            reason: data.reason,
+            before_state: {
+              state: session.state,
+              derived_status: session.derived_status,
+              clock_in_at: session.clock_in_at,
+              clock_out_at: session.clock_out_at,
+              correction_version: session.correction_version,
+            },
+            after_state: {
+              state: updatedSession.state,
+              derived_status: updatedSession.derived_status,
+              correction_version: updatedSession.correction_version,
+            },
+          },
+        });
+
+        const member = await txClient.member.findUnique({
+          where: { id: session.member_id },
+          select: { user_id: true },
+        });
+
+        return { session: updatedSession, memberUserId: member?.user_id ?? null };
+      },
+      { ...attendanceTransactionOptions, isolationLevel: 'Serializable' },
+    );
+
+    const recipients = [voided.memberUserId, actor_id].filter(
+      (userId, index, all): userId is string => Boolean(userId) && all.indexOf(userId) === index,
+    );
+    for (const recipient of recipients) {
+      void notifyAttendance(
+        recipient,
+        organization_id,
+        'Attendance record removed',
+        'An attendance record was removed from the branch attendance list.',
+        { type: 'ATTENDANCE_RECORD_VOIDED', session_id },
+        `attendance-void:${session_id}:${recipient}`,
+        branch_id,
+      );
+    }
+
+    return voided.session;
+  } catch (error) {
+    const code = (error as { code?: string })?.code;
+    if (code === 'P2034') {
+      throw new ConflictError('This attendance record changed; refresh and try again');
     }
     throw error;
   }

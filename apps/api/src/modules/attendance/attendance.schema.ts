@@ -180,6 +180,14 @@ export const CorrectSessionSchema = z.object({
 
 export type CorrectSessionInput = z.infer<typeof CorrectSessionSchema>['body'];
 
+export const VoidSessionSchema = z.object({
+  body: z.object({
+    reason: z.string().trim().min(5).max(1000),
+  }),
+});
+
+export type VoidSessionInput = z.infer<typeof VoidSessionSchema>['body'];
+
 export const QrPunchSchema = z.object({
   body: z.object({
     token: z.string().min(20),

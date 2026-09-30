@@ -376,6 +376,15 @@ class AttendanceRepository {
     return response.data['data'] as Map<String, dynamic>;
   }
 
+  Future<void> voidSession(
+      String locationId, String sessionId, String reason) async {
+    await apiClient.dio.post(
+      '/branches/$locationId/attendance/$sessionId/void',
+      data: {'reason': reason},
+    );
+    await cache?.clearScope('branch:$locationId');
+  }
+
   Future<AttendanceSessionModel> createManualSession(
     String locationId, {
     required String memberId,
