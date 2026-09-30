@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/network/interceptors/logging_interceptor.dart';
+import '../../../core/storage/json_cache_store.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
@@ -103,6 +104,15 @@ class _MemberSubscriptionDetailPageState
       _subscription = subscription;
       _paymentRequests = parsedRequests;
     });
+  }
+
+  bool get _isOwnSubscription {
+    final member = (_subscription?['member'] as Map?)?.cast<String, dynamic>();
+    final memberUserId = member?['user_id']?.toString();
+    final currentUserId = context.read<JsonCacheStore>().userId;
+    return memberUserId != null &&
+        currentUserId != null &&
+        memberUserId == currentUserId;
   }
 
   @override
@@ -319,7 +329,7 @@ class _MemberSubscriptionDetailPageState
           ],
         ),
         const SizedBox(height: 24),
-        _sectionTitle('Payments'),
+        _sectionTitle(_isOwnSubscription ? 'Payments' : 'Payment requests'),
         const SizedBox(height: 8),
         _paymentSection(outstanding),
         const SizedBox(height: 24),
@@ -331,6 +341,9 @@ class _MemberSubscriptionDetailPageState
   }
 
   Widget _paymentSection(int outstandingMinorUnit) {
+    final hasOpenRequest = _paymentRequests.any((request) =>
+        request.status == 'REQUESTED' || request.status == 'NEEDS_INFORMATION');
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(13),
@@ -349,7 +362,28 @@ class _MemberSubscriptionDetailPageState
           ..._paymentRequests.asMap().entries.map(
                 (item) => _paymentRow(item.value, item.key == 0),
               ),
-          if (outstandingMinorUnit > 0) ...[
+          if (!_isOwnSubscription && _paymentRequests.isNotEmpty) ...[
+            const Divider(height: 18),
+            const Text(
+              'Submitted payment details are shown above for review. Editing is available only to the member who submitted the request.',
+              style: TextStyle(color: Color(0xFF777777), fontSize: 11),
+            ),
+          ],
+          if (_isOwnSubscription && hasOpenRequest) ...[
+            const Divider(height: 18),
+            Text(
+              hasOpenRequest &&
+                      _paymentRequests.any(
+                        (request) => request.status == 'NEEDS_INFORMATION',
+                      )
+                  ? 'Branch requested more information. Update your payment submission below.'
+                  : 'Your payment request is waiting for branch review.',
+              style: TextStyle(color: Color(0xFF777777), fontSize: 11),
+            ),
+          ],
+          if (_isOwnSubscription &&
+              outstandingMinorUnit > 0 &&
+              !hasOpenRequest) ...[
             if (_paymentRequests.isNotEmpty) const Divider(height: 18),
             SizedBox(
               width: double.infinity,
@@ -426,8 +460,21 @@ class _MemberSubscriptionDetailPageState
               color: const Color(0xFFD95B00),
               visualDensity: VisualDensity.compact,
             )
-          else
+          else ...[
             _badge(_pretty(status), color: _statusColor(status)),
+            if (_isOwnSubscription &&
+                (status == 'REQUESTED' || status == 'NEEDS_INFORMATION'))
+              IconButton(
+                tooltip: 'Edit submission',
+                onPressed: () => _showPaymentRequestForm(
+                  0,
+                  existingRequest: request,
+                ),
+                icon: const Icon(Iconsax.edit_2, size: 17),
+                color: const Color(0xFFD95B00),
+                visualDensity: VisualDensity.compact,
+              ),
+          ],
         ],
       ),
     );
@@ -989,11 +1036,21 @@ class _MemberSubscriptionDetailPageState
     );
   }
 
-  Future<void> _showPaymentRequestForm(int outstandingMinorUnit) async {
+  Future<void> _showPaymentRequestForm(
+    int outstandingMinorUnit, {
+    PaymentRequestModel? existingRequest,
+  }) async {
+    final isEditing = existingRequest != null;
     final amountController = TextEditingController(
-      text: (outstandingMinorUnit / 100).toStringAsFixed(2),
+      text: ((isEditing
+                  ? existingRequest.amountMinorUnit
+                  : outstandingMinorUnit) /
+              100)
+          .toStringAsFixed(2),
     );
-    final referenceController = TextEditingController();
+    final referenceController = TextEditingController(
+      text: existingRequest?.reference ?? '',
+    );
     final result = await showDialog<Map<String, String>>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -1001,7 +1058,7 @@ class _MemberSubscriptionDetailPageState
           children: [
             const Icon(Iconsax.document_upload, color: Color(0xFFD95B00)),
             const SizedBox(width: 9),
-            const Text('Submit evidence'),
+            Text(isEditing ? 'Edit payment submission' : 'Submit evidence'),
           ],
         ),
         content: Column(
@@ -1024,8 +1081,10 @@ class _MemberSubscriptionDetailPageState
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Add a reference or attach a receipt so staff can verify the request.',
+            Text(
+              isEditing
+                  ? 'Update the details requested by the branch. You can keep the existing receipt or attach a new one.'
+                  : 'Add a reference or attach a receipt so staff can verify the request.',
               style: TextStyle(fontSize: 12, color: Color(0xFF777777)),
             ),
           ],
@@ -1040,7 +1099,7 @@ class _MemberSubscriptionDetailPageState
               'amount': amountController.text,
               'reference': referenceController.text,
             }),
-            child: const Text('Submit'),
+            child: Text(isEditing ? 'Save changes' : 'Submit'),
           ),
         ],
       ),
@@ -1056,32 +1115,52 @@ class _MemberSubscriptionDetailPageState
       final repository = context.read<FeesRepository>();
       final evidence = await _uploadEvidence(repository, branchId);
       final reference = (result['reference'] ?? '').trim();
-      if (evidence == null && reference.isEmpty) {
+      if (!isEditing && evidence == null && reference.isEmpty) {
         throw Exception('Attach a receipt or enter a payment reference');
       }
-      await repository.createPaymentRequest(
-        branchId,
-        {
-          'subscription_id': subscriptionId,
-          'amount_minor_unit': (amount * 100).round(),
-          'currency': 'INR',
-          'method': 'UPI',
-          if (reference.isNotEmpty) 'reference': reference,
-          'evidence': [
-            if (evidence != null)
-              {
-                'storage_key': evidence['storage_key'],
-                'content_type': evidence['content_type'],
-                'size_bytes': evidence['size_bytes'],
-              },
-          ],
-        },
-        idempotencyKey:
-            'mobile-payment-$subscriptionId-${DateTime.now().toUtc().toIso8601String()}',
-      );
+      final evidencePayload = [
+        if (evidence != null)
+          {
+            'storage_key': evidence['storage_key'],
+            'content_type': evidence['content_type'],
+            'size_bytes': evidence['size_bytes'],
+          },
+      ];
+      if (isEditing) {
+        await repository.updatePaymentRequest(
+          branchId,
+          existingRequest.id,
+          {
+            'amount_minor_unit': (amount * 100).round(),
+            'method': existingRequest.method,
+            'reference': reference.isEmpty ? null : reference,
+            if (evidence != null) 'evidence': evidencePayload,
+          },
+        );
+      } else {
+        await repository.createPaymentRequest(
+          branchId,
+          {
+            'subscription_id': subscriptionId,
+            'amount_minor_unit': (amount * 100).round(),
+            'currency': 'INR',
+            'method': 'UPI',
+            if (reference.isNotEmpty) 'reference': reference,
+            'evidence': evidencePayload,
+          },
+          idempotencyKey:
+              'mobile-payment-$subscriptionId-${DateTime.now().toUtc().toIso8601String()}',
+        );
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Payment request submitted for review')),
+        SnackBar(
+          content: Text(
+            isEditing
+                ? 'Payment submission updated for review'
+                : 'Payment request submitted for review',
+          ),
+        ),
       );
       _load();
     } catch (error) {

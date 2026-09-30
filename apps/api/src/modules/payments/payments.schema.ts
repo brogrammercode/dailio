@@ -38,6 +38,18 @@ export const CreatePaymentRequestSchema = z.object({
   evidence: z.array(EvidenceSchema).max(5).default([]),
 });
 
+export const UpdatePaymentRequestSchema = z
+  .object({
+    amount_minor_unit: z.number().int().positive().optional(),
+    method: z.enum(['CASH', 'UPI', 'CARD', 'BANK_TRANSFER', 'GATEWAY']).optional(),
+    reference: z.string().trim().max(200).nullable().optional(),
+    note: z.string().trim().max(1000).nullable().optional(),
+    evidence: z.array(EvidenceSchema).max(5).optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'At least one payment field is required',
+  });
+
 export const ReviewPaymentRequestSchema = z.object({
   reason: z.string().trim().max(1000).optional(),
 });
@@ -69,6 +81,7 @@ export const FeeQuerySchema = z.object({
 });
 
 export type CreatePaymentRequestInput = z.infer<typeof CreatePaymentRequestSchema>;
+export type UpdatePaymentRequestInput = z.infer<typeof UpdatePaymentRequestSchema>;
 export type ReviewPaymentRequestInput = z.infer<typeof ReviewPaymentRequestSchema>;
 export type PaymentRequestQuery = z.infer<typeof PaymentRequestQuerySchema>;
 export type PaymentRequestPeriod = z.infer<typeof PaymentRequestPeriodSchema>;

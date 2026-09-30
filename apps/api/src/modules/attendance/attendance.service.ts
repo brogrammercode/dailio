@@ -15,7 +15,7 @@ import {
 } from '../../lib/errors';
 import { getUploadSignature } from '../../lib/cloudinary';
 import { cloudinary } from '../../lib/cloudinary';
-import { notify } from '../notifications/notifications.service';
+import { findBranchRecipientUserIds, notify } from '../notifications/notifications.service';
 
 import type {
   ClockInInput,
@@ -71,8 +71,13 @@ async function notifyAttendance(
   data: Record<string, string>,
   dedupeKey: string,
   branchId?: string,
+  notifyBranchReviewers = false,
 ) {
   try {
+    const branchRecipientUserIds =
+      notifyBranchReviewers && branchId
+        ? await findBranchRecipientUserIds(organizationId, branchId, 'ATTENDANCE_READ_ALL')
+        : [];
     await notify({
       type: data.type ?? 'ATTENDANCE_UPDATE',
       organizationId,
@@ -80,7 +85,7 @@ async function notifyAttendance(
       actorUserId: userId,
       entityType: 'AttendanceSession',
       entityId: data.session_id,
-      recipientUserIds: [userId],
+      recipientUserIds: [userId, ...branchRecipientUserIds],
       title,
       body,
       data,
@@ -883,7 +888,11 @@ export async function clockIn(
       status: 'ACTIVE',
       branch: { status: 'ACTIVE' },
     },
-    include: { branch: true, shift: true },
+    include: {
+      branch: true,
+      shift: true,
+      user: { select: { name: true } },
+    },
   });
 
   if (!membership) {
@@ -1053,10 +1062,11 @@ export async function clockIn(
       actor_id,
       organization_id,
       'Clock-in confirmed',
-      'Your attendance clock-in was recorded successfully.',
+      `${membership.user?.name ?? 'Member'} clocked in successfully.`,
       { type: 'ATTENDANCE_CLOCK_IN_CONFIRMED', session_id: created.id },
       `attendance-clock-in:${created.id}`,
       branch_id,
+      true,
     );
     return created;
   } catch (error) {
@@ -1303,10 +1313,11 @@ export async function clockOut(
     actor_id,
     organization_id,
     'Clock-out confirmed',
-    'Your attendance clock-out was recorded successfully.',
+    `${session.member?.user.name ?? 'Member'} clocked out successfully.`,
     { type: 'ATTENDANCE_CLOCK_OUT_CONFIRMED', session_id: updated.id },
     `attendance-clock-out:${updated.id}`,
     branch_id,
+    true,
   );
   return updated;
 }

@@ -35,6 +35,11 @@ class PreferencesStorage extends ChangeNotifier {
       activePermissions.contains('ALL') ||
       activePermissions.contains('PAYMENT_REQUEST_REVIEW');
 
+  bool get canReadAllPayments =>
+      activePermissions.contains('ALL') ||
+      activePermissions.contains('PAYMENT_READ_ALL') ||
+      activePermissions.contains('PAYMENT_REQUEST_REVIEW');
+
   bool get canReadAllFees =>
       activePermissions.contains('ALL') ||
       activePermissions.contains('PAYMENT_READ_ALL') ||

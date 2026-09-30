@@ -16,6 +16,7 @@ import '../../../core/widgets/dailio_tab_strip.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/fees_repository.dart';
 import '../models/fee_models.dart';
+import '../../payments/pages/payment_detail_page.dart';
 import 'member_subscription_detail_page.dart';
 
 class FeesPage extends StatefulWidget {
@@ -287,7 +288,9 @@ class _FeesPageState extends State<FeesPage> {
           ? 'No active coverage · $amount due'
           : '${card.remainingDays} days remaining · $amount due',
     };
-    final canReview = context.read<PreferencesStorage>().canReviewPayments;
+    final preferences = context.read<PreferencesStorage>();
+    final canReview = preferences.canReviewPayments;
+    final canReadPaymentDetails = preferences.canReadAllPayments;
     final statusBadge = card.remainingDays != null && card.remainingDays! < 0
         ? 'Expired'
         : card.status == 'EXPIRED'
@@ -310,6 +313,7 @@ class _FeesPageState extends State<FeesPage> {
             : statusBadge == 'Active'
                 ? Iconsax.tick_circle
                 : Iconsax.timer;
+    void openDetails() => _openCardDetails(card, canReadPaymentDetails);
 
     return DailioCompactTile(
       avatar: _avatar(card, color, statusIcon),
@@ -333,12 +337,7 @@ class _FeesPageState extends State<FeesPage> {
       subtitle: _feeSubtitle(card, amount, event),
       trailing: card.planName ?? 'No plan',
       subtitleColor: color,
-      onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => MemberSubscriptionDetailPage(
-                  memberId: card.memberId,
-                  subscriptionId: card.subscriptionId))),
+      onTap: openDetails,
       menuItems: [
         const DailioMenuItem(
           value: 'details',
@@ -354,17 +353,34 @@ class _FeesPageState extends State<FeesPage> {
       ],
       onMenuSelected: (value) {
         if (value == 'details') {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => MemberSubscriptionDetailPage(
-                      memberId: card.memberId,
-                      subscriptionId: card.subscriptionId)));
+          openDetails();
         }
         if (value == 'review' && card.pendingRequestId != null) {
           _reviewPayment(card.pendingRequestId!);
         }
       },
+    );
+  }
+
+  void _openCardDetails(FeeCardModel card, bool canReadPaymentDetails) {
+    if (card.pendingRequestId != null && canReadPaymentDetails) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymentDetailPage(requestId: card.pendingRequestId!),
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MemberSubscriptionDetailPage(
+          memberId: card.memberId,
+          subscriptionId: card.subscriptionId,
+        ),
+      ),
     );
   }
 

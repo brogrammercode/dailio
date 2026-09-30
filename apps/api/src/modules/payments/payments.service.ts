@@ -12,6 +12,7 @@ import type {
   PaymentCorrectionInput,
   PaymentRequestPeriod,
   ReviewPaymentRequestInput,
+  UpdatePaymentRequestInput,
 } from './payments.schema';
 
 type DbClient = Prisma.TransactionClient | typeof prisma;
@@ -335,6 +336,139 @@ export async function createPaymentRequest(
     // Notification delivery must not undo a committed payment request.
   }
   return created;
+}
+
+export async function updatePaymentRequest(
+  actorId: string,
+  organizationId: string,
+  branchId: string,
+  requestId: string,
+  data: UpdatePaymentRequestInput,
+) {
+  const existing = await prisma.paymentRequest.findFirst({
+    where: { id: requestId, organization_id: organizationId, branch_id: branchId },
+    include: {
+      member: { select: { user_id: true } },
+      evidence: { select: { id: true } },
+    },
+  });
+  if (!existing) throw new NotFoundError('Payment request');
+  if (existing.member.user_id !== actorId)
+    throw new ForbiddenError('Only the submitting member can edit this payment request');
+  if (!['REQUESTED', 'NEEDS_INFORMATION'].includes(existing.status)) {
+    throw new ConflictError('Only pending payment requests can be edited');
+  }
+
+  const evidence = data.evidence ?? [];
+  for (const item of evidence) {
+    if (!/^(image\/(jpeg|png|webp)|application\/pdf)$/i.test(item.content_type)) {
+      throw new UnprocessableError('Payment evidence must be a JPEG, PNG, WebP, or PDF file');
+    }
+    if (!item.storage_key.startsWith(`organizations/${organizationId}/payment-evidence/`)) {
+      throw new UnprocessableError('Payment evidence must use a private organization storage key');
+    }
+  }
+
+  const nextAmount = data.amount_minor_unit ?? existing.amount_minor_unit;
+  const nextMethod = data.method ?? existing.method;
+  const nextReference = data.reference === undefined ? existing.reference : data.reference;
+  const hasEvidence =
+    data.evidence === undefined ? existing.evidence.length > 0 : evidence.length > 0;
+  if (nextMethod !== 'GATEWAY' && !hasEvidence && !nextReference) {
+    throw new UnprocessableError('Payment evidence or a payment reference is required');
+  }
+
+  const updated = await prisma.$transaction(
+    async (tx) => {
+      const current = await tx.paymentRequest.findFirst({
+        where: {
+          id: requestId,
+          organization_id: organizationId,
+          branch_id: branchId,
+          member: { user_id: actorId },
+          status: { in: ['REQUESTED', 'NEEDS_INFORMATION'] },
+        },
+        select: { id: true, member_id: true, subscription_id: true, status: true },
+      });
+      if (!current) throw new ConflictError('Payment request is no longer editable');
+
+      const { balance } = await getMemberBalance(
+        tx,
+        organizationId,
+        branchId,
+        current.member_id,
+        current.subscription_id ?? undefined,
+      );
+      if (nextAmount > balance)
+        throw new UnprocessableError('Payment exceeds the outstanding subscription balance');
+
+      const request = await tx.paymentRequest.update({
+        where: { id: requestId },
+        data: {
+          amount_minor_unit: data.amount_minor_unit,
+          method: data.method,
+          reference: data.reference === undefined ? undefined : data.reference,
+          note: data.note === undefined ? undefined : data.note,
+          evidence: data.evidence
+            ? {
+                deleteMany: {},
+                create: evidence.map((item) => ({
+                  id: ulid(),
+                  organization_id: organizationId,
+                  branch_id: branchId,
+                  uploaded_by: actorId,
+                  ...item,
+                })),
+              }
+            : undefined,
+        },
+        include: { evidence: true, subscription: { include: { plan: true } } },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: ulid(),
+          organization_id: organizationId,
+          branch_id: branchId,
+          actor_id: actorId,
+          action: 'UPDATE',
+          target_type: 'PaymentRequest',
+          target_id: request.id,
+          after_state: {
+            status: request.status,
+            amount_minor_unit: request.amount_minor_unit,
+            evidence_count: request.evidence.length,
+          },
+        },
+      });
+      return request;
+    },
+    { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 30_000 },
+  );
+
+  try {
+    const reviewerUserIds = await findBranchRecipientUserIds(
+      organizationId,
+      branchId,
+      'PAYMENT_REQUEST_REVIEW',
+    );
+    await notify({
+      type: 'PAYMENT_REQUEST_SUBMITTED',
+      organizationId,
+      branchId,
+      actorUserId: actorId,
+      entityType: 'PaymentRequest',
+      entityId: updated.id,
+      recipientUserIds: reviewerUserIds,
+      title: 'Payment request updated',
+      body: 'A member updated payment details for branch review.',
+      data: { organization_id: organizationId, branch_id: branchId, entity_id: updated.id },
+      dedupeKey: `payment-request:${updated.id}:updated:${updated.updated_at.toISOString()}`,
+    });
+  } catch {
+    // Delivery must not undo the committed payment request update.
+  }
+  return updated;
 }
 
 export async function listPaymentRequests(
@@ -903,7 +1037,7 @@ export async function listFees(
           agreed_amount_minor: true,
           currency: true,
         },
-        orderBy: { end_date: 'desc' },
+        orderBy: [{ start_date: 'desc' }, { created_at: 'desc' }],
       },
     },
     orderBy: { created_at: 'desc' },
@@ -990,14 +1124,10 @@ export async function listFees(
   const warningDays = 7;
   const cards = members
     .map((member) => {
-      const subscriptions = member.subscriptions.filter(
-        (subscription) =>
-          subscription.start_date <= end &&
-          subscription.end_date >= start &&
-          subscription.status !== 'CANCELLED',
-      );
-      const subscription =
-        subscriptions[0] ?? member.subscriptions.find((item) => item.status !== 'CANCELLED');
+      // The fee directory is a current-status view, not a periodized ledger.
+      // Keep exactly one card per member and always use the latest subscription,
+      // including an expired one when it is the member's latest record.
+      const subscription = member.subscriptions[0];
       const memberLedger = ledgerByMember.get(member.id) ?? [];
       const relevantEntries = memberLedger.filter(
         (entry) =>

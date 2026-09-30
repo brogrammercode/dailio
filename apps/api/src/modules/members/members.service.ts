@@ -91,7 +91,7 @@ export async function listMembers(
         },
         subscriptions: {
           where: { status: { in: ['ACTIVE', 'UPCOMING', 'EXPIRED', 'PAUSED'] } },
-          orderBy: { end_date: 'desc' },
+          orderBy: [{ start_date: 'desc' }, { created_at: 'desc' }],
           take: 1,
           select: {
             id: true,
@@ -132,7 +132,7 @@ export async function getMemberDetail(
         include: { role: true },
       },
       subscriptions: {
-        orderBy: { end_date: 'desc' },
+        orderBy: [{ start_date: 'desc' }, { created_at: 'desc' }],
         include: { plan: true },
       },
     },

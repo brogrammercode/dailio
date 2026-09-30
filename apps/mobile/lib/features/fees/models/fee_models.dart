@@ -93,10 +93,12 @@ class PaymentRequestModel {
   final List<PaymentEvidenceModel> evidence;
   final PaymentModel? payment;
   final String? memberName;
+  final String? memberUserId;
   final String? memberId;
   final String? memberAvatarUrl;
   final String? memberRoleName;
   final String? planName;
+  final String? subscriptionId;
 
   const PaymentRequestModel({
     required this.id,
@@ -111,10 +113,12 @@ class PaymentRequestModel {
     this.evidence = const [],
     this.payment,
     this.memberName,
+    this.memberUserId,
     this.memberId,
     this.memberAvatarUrl,
     this.memberRoleName,
     this.planName,
+    this.subscriptionId,
   });
 
   factory PaymentRequestModel.fromJson(Map<String, dynamic> json) {
@@ -144,10 +148,13 @@ class PaymentRequestModel {
               Map<String, dynamic>.from(json['payment_attempt'] as Map))
           : null,
       memberName: user?['name']?.toString(),
+      memberUserId: user?['id']?.toString() ?? member?['user_id']?.toString(),
       memberId: member?['id']?.toString(),
       memberAvatarUrl: user?['avatar_url']?.toString(),
       memberRoleName: (member?['role'] as Map?)?['name']?.toString(),
       planName: plan?['name']?.toString(),
+      subscriptionId: json['subscription_id']?.toString() ??
+          subscription?['id']?.toString(),
     );
   }
 

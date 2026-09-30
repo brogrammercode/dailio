@@ -26,6 +26,12 @@ router.post(
   requirePermission('PAYMENT_CREATE'),
   controller.createPaymentRequest,
 );
+router.patch(
+  '/branches/:branch_id/payment-requests/:request_id',
+  ...context,
+  requirePermission('PAYMENT_CREATE'),
+  controller.updatePaymentRequest,
+);
 router.post(
   '/branches/:branch_id/payment-evidence/upload-signature',
   ...context,

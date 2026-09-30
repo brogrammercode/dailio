@@ -4,6 +4,7 @@ import {
   CreatePaymentRequestSchema,
   FeeQuerySchema,
   PaymentRequestQuerySchema,
+  UpdatePaymentRequestSchema,
 } from './payments.schema';
 
 describe('payment request contracts', () => {
@@ -26,6 +27,18 @@ describe('payment request contracts', () => {
         method: 'CASH',
       }),
     ).toThrow();
+  });
+
+  it('accepts partial updates and allows clearing a reference', () => {
+    expect(
+      UpdatePaymentRequestSchema.parse({
+        reference: null,
+      }),
+    ).toEqual({ reference: null });
+  });
+
+  it('rejects an empty payment update', () => {
+    expect(() => UpdatePaymentRequestSchema.parse({})).toThrow();
   });
 
   it('coerces fee pagination and accepts custom periods', () => {

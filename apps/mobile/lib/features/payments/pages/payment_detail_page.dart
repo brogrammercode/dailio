@@ -8,8 +8,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/storage/json_cache_store.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_member_profile_sheet.dart';
@@ -18,6 +20,7 @@ import '../../../core/widgets/shimmer_loader.dart';
 import '../../fees/controllers/fees_repository.dart';
 import '../../fees/models/fee_models.dart';
 import '../../fees/models/financial_models.dart';
+import '../../fees/pages/member_subscription_detail_page.dart';
 
 class PaymentDetailPage extends StatefulWidget {
   final String requestId;
@@ -242,6 +245,14 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
         _sectionTitle('Evidence'),
         const SizedBox(height: 8),
         _evidenceSection(request),
+        if (_canReview(request)) ...[
+          const SizedBox(height: 22),
+          _reviewSection(request),
+        ],
+        if (_canEdit(request)) ...[
+          const SizedBox(height: 22),
+          _editSection(request),
+        ],
         if (request.planName != null) ...[
           const SizedBox(height: 22),
           _sectionTitle('Subscription'),
@@ -349,6 +360,136 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
         ),
       ),
     ]);
+  }
+
+  bool _canReview(PaymentRequestModel request) {
+    final canReview = context.read<PreferencesStorage>().canReviewPayments;
+    return canReview &&
+        (request.status == 'REQUESTED' ||
+            request.status == 'NEEDS_INFORMATION');
+  }
+
+  bool _canEdit(PaymentRequestModel request) {
+    final currentUserId = context.read<JsonCacheStore>().userId;
+    return currentUserId != null &&
+        currentUserId == request.memberUserId &&
+        request.subscriptionId != null &&
+        (request.status == 'REQUESTED' ||
+            request.status == 'NEEDS_INFORMATION');
+  }
+
+  Widget _editSection(PaymentRequestModel request) {
+    return _section([
+      _sectionTitle('Your submission'),
+      const SizedBox(height: 5),
+      const Text(
+        'Only the member who submitted this request can update its details or evidence.',
+        style: TextStyle(color: Color(0xFF777777), fontSize: 11),
+      ),
+      const SizedBox(height: 12),
+      SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => MemberSubscriptionDetailPage(
+                  memberId: request.memberId ?? '',
+                  subscriptionId: request.subscriptionId,
+                ),
+              ),
+            );
+          },
+          icon: const Icon(Iconsax.edit_2, size: 17),
+          label: const Text('Edit submission'),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _reviewSection(PaymentRequestModel request) {
+    return _section([
+      _sectionTitle('Review payment'),
+      const SizedBox(height: 5),
+      const Text(
+        'Review the member-submitted payment evidence and choose the next state.',
+        style: TextStyle(color: Color(0xFF777777), fontSize: 11),
+      ),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          OutlinedButton.icon(
+            onPressed: () => _review(request.id, 'approve'),
+            icon: const Icon(Iconsax.tick_circle, size: 16),
+            label: const Text('Approve'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => _review(request.id, 'needs_information'),
+            icon: const Icon(Iconsax.info_circle, size: 16),
+            label: const Text('Need info'),
+          ),
+          TextButton.icon(
+            onPressed: () => _review(request.id, 'reject'),
+            icon: const Icon(Iconsax.close_circle, size: 16),
+            label: const Text('Reject'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          ),
+        ],
+      ),
+    ]);
+  }
+
+  Future<void> _review(String requestId, String action) async {
+    final preferences = context.read<PreferencesStorage>();
+    final repository = context.read<FeesRepository>();
+    String? reason;
+    if (action == 'approve') {
+      final confirmed = await showConfirmDialog(
+        context,
+        title: 'Approve payment?',
+        message:
+            'This will post the payment to the member ledger and generate the official receipt.',
+        confirmLabel: 'Approve',
+        icon: Iconsax.tick_circle,
+      );
+      if (!confirmed) return;
+    } else {
+      reason = await showReasonDialog(
+        context,
+        title: action == 'reject' ? 'Reject payment' : 'Request information',
+        message: action == 'reject'
+            ? 'Add a reason for the member and payment history.'
+            : 'Explain what the member needs to provide.',
+        confirmLabel: 'Submit',
+        hintText: 'Explain what is needed',
+        isDestructive: action == 'reject',
+        icon: action == 'reject' ? Iconsax.close_circle : Iconsax.message_text,
+      );
+      if (reason == null) return;
+    }
+
+    final branchId = preferences.activeBranchId;
+    if (branchId == null || !mounted) return;
+    try {
+      await repository.reviewPaymentRequest(
+        branchId,
+        requestId,
+        action,
+        reason: reason,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment ${action.replaceAll('_', ' ')}.')),
+      );
+      await _load();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update payment: $error')),
+      );
+    }
   }
 
   Widget _section(List<Widget> children) {

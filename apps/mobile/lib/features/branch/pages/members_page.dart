@@ -583,7 +583,7 @@ class _MembersPageState extends State<MembersPage> {
           }
         },
         onTap: () => context.push(
-          AppRoutes.configureMember.replaceAll(':memberId', member.id),
+          AppRoutes.memberDetail.replaceAll(':memberId', member.id),
         ),
       ),
     );

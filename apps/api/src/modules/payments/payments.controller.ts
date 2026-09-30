@@ -9,6 +9,7 @@ import {
   PaymentCorrectionSchema,
   PaymentRequestQuerySchema,
   ReviewPaymentRequestSchema,
+  UpdatePaymentRequestSchema,
 } from './payments.schema';
 import * as paymentsService from './payments.service';
 
@@ -29,6 +30,22 @@ export async function createPaymentRequest(req: Request, res: Response, next: Ne
       body,
     );
     res.status(201).json({ data: request });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updatePaymentRequest(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = UpdatePaymentRequestSchema.parse(req.body);
+    const request = await paymentsService.updatePaymentRequest(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      req.params.request_id,
+      body,
+    );
+    res.json({ data: request });
   } catch (error) {
     next(error);
   }

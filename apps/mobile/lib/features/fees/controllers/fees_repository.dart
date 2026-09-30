@@ -107,6 +107,19 @@ class FeesRepository {
     return Map<String, dynamic>.from(response.data as Map);
   }
 
+  Future<Map<String, dynamic>> updatePaymentRequest(
+    String branchId,
+    String requestId,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await apiClient.dio.patch(
+      '/branches/$branchId/payment-requests/$requestId',
+      data: data,
+    );
+    await cache?.clearScope('branch:$branchId');
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
   Future<Map<String, dynamic>> createEvidenceUploadSignature(
       String branchId, String filename, String contentType) async {
     final response = await apiClient.dio.post(
