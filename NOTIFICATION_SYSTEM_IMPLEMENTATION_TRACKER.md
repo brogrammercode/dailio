@@ -465,7 +465,7 @@ Complete this section manually before testing push notifications.
 
 1. Open [Firebase Console](https://console.firebase.google.com/) and create or select the Dailio Firebase project.
 2. Enable Cloud Messaging.
-3. Add an Android app using the exact Android application ID currently in the repository: `com.example.mobile`. If the production ID will change, decide that first and use the final ID everywhere.
+3. Add an Android app using the exact Android application ID currently in the repository: `com.brogrammer.dailio`.
 4. Download `google-services.json` and place it at:
 
    `apps/mobile/android/app/google-services.json`
@@ -850,7 +850,7 @@ This status is intentionally conservative: repository implementation is complete
 
 ### 29 September 2026 - FCM runtime verification and permission fix
 
-- `[x]` Confirmed the Android Firebase package, Firebase project, sender ID, and API Firebase Admin project are aligned (`com.example.mobile` / `oorg-62783`).
+- `[ ]` Confirm the new Android Firebase package, Firebase project, sender ID, and API Firebase Admin project are aligned (`com.brogrammer.dailio` / `oorg-62783`) after registering the new Firebase app and regenerating the configuration files.
 - `[x]` Confirmed the API Firebase Admin credential loads and messaging is available without logging secrets.
 - `[x]` Confirmed the configured database contains a registered device token; no-token registration was not the current failure.
 - `[x]` Sent a controlled server-side FCM smoke notification through the real Firebase Admin client; Firebase accepted it and returned a provider message ID.

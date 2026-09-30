@@ -50,20 +50,18 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCbw9MAPSw-VoAhqt18kKYKiI1nCNMARjI',
-    appId: '1:1007739245070:android:8f48a0072823160cd1e25f',
-    messagingSenderId: '1007739245070',
-    projectId: 'oorg-62783',
-    storageBucket: 'oorg-62783.firebasestorage.app',
+    apiKey: 'AIzaSyDdSSEP3T9Hzk7xookdOFXQ4mX2OQ-giTc',
+    appId: '1:863413439480:android:c45c3abee5c2702241e40d',
+    messagingSenderId: '863413439480',
+    projectId: 'dailio-45796',
+    storageBucket: 'dailio-45796.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCK2qrMEkjF8539xdVUhXzMnWRHQV7CV5s',
-    appId: '1:1007739245070:ios:0d0df69dace605e5d1e25f',
-    messagingSenderId: '1007739245070',
-    projectId: 'oorg-62783',
-    storageBucket: 'oorg-62783.firebasestorage.app',
-    iosClientId: '1007739245070-68qs2f6fonlukrgr6ffjqb4ot4mk8oid.apps.googleusercontent.com',
-    iosBundleId: 'com.example.mobile',
+    apiKey: 'AIzaSyBcn1BrwAD5uRPSTWRLPdhRptXkryhsbL8',
+    appId: '1:863413439480:ios:21a4232ef39a5e5341e40d',
+    messagingSenderId: '863413439480',
+    projectId: 'dailio-45796',
+    storageBucket: 'dailio-45796.firebasestorage.app',
+    iosBundleId: 'com.brogrammer.dailio',
   );
 }
