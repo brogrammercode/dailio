@@ -22,6 +22,7 @@ import '../../../core/widgets/dailio_receipt_sheet.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/fees_repository.dart';
 import '../models/fee_models.dart';
+import '../../payments/pages/payment_detail_page.dart';
 
 class MemberSubscriptionDetailPage extends StatefulWidget {
   final String memberId;
@@ -452,6 +453,13 @@ class _MemberSubscriptionDetailPageState
               ],
             ),
           ),
+          IconButton(
+            tooltip: 'View payment details',
+            onPressed: () => _openPaymentDetail(request),
+            icon: const Icon(Iconsax.arrow_right_3, size: 18),
+            color: const Color(0xFF999999),
+            visualDensity: VisualDensity.compact,
+          ),
           if (hasReceipt)
             IconButton(
               tooltip: 'View receipt',
@@ -476,6 +484,14 @@ class _MemberSubscriptionDetailPageState
               ),
           ],
         ],
+      ),
+    );
+  }
+
+  void _openPaymentDetail(PaymentRequestModel request) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PaymentDetailPage(requestId: request.id),
       ),
     );
   }

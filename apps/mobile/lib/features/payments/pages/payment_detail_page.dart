@@ -7,6 +7,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/storage/json_cache_store.dart';
 import '../../../core/storage/preferences_storage.dart';
@@ -319,6 +320,9 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
   }
 
   Widget _evidenceSection(PaymentRequestModel request) {
+    if (request.evidence.isNotEmpty) {
+      return _interactiveEvidenceSection(request);
+    }
     if (request.evidence.isEmpty) {
       return _section([
         const Row(
@@ -360,6 +364,152 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
         ),
       ),
     ]);
+  }
+
+  Widget _interactiveEvidenceSection(PaymentRequestModel request) {
+    return _section([
+      for (var index = 0; index < request.evidence.length; index++)
+        _evidenceRow(
+          request,
+          request.evidence[index],
+          isLast: index == request.evidence.length - 1,
+        ),
+    ]);
+  }
+
+  Widget _evidenceRow(
+    PaymentRequestModel request,
+    PaymentEvidenceModel item, {
+    required bool isLast,
+  }) {
+    final isPdf = item.contentType.toLowerCase().contains('pdf');
+    return InkWell(
+      onTap: () => _openEvidence(request, item),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+        child: Row(
+          children: [
+            Icon(
+              isPdf ? Iconsax.document_text : Iconsax.gallery,
+              color: AppColors.brandAccent,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isPdf
+                        ? 'Payment receipt document'
+                        : 'Payment evidence image',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${item.sizeBytes == null ? '' : '${(item.sizeBytes! / 1024).ceil()} KB · '}Tap to ${isPdf ? 'open' : 'preview'} · ${_dateTime(item.createdAt)}',
+                    style: const TextStyle(
+                      color: Color(0xFF777777),
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Iconsax.arrow_right_3,
+              color: Color(0xFF999999),
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openEvidence(
+    PaymentRequestModel request,
+    PaymentEvidenceModel evidence,
+  ) async {
+    final branchId = context.read<PreferencesStorage>().activeBranchId;
+    if (branchId == null) return;
+    try {
+      final result =
+          await context.read<FeesRepository>().getEvidenceDownloadUrl(
+                branchId,
+                request.id,
+                evidence.id,
+              );
+      final url = result['url']?.toString();
+      if (url == null || url.isEmpty) {
+        throw Exception('Evidence link is unavailable');
+      }
+      if (evidence.contentType.toLowerCase().contains('pdf')) {
+        final opened = await launchUrl(
+          Uri.parse(url),
+          mode: LaunchMode.externalApplication,
+        );
+        if (!opened) throw Exception('The document could not be opened');
+        return;
+      }
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (_) => Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: const EdgeInsets.all(16),
+          child: SafeArea(
+            child: Stack(
+              alignment: Alignment.topRight,
+              children: [
+                InteractiveViewer(
+                  minScale: 0.8,
+                  maxScale: 4,
+                  child: Image.network(
+                    url,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return const SizedBox(
+                        height: 320,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.brandAccent,
+                          ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox(
+                      height: 320,
+                      child: Center(
+                        child: Text(
+                          'Evidence preview unavailable',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Iconsax.close_circle, color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open evidence: $error')),
+      );
+    }
   }
 
   bool _canReview(PaymentRequestModel request) {

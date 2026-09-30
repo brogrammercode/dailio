@@ -52,14 +52,14 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         _branchId,
         widget.membershipId,
         onFresh: (freshData) {
-          final rawFresh = freshData['member'];
+          final rawFresh = _memberPayload(freshData);
           if (!mounted || rawFresh is! Map) return;
           setState(() => _member = MemberModel.fromJson(
                 Map<String, dynamic>.from(rawFresh),
               ));
         },
       );
-      final raw = result['member'];
+      final raw = _memberPayload(result);
       if (raw is! Map) throw Exception('Member data was not returned');
       if (mounted) {
         setState(() => _member = MemberModel.fromJson(
@@ -71,6 +71,12 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  dynamic _memberPayload(Map<String, dynamic> response) {
+    final data = response['data'];
+    if (data is Map) return data;
+    return response['member'];
   }
 
   Future<void> _performAction(String action) async {
