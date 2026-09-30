@@ -42,7 +42,7 @@ router.get(
   '/branches/:branch_id/members/:member_id',
   authenticate,
   resolveTenantContext,
-  requirePermission('MEMBER_READ_ALL'),
+  requireAnyPermission('MEMBER_READ_SELF', 'MEMBER_READ_ALL'),
   getMember,
 );
 router.post(

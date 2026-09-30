@@ -121,24 +121,83 @@ export async function getMemberDetail(
   branch_id: string,
   member_id: string,
 ) {
-  const member = await prisma.member.findUnique({
-    where: { id: member_id },
-    include: {
-      user: true,
-      role: true,
+  const member = await prisma.member.findFirst({
+    where: { id: member_id, organization_id, branch_id },
+    select: {
+      id: true,
+      organization_id: true,
+      branch_id: true,
+      user_id: true,
+      is_employee: true,
+      role_id: true,
+      manager_member_id: true,
+      shift_id: true,
+      subscription_id: true,
+      salary_structure_id: true,
+      status: true,
+      member_number: true,
+      created_at: true,
+      updated_at: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          avatar_url: true,
+          status: true,
+          date_of_birth: true,
+        },
+      },
+      role: {
+        select: {
+          id: true,
+          organization_id: true,
+          branch_id: true,
+          system_key: true,
+          name: true,
+          is_protected: true,
+          is_system: true,
+        },
+      },
       role_assignments: {
         where: { effective_to: null },
         orderBy: { priority: 'asc' },
-        include: { role: true },
+        select: {
+          id: true,
+          role_id: true,
+          priority: true,
+          effective_from: true,
+          effective_to: true,
+          role: {
+            select: {
+              id: true,
+              organization_id: true,
+              branch_id: true,
+              system_key: true,
+              name: true,
+              is_protected: true,
+              is_system: true,
+            },
+          },
+        },
       },
       subscriptions: {
         orderBy: [{ start_date: 'desc' }, { created_at: 'desc' }],
-        include: { plan: true },
+        select: {
+          id: true,
+          status: true,
+          start_date: true,
+          end_date: true,
+          agreed_amount_minor: true,
+          currency: true,
+          plan: { select: { id: true, name: true } },
+        },
       },
     },
   });
 
-  if (!member || member.organization_id !== organization_id || member.branch_id !== branch_id) {
+  if (!member) {
     throw new NotFoundError('Member');
   }
 

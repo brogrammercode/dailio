@@ -50,6 +50,7 @@ Thumbs.db
 !apps/api/prisma/migrations/20260925130000_permanent_qr_invites/migration.sql
 !apps/api/prisma/migrations/20260926150000_attendance_policy_scopes/migration.sql
 !apps/api/prisma/migrations/20260926153000_attendance_policy_permissions/migration.sql
+!apps/api/prisma/migrations/20260930150000_attendance_policy_qr_scan/migration.sql
 !apps/api/prisma/migrations/20260926160000_attendance_policy_effective_ranges/migration.sql
 !apps/api/prisma/migrations/20260926170000_attendance_correction_history/migration.sql
 !apps/api/prisma/migrations/20260926180000_attendance_geofence_distance/migration.sql

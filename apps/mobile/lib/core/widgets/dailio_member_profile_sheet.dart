@@ -233,9 +233,7 @@ class _DailioMemberProfileSurface extends StatelessWidget {
   }
 
   Widget _secondaryActions(BuildContext context) {
-    final preferences = parentContext.read<PreferencesStorage>();
-    final canOpenInfo = member.memberId.isNotEmpty &&
-        preferences.hasPermission('MEMBER_READ_ALL');
+    final canOpenInfo = member.memberId.isNotEmpty;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [

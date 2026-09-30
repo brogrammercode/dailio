@@ -12,7 +12,12 @@ const prismaMock = vi.hoisted(() => ({
 
 vi.mock('../../lib/prisma', () => ({ prisma: prismaMock }));
 
-import { correctSession, getEffectivePolicyForMember, updatePolicy } from './attendance.service';
+import {
+  assertQrScanRequirement,
+  correctSession,
+  getEffectivePolicyForMember,
+  updatePolicy,
+} from './attendance.service';
 
 const policy = (scope: 'member' | 'role' | 'branch') => ({
   id: `${scope}-policy`,
@@ -66,6 +71,18 @@ describe('attendance policy resolution', () => {
     expect(result.id).toBeNull();
     expect(result.source_scope).toBe('BRANCH_DEFAULT');
     expect(result.punch_required).toBe(true);
+  });
+
+  it('requires QR gate punches when the effective action policy enables them', () => {
+    expect(() =>
+      assertQrScanRequirement({ qr_scan_on_clock_in: true }, 'SELF', 'clock_in'),
+    ).toThrow('Scan the branch QR code to clock-in');
+    expect(() =>
+      assertQrScanRequirement({ qr_scan_on_clock_out: true }, 'SELF', 'clock_out'),
+    ).toThrow('Scan the branch QR code to clock-out');
+    expect(() =>
+      assertQrScanRequirement({ qr_scan_on_clock_in: true }, 'QR_GATE', 'clock_in'),
+    ).not.toThrow();
   });
 
   it('uses explicit role-assignment priority before role id ordering', async () => {

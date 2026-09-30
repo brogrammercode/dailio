@@ -120,6 +120,17 @@ This tracker is the implementation record for the four requested features. Statu
 - [x] Run API build/type-check/tests and mobile format/analyze/tests.
 - [x] Update this tracker with final verification and any environment/migration steps.
 
+## Phase 7 — QR-gated attendance and live read models
+
+- [x] Add independent clock-in and clock-out QR requirements to the attendance policy schema, migration, API contract and policy editor.
+- [x] Enforce QR requirements server-side for direct self punches while allowing the permanent branch gate QR path.
+- [x] Make Self Attendance show only the policy-required action; it no longer rotates to an optional QR action.
+- [x] Repair Settings streak initialization when the active branch hydrates after the page is created.
+- [x] Replace the Settings streak card with fresh background values when the JSON cache refresh completes.
+- [x] Add branch holiday create/update/delete notifications through the shared in-app, push and email notification service.
+- [x] Add focused API and mobile coverage for QR policy parsing/enforcement and the QR-only self-attendance state.
+- [x] Apply migration `20260930150000_attendance_policy_qr_scan` and verify API/mobile checks.
+
 ## Current implementation log
 
 - 2026-09-30: tracker created; repository and existing leave/daily-job/announcement patterns inspected.
@@ -127,3 +138,4 @@ This tracker is the implementation record for the four requested features. Statu
 - 2026-09-30: migration `20260930100000_holidays_and_attendance_streaks` deployed to the configured `dailio_test` database. API: 38 files / 130 tests passed, lint/type-check/build passed. Mobile: analyze clean and 25 tests passed.
 - 2026-09-30: added migration `20260930130000_holiday_date_lists` for explicit date arrays and recurring weekdays; existing ranges are backfilled without dropping legacy columns. Attendance and fee list ordering now follow the operational priority requested.
 - 2026-09-30: verified migration status is up to date; API full suite passed (40 files / 138 tests), lint, type-check and production build passed; mobile analyze and full Flutter suite passed (25 tests).
+- 2026-09-30: added independent QR-gated clock-in/clock-out policy controls, server enforcement, QR-only self-attendance behavior, late-branch Settings streak hydration, stale-while-refresh streak replacement, and holiday calendar notifications. Migration `20260930150000_attendance_policy_qr_scan` applied successfully; focused API tests, API type-check/build, Flutter analyze and full Flutter tests passed.

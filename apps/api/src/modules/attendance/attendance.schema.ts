@@ -11,6 +11,8 @@ export const UpdatePolicySchema = z.object({
     member_id: z.string().nullable().optional(),
     effective_from: z.string().datetime().optional(),
     punch_required: z.boolean().optional(),
+    qr_scan_on_clock_in: z.boolean().optional(),
+    qr_scan_on_clock_out: z.boolean().optional(),
     selfie_on_clock_in: z.boolean().optional(),
     selfie_on_clock_out: z.boolean().optional(),
     location_on_clock_in: z.boolean().optional(),

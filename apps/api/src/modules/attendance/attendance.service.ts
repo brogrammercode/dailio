@@ -36,6 +36,8 @@ const fallbackPolicy = {
   source_scope: 'BRANCH_DEFAULT',
   effective_from: null,
   punch_required: true,
+  qr_scan_on_clock_in: false,
+  qr_scan_on_clock_out: false,
   selfie_on_clock_in: false,
   location_on_clock_in: false,
   selfie_on_clock_out: false,
@@ -102,6 +104,25 @@ export function getAttendanceFailureMessage(error: unknown) {
   return error instanceof AppError
     ? error.message
     : 'Attendance could not be validated. Please try again.';
+}
+
+/**
+ * QR requirements are enforced at the service boundary as well as in the
+ * client. A caller must not be able to bypass a branch policy by posting
+ * directly to the normal self-punch endpoint.
+ */
+export function assertQrScanRequirement(
+  policy: { qr_scan_on_clock_in?: boolean; qr_scan_on_clock_out?: boolean },
+  source: 'SELF' | 'QR_GATE',
+  action: 'clock_in' | 'clock_out',
+) {
+  const required = action === 'clock_in' ? policy.qr_scan_on_clock_in : policy.qr_scan_on_clock_out;
+  if (required === true && source !== 'QR_GATE') {
+    throw new UnprocessableError(`Scan the branch QR code to ${action.replace('_', '-')}`, {
+      reason: 'QR_SCAN_REQUIRED',
+      action,
+    });
+  }
 }
 
 async function notifyAttendanceFailure(
@@ -913,6 +934,7 @@ export async function clockIn(
   }
 
   const policy = await getEffectivePolicyForMember(organization_id, branch_id, membership.id);
+  assertQrScanRequirement(policy, source, 'clock_in');
   if (data.policy_version != null && data.policy_version !== policy.version) {
     throw new ConflictError('Attendance policy changed while you were preparing the punch', {
       reason: 'STALE_POLICY_VERSION',
@@ -1143,6 +1165,7 @@ export async function clockOut(
   const policy = session.policy_snapshot
     ? (session.policy_snapshot as any)
     : await getEffectivePolicyForMember(organization_id, branch_id, session.member_id);
+  assertQrScanRequirement(policy, source, 'clock_out');
   if (data.policy_version != null && data.policy_version !== session.policy_version) {
     throw new ConflictError(
       'Attendance policy changed for this session; refresh before clock-out',
@@ -2111,6 +2134,10 @@ export async function updatePolicy(
         version,
         effective_from: effectiveFrom,
         punch_required: data.punch_required ?? currentPolicy?.punch_required ?? true,
+        qr_scan_on_clock_in:
+          data.qr_scan_on_clock_in ?? currentPolicy?.qr_scan_on_clock_in ?? false,
+        qr_scan_on_clock_out:
+          data.qr_scan_on_clock_out ?? currentPolicy?.qr_scan_on_clock_out ?? false,
         selfie_on_clock_in: data.selfie_on_clock_in ?? currentPolicy?.selfie_on_clock_in ?? false,
         selfie_on_clock_out:
           data.selfie_on_clock_out ?? currentPolicy?.selfie_on_clock_out ?? false,

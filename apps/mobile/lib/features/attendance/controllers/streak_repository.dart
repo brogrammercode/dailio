@@ -7,17 +7,27 @@ class StreakRepository {
 
   StreakRepository({required this.apiClient, this.cache});
 
-  Future<Map<String, dynamic>> getMyStreak(String branchId) =>
-      _get('branches/$branchId/attendance/streak', 'streak:me:$branchId');
+  Future<Map<String, dynamic>> getMyStreak(
+    String branchId, {
+    void Function(Map<String, dynamic> fresh)? onFresh,
+  }) =>
+      _get('branches/$branchId/attendance/streak', 'streak:me:$branchId',
+          onFresh: onFresh);
 
   Future<Map<String, dynamic>> getMemberStreak(
     String branchId,
-    String memberId,
-  ) =>
+    String memberId, {
+    void Function(Map<String, dynamic> fresh)? onFresh,
+  }) =>
       _get('branches/$branchId/attendance/streak/$memberId',
-          'streak:$memberId:$branchId');
+          'streak:$memberId:$branchId',
+          onFresh: onFresh);
 
-  Future<Map<String, dynamic>> _get(String path, String key) async {
+  Future<Map<String, dynamic>> _get(
+    String path,
+    String key, {
+    void Function(Map<String, dynamic> fresh)? onFresh,
+  }) async {
     Future<dynamic> fetch() async => (await apiClient.dio.get('/$path')).data;
     if (cache == null) {
       final response = await fetch();
@@ -29,6 +39,7 @@ class StreakRepository {
       fetch: fetch,
       decode: (payload) =>
           Map<String, dynamic>.from((payload as Map)['data'] as Map),
+      onFresh: onFresh,
     );
   }
 }

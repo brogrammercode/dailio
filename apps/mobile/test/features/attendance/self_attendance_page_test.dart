@@ -26,6 +26,7 @@ class _FakeAttendanceRepository extends AttendanceRepository {
 
   bool isOpen = false;
   bool failClockIn = false;
+  bool qrScanOnClockIn = false;
 
   AttendanceSessionModel get _session => AttendanceSessionModel(
         id: 'session-1',
@@ -48,6 +49,8 @@ class _FakeAttendanceRepository extends AttendanceRepository {
         'location_on_clock_out': false,
         'selfie_on_clock_in': false,
         'selfie_on_clock_out': false,
+        'qr_scan_on_clock_in': qrScanOnClockIn,
+        'qr_scan_on_clock_out': false,
         'geofence_enabled': false,
         'shift_enforcement_enabled': false,
       };
@@ -187,5 +190,18 @@ void main() {
           'We could not complete that attendance action. Please try again.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+      'self attendance requires QR when the effective policy enables it',
+      (tester) async {
+    final (preferences, repository) = await _setup();
+    repository.qrScanOnClockIn = true;
+
+    await tester.pumpWidget(_page(preferences, repository));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scan QR code'), findsOneWidget);
+    expect(find.text('Clock in'), findsNothing);
   });
 }

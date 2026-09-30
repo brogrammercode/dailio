@@ -266,7 +266,7 @@ String? _guardConfigurationRoute(
         : AppRoutes.home;
   }
   if (path.startsWith('/home/branch/members/') &&
-      !preferences.hasPermission('MEMBER_READ_ALL')) {
+      !any(['MEMBER_READ_SELF', 'MEMBER_READ_ALL'])) {
     return AppRoutes.home;
   }
   if (path.startsWith('/home/branch/configure-member/') &&

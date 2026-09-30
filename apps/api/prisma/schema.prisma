@@ -505,6 +505,8 @@ model AttendancePolicy {
   effective_from              DateTime
   effective_to                DateTime?
   punch_required              Boolean   @default(true)
+  qr_scan_on_clock_in         Boolean   @default(false)
+  qr_scan_on_clock_out        Boolean   @default(false)
   selfie_on_clock_in          Boolean   @default(false)
   selfie_on_clock_out         Boolean   @default(false)
   location_on_clock_in        Boolean   @default(false)

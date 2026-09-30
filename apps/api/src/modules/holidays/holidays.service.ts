@@ -3,6 +3,7 @@ import type { Holiday } from '@prisma/client';
 
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../lib/errors';
 import { prisma } from '../../lib/prisma';
+import { findBranchRecipientUserIds, notify } from '../notifications/notifications.service';
 
 import type { CreateHolidayInput, UpdateHolidayInput } from './holidays.schema';
 
@@ -97,6 +98,54 @@ function responseHoliday(row: Holiday) {
   };
 }
 
+function notifyHolidayChange(
+  organizationId: string,
+  branchId: string,
+  actorUserId: string,
+  holiday: { id: string; name: string },
+  action: 'CREATED' | 'UPDATED' | 'DELETED',
+  dates: string[],
+  recurringWeekdays: number[],
+) {
+  void (async () => {
+    try {
+      const recipientUserIds = await findBranchRecipientUserIds(
+        organizationId,
+        branchId,
+        'HOLIDAY_READ',
+      );
+      await notify({
+        type: `HOLIDAY_${action}`,
+        organizationId,
+        branchId,
+        actorUserId,
+        entityType: 'Holiday',
+        entityId: holiday.id,
+        recipientUserIds,
+        title: action === 'DELETED' ? 'Holiday removed' : 'Holiday calendar updated',
+        body:
+          action === 'CREATED'
+            ? `${holiday.name} was added to the branch holiday calendar.`
+            : action === 'UPDATED'
+              ? `${holiday.name} was updated in the branch holiday calendar.`
+              : `${holiday.name} was removed from the branch holiday calendar.`,
+        data: {
+          holiday_id: holiday.id,
+          action,
+          dates: JSON.stringify(dates),
+          recurring_weekdays: JSON.stringify(recurringWeekdays),
+        },
+        dedupeKey: `holiday:${holiday.id}:${action.toLowerCase()}:${
+          action === 'DELETED' ? 'deleted' : Date.now()
+        }`,
+      });
+    } catch {
+      // Calendar notifications are auxiliary and must never delay or fail the
+      // committed holiday mutation.
+    }
+  })();
+}
+
 export async function listHolidays(organizationId: string, branchId: string) {
   const rows = await prisma.holiday.findMany({
     where: branchScope(organizationId, branchId),
@@ -160,6 +209,15 @@ export async function createHoliday(
     });
     return created;
   });
+  notifyHolidayChange(
+    organizationId,
+    branchId,
+    actorUserId,
+    holiday,
+    'CREATED',
+    dates,
+    recurringWeekdays,
+  );
   return responseHoliday(holiday);
 }
 
@@ -225,6 +283,15 @@ export async function updateHoliday(
     });
     return result;
   });
+  notifyHolidayChange(
+    organizationId,
+    branchId,
+    actorUserId,
+    updated,
+    'UPDATED',
+    dates,
+    recurringWeekdays,
+  );
   return responseHoliday(updated);
 }
 
@@ -254,4 +321,13 @@ export async function deleteHoliday(
       },
     });
   });
+  notifyHolidayChange(
+    organizationId,
+    branchId,
+    actorUserId,
+    current,
+    'DELETED',
+    normalizedHolidayDates(current),
+    normalizedWeekdays(current.recurring_weekdays),
+  );
 }

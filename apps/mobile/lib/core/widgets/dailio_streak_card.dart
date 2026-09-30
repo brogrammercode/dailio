@@ -18,7 +18,7 @@ class DailioStreakCard extends StatelessWidget {
       future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _card(context, current: '—', best: '—', loading: true);
+          return _card(context, current: '-', best: '-', loading: true);
         }
         if (snapshot.hasError || snapshot.data == null) {
           // Keep the surface stable when a background refresh is unavailable.
@@ -26,8 +26,8 @@ class DailioStreakCard extends StatelessWidget {
           // and disappear from the page.
           return _card(
             context,
-            current: '—',
-            best: '—',
+            current: '-',
+            best: '-',
             subtitle: 'Unable to refresh right now',
           );
         }
@@ -85,7 +85,7 @@ class DailioStreakCard extends StatelessWidget {
                 Text(
                     subtitle ??
                         (loading
-                            ? 'Calculating consistency…'
+                            ? 'Calculating consistency...'
                             : 'Keep showing up consistently'),
                     style: TextStyle(color: muted, fontSize: 11)),
               ])),

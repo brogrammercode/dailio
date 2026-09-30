@@ -84,8 +84,13 @@ describe('attendance command contracts', () => {
     ).toThrow();
     expect(() =>
       UpdatePolicySchema.parse({
-        body: { allow_offline_capture: true },
+        body: { allow_offline_capture: true, qr_scan_on_clock_in: true },
       }),
     ).toThrow();
+    expect(
+      UpdatePolicySchema.parse({
+        body: { qr_scan_on_clock_in: true, qr_scan_on_clock_out: false },
+      }).body,
+    ).toMatchObject({ qr_scan_on_clock_in: true, qr_scan_on_clock_out: false });
   });
 });

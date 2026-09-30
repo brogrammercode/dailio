@@ -42,12 +42,10 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
   bool _actionLoading = false;
   String? _error;
   Timer? _timer;
-  Timer? _actionPromptTimer;
   DateTime _clock = DateTime.now();
   String? _punchIdempotencyKey;
   String? _punchStatus;
   String _historyPeriod = 'this_month';
-  bool _showQrAction = false;
 
   @override
   void initState() {
@@ -60,18 +58,12 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _clock = _repository.serverNow);
     });
-    _actionPromptTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (mounted && !_actionLoading) {
-        setState(() => _showQrAction = !_showQrAction);
-      }
-    });
     _load();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _actionPromptTimer?.cancel();
     _tabs.dispose();
     super.dispose();
   }
@@ -94,13 +86,21 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         _repository.getAttendancePolicy(
           branchId,
           onFresh: (freshPolicy) {
-            if (mounted) setState(() => _policy = freshPolicy);
+            if (mounted) {
+              setState(() {
+                _policy = freshPolicy;
+              });
+            }
           },
         ),
         _repository.getActiveSession(
           branchId,
           onFresh: (freshSession) {
-            if (mounted) setState(() => _activeSession = freshSession);
+            if (mounted) {
+              setState(() {
+                _activeSession = freshSession;
+              });
+            }
           },
         ),
         _repository.getSessions(
@@ -174,6 +174,10 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
 
   Future<void> _clockIn() async {
     if (_actionLoading || _branchId == null) return;
+    if (_requiresQrForCurrentAction) {
+      context.push(AppRoutes.qrScanner);
+      return;
+    }
     setState(() {
       _actionLoading = true;
       _punchStatus = 'submitting';
@@ -217,6 +221,10 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
   Future<void> _clockOut() async {
     final session = _activeSession;
     if (_actionLoading || session == null || _branchId == null) return;
+    if (_requiresQrForCurrentAction) {
+      context.push(AppRoutes.qrScanner);
+      return;
+    }
     setState(() {
       _actionLoading = true;
       _punchStatus = 'submitting';
@@ -355,14 +363,15 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     final now = BranchTime.toBranch(_clock, _branchTimezone);
     final record = _todayRecord(now);
     final canPunch = open || attendanceEnabled;
-    final actionLabel = _showQrAction
+    final showQr = canPunch && _requiresQrForCurrentAction;
+    final actionLabel = showQr
         ? 'Scan QR code'
         : open
             ? 'Clock out'
             : attendanceEnabled
                 ? 'Clock in'
                 : 'Attendance off';
-    final actionIcon = _showQrAction
+    final actionIcon = showQr
         ? Icons.qr_code_scanner
         : open
             ? Icons.logout
@@ -399,9 +408,9 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
                 elevation: 3,
                 shadowColor: Colors.black.withValues(alpha: 0.12),
                 child: InkWell(
-                  onTap: _actionLoading || (!_showQrAction && !canPunch)
+                  onTap: _actionLoading || !canPunch
                       ? null
-                      : _showQrAction
+                      : showQr
                           ? () => context.push(AppRoutes.qrScanner)
                           : (open ? _clockOut : _clockIn),
                   customBorder: const CircleBorder(),
@@ -636,9 +645,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         ),
         Row(
           children: [
-            _promptDot(!_showQrAction),
-            const SizedBox(width: 4),
-            _promptDot(_showQrAction),
+            if (_requiresQrForCurrentAction) _promptDot(true),
           ],
         ),
       ],
@@ -661,6 +668,8 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     final selfieRequired = _policy['selfie_on_clock_in'] == true ||
         _policy['selfie_on_clock_out'] == true;
     final geofenceEnabled = _policy['geofence_enabled'] == true;
+    final qrRequired = _policy['qr_scan_on_clock_in'] == true ||
+        _policy['qr_scan_on_clock_out'] == true;
     final grace = _policy['late_grace_minutes'] ?? 15;
     return _card(Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -677,6 +686,8 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
             _policyParameter(Icons.radar, 'Geofence',
                 geofenceEnabled ? 'On' : 'Off', geofenceEnabled),
             _policyParameter(Icons.schedule, 'Late grace', '$grace min', false),
+            _policyParameter(Icons.qr_code_scanner, 'QR scan',
+                qrRequired ? 'Required' : 'Optional', qrRequired),
           ],
         ),
         if (_policy['shift_snapshot'] is Map) ...[
@@ -889,6 +900,9 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
           _policy['selfie_on_clock_out'] == true)
         'Selfie required',
       if (_policy['geofence_enabled'] == true) 'Geofence enabled',
+      if (_policy['qr_scan_on_clock_in'] == true ||
+          _policy['qr_scan_on_clock_out'] == true)
+        'QR scan required',
     ];
     return _card(
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1292,4 +1306,11 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
 
   String _newPunchKey() =>
       'mobile-attendance-${DateTime.now().toUtc().microsecondsSinceEpoch}';
+
+  bool get _requiresQrForCurrentAction {
+    if (_activeSession != null) {
+      return _policy['qr_scan_on_clock_out'] == true;
+    }
+    return _policy['qr_scan_on_clock_in'] == true;
+  }
 }

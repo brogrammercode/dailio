@@ -37,6 +37,8 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
   String? _loadError;
 
   bool _punchRequired = true;
+  bool _qrScanOnClockIn = false;
+  bool _qrScanOnClockOut = false;
   bool _allowManualEntry = false;
   bool _selfieOnClockIn = false;
   bool _selfieOnClockOut = false;
@@ -63,6 +65,8 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
 
   void _applyPolicyFields(Map<String, dynamic> policy) {
     _punchRequired = policy['punch_required'] ?? true;
+    _qrScanOnClockIn = policy['qr_scan_on_clock_in'] ?? false;
+    _qrScanOnClockOut = policy['qr_scan_on_clock_out'] ?? false;
     _allowManualEntry = policy['allow_manual_entry'] ?? false;
     _selfieOnClockIn = policy['selfie_on_clock_in'] ?? false;
     _selfieOnClockOut = policy['selfie_on_clock_out'] ?? false;
@@ -239,6 +243,8 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
         'role_id': _scope == 'ROLE' ? _selectedRoleId : null,
         'member_id': _scope == 'MEMBER' ? _selectedMemberId : null,
         'punch_required': _punchRequired,
+        'qr_scan_on_clock_in': _qrScanOnClockIn,
+        'qr_scan_on_clock_out': _qrScanOnClockOut,
         'allow_manual_entry': _allowManualEntry,
         'selfie_on_clock_in': _selfieOnClockIn,
         'selfie_on_clock_out': _selfieOnClockOut,
@@ -530,6 +536,16 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                             'Require users to click a button to punch in/out',
                             _punchRequired,
                             (val) => setState(() => _punchRequired = val)),
+                        _buildSwitchRow(
+                            'QR scan on Clock-In',
+                            'Only allow clock-in after scanning this branch QR code',
+                            _qrScanOnClockIn,
+                            (val) => setState(() => _qrScanOnClockIn = val)),
+                        _buildSwitchRow(
+                            'QR scan on Clock-Out',
+                            'Only allow clock-out after scanning this branch QR code',
+                            _qrScanOnClockOut,
+                            (val) => setState(() => _qrScanOnClockOut = val)),
                         _buildSwitchRow(
                             'Allow manager manual records',
                             'Permit authorized staff to add a record when a member could not punch',

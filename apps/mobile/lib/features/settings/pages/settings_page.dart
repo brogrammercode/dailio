@@ -28,6 +28,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Map<String, dynamic>? _orgData;
   bool _isLoadingOrg = true;
   Future<Map<String, dynamic>>? _streakFuture;
+  String? _streakBranchId;
 
   @override
   void initState() {
@@ -35,7 +36,8 @@ class _SettingsPageState extends State<SettingsPage> {
     final prefs = context.read<PreferencesStorage>();
     final branchId = prefs.activeBranchId;
     if (branchId != null) {
-      _streakFuture = context.read<StreakRepository>().getMyStreak(branchId);
+      _streakBranchId = branchId;
+      _streakFuture = _loadStreak(branchId);
     }
     _loadOrgData();
   }
@@ -100,7 +102,8 @@ class _SettingsPageState extends State<SettingsPage> {
     return BlocBuilder<AuthCubit, AuthState>(
       builder: (context, authState) {
         final user = authState is AuthAuthenticated ? authState.user : null;
-        final prefs = context.read<PreferencesStorage>();
+        final prefs = context.watch<PreferencesStorage>();
+        _ensureStreakFuture(prefs);
         final orgName = prefs.activeOrganizationName;
         final branchName = prefs.activeBranchName;
         final orgMap = _orgData?['organization'] as Map<String, dynamic>?;
@@ -254,6 +257,24 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
         );
+      },
+    );
+  }
+
+  void _ensureStreakFuture(PreferencesStorage prefs) {
+    final branchId = prefs.activeBranchId;
+    if (branchId == null || branchId == _streakBranchId) return;
+    _streakBranchId = branchId;
+    _streakFuture = _loadStreak(branchId);
+  }
+
+  Future<Map<String, dynamic>> _loadStreak(String branchId) {
+    return context.read<StreakRepository>().getMyStreak(
+      branchId,
+      onFresh: (fresh) {
+        if (!mounted || _streakBranchId != branchId) return;
+        setState(
+            () => _streakFuture = Future<Map<String, dynamic>>.value(fresh));
       },
     );
   }

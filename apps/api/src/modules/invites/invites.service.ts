@@ -239,6 +239,8 @@ export async function resolveInvite(userId: string, rawToken: string) {
     effective_from?: Date | string | null;
     selfie_on_clock_in?: boolean;
     selfie_on_clock_out?: boolean;
+    qr_scan_on_clock_in?: boolean;
+    qr_scan_on_clock_out?: boolean;
     location_on_clock_in?: boolean;
     location_on_clock_out?: boolean;
     geofence_enabled?: boolean;
@@ -278,6 +280,8 @@ export async function resolveInvite(userId: string, rawToken: string) {
           selfie_required: actionPolicy.selfie_on_clock_in || actionPolicy.selfie_on_clock_out,
           selfie_on_clock_in: actionPolicy.selfie_on_clock_in,
           selfie_on_clock_out: actionPolicy.selfie_on_clock_out,
+          qr_scan_on_clock_in: actionPolicy.qr_scan_on_clock_in,
+          qr_scan_on_clock_out: actionPolicy.qr_scan_on_clock_out,
           location_required:
             actionPolicy.location_on_clock_in ||
             actionPolicy.location_on_clock_out ||
