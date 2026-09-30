@@ -18,17 +18,14 @@ class DailioStreakCard extends StatelessWidget {
       future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _card(context, current: '-', best: '-', loading: true);
+          return _card(context, current: '0', best: '0', loading: true);
         }
         if (snapshot.hasError || snapshot.data == null) {
-          // Keep the surface stable when a background refresh is unavailable.
-          // A transient API/cache error must not make the settings card flash
-          // and disappear from the page.
           return _card(
             context,
-            current: '-',
-            best: '-',
-            subtitle: 'Unable to refresh right now',
+            current: '0',
+            best: '0',
+            subtitle: 'No attendance streak yet',
           );
         }
         final data = snapshot.data!;
@@ -49,23 +46,24 @@ class DailioStreakCard extends StatelessWidget {
     final foreground = dark ? Colors.white : AppColors.brandDark;
     final muted = dark ? const Color(0xFFA7ADB5) : const Color(0xFF777777);
     return Container(
-      margin: const EdgeInsets.only(top: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.fromLTRB(4, 10, 4, 12),
       decoration: BoxDecoration(
         color: dark ? const Color(0xFF171B20) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: dark ? const Color(0xFF2A3038) : const Color(0xFFEAEAEA)),
+        border: Border(
+          bottom: BorderSide(
+            color: dark ? const Color(0xFF2A3038) : const Color(0xFFEAEAEA),
+          ),
+        ),
       ),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
-            padding: const EdgeInsets.all(8),
+            width: 40,
+            height: 40,
+            padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-                color: const Color(0xFFFFF0F2),
-                borderRadius: BorderRadius.circular(12)),
+                color: const Color(0xFFFFF0F2), shape: BoxShape.circle),
             child: Image.network(dailioStreakFireUrl,
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => const Icon(Iconsax.flash_1,
@@ -85,7 +83,7 @@ class DailioStreakCard extends StatelessWidget {
                 Text(
                     subtitle ??
                         (loading
-                            ? 'Calculating consistency...'
+                            ? 'Checking attendance'
                             : 'Keep showing up consistently'),
                     style: TextStyle(color: muted, fontSize: 11)),
               ])),

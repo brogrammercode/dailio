@@ -29,17 +29,56 @@ class StreakRepository {
     void Function(Map<String, dynamic> fresh)? onFresh,
   }) async {
     Future<dynamic> fetch() async => (await apiClient.dio.get('/$path')).data;
-    if (cache == null) {
-      final response = await fetch();
-      return Map<String, dynamic>.from((response as Map)['data'] as Map);
+    Map<String, dynamic> decode(dynamic payload) {
+      final envelope = payload is Map
+          ? Map<String, dynamic>.from(payload)
+          : const <String, dynamic>{};
+      final data = envelope['data'] is Map ? envelope['data'] as Map : envelope;
+      final result = Map<String, dynamic>.from(data);
+      return {
+        ...result,
+        'current_streak': (result['current_streak'] as num?)?.toInt() ?? 0,
+        'best_streak': (result['best_streak'] as num?)?.toInt() ?? 0,
+      };
     }
-    return cache!.load<Map<String, dynamic>>(
-      key: cache!.scopedKey(key),
-      scope: 'branch:$path',
-      fetch: fetch,
-      decode: (payload) =>
-          Map<String, dynamic>.from((payload as Map)['data'] as Map),
-      onFresh: onFresh,
-    );
+
+    final fallback = <String, dynamic>{
+      'current_streak': 0,
+      'best_streak': 0,
+      'last_attendance_date': null,
+    };
+
+    if (cache == null) {
+      try {
+        return decode(await fetch());
+      } catch (_) {
+        return fallback;
+      }
+    }
+
+    final scopedKey = cache!.scopedKey(key);
+    try {
+      return await cache!.load<Map<String, dynamic>>(
+        key: scopedKey,
+        scope: 'branch:${branchIdFromPath(path)}',
+        fetch: fetch,
+        decode: decode,
+        onFresh: onFresh,
+      );
+    } catch (_) {
+      // A malformed/old cache record or a temporary API failure should not
+      // replace the Settings page with an error state. Use the last valid
+      // cached streak when available, otherwise show the honest zero state.
+      try {
+        final cached = await cache!.read(scopedKey);
+        if (cached != null) return decode(cached.payload);
+      } catch (_) {}
+      return fallback;
+    }
+  }
+
+  String branchIdFromPath(String path) {
+    final parts = path.split('/');
+    return parts.length > 1 ? parts[1] : path;
   }
 }

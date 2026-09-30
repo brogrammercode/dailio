@@ -74,7 +74,12 @@ export async function calculateMemberStreak(
 
   const today = localDate(now, branch.timezone);
   const sessions = await prisma.attendanceSession.findMany({
-    where: { organization_id: organizationId, branch_id: branchId, member_id: memberId },
+    where: {
+      organization_id: organizationId,
+      branch_id: branchId,
+      member_id: memberId,
+      state: { not: 'VOID' },
+    },
     select: { clock_in_at: true },
     orderBy: { clock_in_at: 'asc' },
   });

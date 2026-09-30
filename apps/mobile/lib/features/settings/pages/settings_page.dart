@@ -138,14 +138,14 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ],
             onMenuSelected: (value) {
-              if (value == 'refresh') _loadOrgData();
+              if (value == 'refresh') _refreshPage();
               if (value == 'sign_out') _confirmSignOut();
             },
           ),
           body: SafeArea(
             child: RefreshIndicator(
               color: AppColors.brandAccent,
-              onRefresh: _loadOrgData,
+              onRefresh: _refreshPage,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                 children: [
@@ -266,6 +266,25 @@ class _SettingsPageState extends State<SettingsPage> {
     if (branchId == null || branchId == _streakBranchId) return;
     _streakBranchId = branchId;
     _streakFuture = _loadStreak(branchId);
+  }
+
+  Future<void> _refreshPage() async {
+    await Future.wait([
+      _loadOrgData(),
+      _refreshStreak(),
+    ]);
+  }
+
+  Future<void> _refreshStreak() async {
+    final branchId = context.read<PreferencesStorage>().activeBranchId;
+    if (branchId == null) return;
+    if (mounted) {
+      setState(() {
+        _streakBranchId = branchId;
+        _streakFuture = _loadStreak(branchId);
+      });
+    }
+    await _streakFuture;
   }
 
   Future<Map<String, dynamic>> _loadStreak(String branchId) {
