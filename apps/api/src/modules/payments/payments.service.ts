@@ -27,6 +27,15 @@ export function calculateOutstandingBalance(entries: Array<{ amount_minor_unit: 
 export type FeeStatus =
   'PAID' | 'REQUESTED' | 'PENDING' | 'PARTIALLY_PAID' | 'EXPIRING_SOON' | 'EXPIRED';
 
+/** Operational fee directory order: act before expiry, then expired, then healthy coverage. */
+export function feeStatusPriority(status: FeeStatus, remainingDays?: number | null) {
+  if (remainingDays != null && remainingDays >= 0 && remainingDays <= 7) return 0;
+  if (status === 'EXPIRING_SOON') return 0;
+  if (remainingDays != null && remainingDays < 0) return 1;
+  if (status === 'EXPIRED') return 1;
+  return 2;
+}
+
 export function deriveFeeStatus(input: {
   hasPendingRequest: boolean;
   hasSubscription: boolean;
@@ -1204,6 +1213,24 @@ export async function listFees(
       };
     })
     .filter((card) => !query.status || card.status === query.status);
+
+  cards.sort((left, right) => {
+    const priority =
+      feeStatusPriority(left.status, left.remaining_days) -
+      feeStatusPriority(right.status, right.remaining_days);
+    if (priority !== 0) return priority;
+    if (left.status === 'EXPIRING_SOON' && right.status === 'EXPIRING_SOON') {
+      const days =
+        (left.remaining_days ?? Number.MAX_SAFE_INTEGER) -
+        (right.remaining_days ?? Number.MAX_SAFE_INTEGER);
+      if (days !== 0) return days;
+    }
+    if (left.status === 'EXPIRED' && right.status === 'EXPIRED') {
+      const days = (left.remaining_days ?? 0) - (right.remaining_days ?? 0);
+      if (days !== 0) return days;
+    }
+    return left.member.name.localeCompare(right.member.name);
+  });
 
   const skip = (query.page - 1) * query.limit;
   return {

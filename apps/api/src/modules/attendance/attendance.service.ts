@@ -1628,13 +1628,31 @@ export async function listSessionsPage(
   if (cursor) {
     const cursorSession = await prisma.attendanceSession.findFirst({
       where: { id: cursor, organization_id, branch_id },
-      select: { id: true, clock_in_at: true },
+      select: { id: true, clock_in_at: true, clock_out_at: true },
     });
     if (cursorSession) {
-      where.OR = [
-        { clock_in_at: { lt: cursorSession.clock_in_at } },
-        { clock_in_at: cursorSession.clock_in_at, id: { lt: cursorSession.id } },
-      ];
+      if (cursorSession.clock_out_at == null) {
+        // Open sessions sort before closed sessions, then newest clock-in first.
+        where.OR = [
+          {
+            clock_out_at: null,
+            clock_in_at: { lt: cursorSession.clock_in_at },
+          },
+          { clock_out_at: { not: null } },
+        ];
+      } else {
+        where.OR = [
+          {
+            clock_out_at: { not: null },
+            clock_in_at: { lt: cursorSession.clock_in_at },
+          },
+          {
+            clock_out_at: { not: null },
+            clock_in_at: cursorSession.clock_in_at,
+            id: { lt: cursorSession.id },
+          },
+        ];
+      }
     }
   }
 
@@ -1650,7 +1668,7 @@ export async function listSessionsPage(
       evidence: true,
       corrections: { orderBy: { created_at: 'asc' } },
     },
-    orderBy: [{ clock_in_at: 'desc' }, { id: 'desc' }],
+    orderBy: [{ clock_out_at: 'asc' }, { clock_in_at: 'desc' }, { id: 'desc' }],
     take: limit + 1,
   });
   const hasMore = sessions.length > limit;

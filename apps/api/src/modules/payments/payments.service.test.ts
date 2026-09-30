@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { calculateOutstandingBalance, deriveFeeStatus, getPeriod } from './payments.service';
+import {
+  calculateOutstandingBalance,
+  deriveFeeStatus,
+  feeStatusPriority,
+  getPeriod,
+} from './payments.service';
 
 describe('fee period calculation', () => {
   it('returns the current UTC month by default', () => {
@@ -78,5 +83,13 @@ describe('fee period calculation', () => {
         balanceMinorUnit: 0,
       }),
     ).toBe('PAID');
+  });
+
+  it('orders the fee directory by expiry urgency', () => {
+    expect(
+      ['PAID', 'EXPIRED', 'EXPIRING_SOON', 'PENDING'].sort(
+        (left, right) => feeStatusPriority(left as never) - feeStatusPriority(right as never),
+      ),
+    ).toEqual(['EXPIRING_SOON', 'EXPIRED', 'PAID', 'PENDING']);
   });
 });

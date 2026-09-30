@@ -24,6 +24,8 @@ import 'features/branch/controllers/payroll_repository.dart';
 import 'features/organization/controllers/organization_repository.dart';
 import 'features/attendance/controllers/attendance_repository.dart';
 import 'features/fees/controllers/fees_repository.dart';
+import 'features/holidays/controllers/holiday_repository.dart';
+import 'features/attendance/controllers/streak_repository.dart';
 
 class MainApp extends StatefulWidget {
   final SecureStorage secureStorage;
@@ -38,6 +40,8 @@ class MainApp extends StatefulWidget {
   final PayrollRepository payrollRepository;
   final AttendanceRepository attendanceRepository;
   final FeesRepository feesRepository;
+  final HolidayRepository holidayRepository;
+  final StreakRepository streakRepository;
   final JsonCacheStore cacheStore;
   final String initialRoute;
 
@@ -55,6 +59,8 @@ class MainApp extends StatefulWidget {
     required this.payrollRepository,
     required this.attendanceRepository,
     required this.feesRepository,
+    required this.holidayRepository,
+    required this.streakRepository,
     required this.cacheStore,
     required this.initialRoute,
   });
@@ -108,6 +114,8 @@ class _MainAppState extends State<MainApp> {
         RepositoryProvider.value(value: widget.payrollRepository),
         RepositoryProvider.value(value: widget.attendanceRepository),
         RepositoryProvider.value(value: widget.feesRepository),
+        RepositoryProvider.value(value: widget.holidayRepository),
+        RepositoryProvider.value(value: widget.streakRepository),
       ],
       child: MultiBlocProvider(
         providers: [

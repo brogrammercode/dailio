@@ -288,6 +288,7 @@ model Member {
   salary_structure SalaryStructure?       @relation(fields: [salary_structure_id], references: [id])
 
   attendance_sessions AttendanceSession[]
+  attendance_streaks  AttendanceStreak[]
   attendance_policies AttendancePolicy[]
   subscriptions       Subscription[]
   ledger_entries      LedgerEntry[]
@@ -335,6 +336,7 @@ model Organization {
   archived_by String?
 
   branches               Branch[]
+  holidays               Holiday[]
   organization_members   Member[]
   roles                  Role[]
   plans                  Plan[]
@@ -351,6 +353,7 @@ model Organization {
   salaryStructures       SalaryStructure[]
   payment_requests       PaymentRequest[]
   invite_tokens          InviteToken[]
+  attendanceStreaks      AttendanceStreak[]
 
   @@map("organizations")
 }
@@ -383,6 +386,7 @@ model Branch {
   attendance_sessions    AttendanceSession[]
   shifts                 Shift[]
   leave_requests         LeaveRequest[]
+  attendance_streaks     AttendanceStreak[]
   holidays               Holiday[]
   subscriptions          Subscription[]
   ledger_entries         LedgerEntry[]
@@ -674,19 +678,46 @@ model LeaveRequest {
 }
 
 model Holiday {
-  id              String   @id @default(cuid())
-  organization_id String
-  branch_id       String?
-  name            String
-  date            DateTime // local date
-  is_recurring    Boolean  @default(false)
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
+  id                 String    @id @default(cuid())
+  organization_id    String
+  branch_id          String?
+  name               String
+  // Legacy compatibility fields. New clients use dates/recurring_weekdays.
+  date               DateTime? // first explicit local date, legacy
+  end_date           DateTime? // last date for a contiguous range, legacy
+  dates              Json      @default("[]") // explicit local dates as YYYY-MM-DD strings
+  recurring_weekdays Json      @default("[]") // ISO weekdays: 1 Monday .. 7 Sunday
+  is_recurring       Boolean   @default(false)
+  idempotency_key    String?   @unique
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
 
-  branch Branch? @relation(fields: [branch_id], references: [id])
+  organization Organization @relation(fields: [organization_id], references: [id])
+  branch       Branch?      @relation(fields: [branch_id], references: [id])
 
   @@index([organization_id])
   @@map("holidays")
+}
+
+model AttendanceStreak {
+  id                   String    @id @default(cuid())
+  organization_id      String
+  branch_id            String
+  member_id            String
+  current_streak       Int       @default(0)
+  best_streak          Int       @default(0)
+  last_attendance_date DateTime? @db.Date
+  calculated_for_date  DateTime  @db.Date
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  branch       Branch       @relation(fields: [branch_id], references: [id])
+  member       Member       @relation(fields: [member_id], references: [id])
+
+  @@unique([organization_id, branch_id, member_id])
+  @@index([organization_id, branch_id, current_streak])
+  @@map("attendance_streaks")
 }
 
 // ============================================================
@@ -965,6 +996,7 @@ model Announcement {
   audience        AnnouncementAudience @default(ALL_ACTIVE_MEMBERS)
   publish_at      DateTime?
   expires_at      DateTime?
+  automation_key  String?              @unique
   created_by      String?
   updated_by      String?
   created_at      DateTime             @default(now())

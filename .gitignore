@@ -65,6 +65,7 @@ Thumbs.db
 !apps/api/prisma/migrations/20260929190000_notification_actor/migration.sql
 !apps/api/prisma/migrations/20260929195000_performance_indexes/migration.sql
 !apps/api/prisma/migrations/20260929210000_fee_query_indexes/migration.sql
+!apps/api/prisma/migrations/20260930100000_holidays_and_attendance_streaks/migration.sql
 
 # Docker volumes
 .postgres-data/

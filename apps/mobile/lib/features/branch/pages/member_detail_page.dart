@@ -11,7 +11,9 @@ import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/members_repository.dart';
+import '../../attendance/controllers/streak_repository.dart';
 import '../models/member_model.dart';
+import '../../../core/widgets/dailio_streak_card.dart';
 
 class MemberDetailPage extends StatefulWidget {
   final String membershipId;
@@ -172,6 +174,13 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
         children: [
           _profileHeader(member),
+          if (_preferences.hasPermission('ATTENDANCE_READ_ALL'))
+            DailioStreakCard(
+              future: context.read<StreakRepository>().getMemberStreak(
+                    _branchId,
+                    member.id,
+                  ),
+            ),
           const SizedBox(height: 22),
           _sectionLabel('Subscription'),
           const SizedBox(height: 8),

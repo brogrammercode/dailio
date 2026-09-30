@@ -38,6 +38,10 @@ class AppRoutes {
   static const String subscriptionPlans = '/home/branch/subscription-plans';
   static const String shiftManagement = '/home/branch/shift-management';
   static const String payrollManagement = '/home/branch/payroll-management';
+  static const String leavesHolidays = '/home/settings/leaves-holidays';
+  static const String createHoliday = '/home/settings/leaves-holidays/new';
+  static const String editHoliday =
+      '/home/settings/leaves-holidays/:holidayId/edit';
 
   // Shared
   static const String profile = '/profile';

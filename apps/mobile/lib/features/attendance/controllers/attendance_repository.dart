@@ -162,11 +162,21 @@ class AttendanceRepository {
       final map = payload as Map;
       _captureServerTime(map['server_time']);
       final data = map['data'] as List? ?? [];
+      final sessions = data
+          .map((e) => AttendanceSessionModel.fromJson(
+              Map<String, dynamic>.from(e as Map)))
+          .toList();
+      sessions.sort((left, right) {
+        final openOrder = (left.clockOutServerTime == null ? 0 : 1) -
+            (right.clockOutServerTime == null ? 0 : 1);
+        if (openOrder != 0) return openOrder;
+        final clockInOrder =
+            right.clockInServerTime.compareTo(left.clockInServerTime);
+        if (clockInOrder != 0) return clockInOrder;
+        return right.id.compareTo(left.id);
+      });
       return AttendanceSessionPage(
-        sessions: data
-            .map((e) => AttendanceSessionModel.fromJson(
-                Map<String, dynamic>.from(e as Map)))
-            .toList(),
+        sessions: sessions,
         nextCursor: (map['meta'] as Map?)?['next_cursor']?.toString(),
       );
     }

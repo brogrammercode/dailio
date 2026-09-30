@@ -52,7 +52,11 @@ import { getAttendanceMaintenanceStatus } from '../modules/attendance/attendance
 import leaveRouter from '../modules/leave/leave.routes';
 import announcementsRouter from '../modules/announcements/announcements.routes';
 import feedsRouter from '../modules/feeds/feeds.routes';
+import holidaysRouter from '../modules/holidays/holidays.routes';
+import streaksRouter from '../modules/attendance-streaks/attendance-streaks.routes';
 router.use(leaveRouter);
+router.use(holidaysRouter);
+router.use(streaksRouter);
 router.use('/organizations', announcementsRouter);
 router.use('/organizations', feedsRouter);
 router.use('/organizations', plansRouter);

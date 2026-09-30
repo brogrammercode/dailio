@@ -18,6 +18,8 @@ const scheduledAnnouncementsMock = vi.hoisted(() => vi.fn());
 const announcementExpiryMock = vi.hoisted(() => vi.fn());
 const retryMock = vi.hoisted(() => vi.fn());
 const monthlyReportsMock = vi.hoisted(() => vi.fn());
+const streaksMock = vi.hoisted(() => vi.fn());
+const birthdayMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('../../config/logger', () => ({ logger: { error: vi.fn() } }));
@@ -40,6 +42,12 @@ vi.mock('./monthly-reports.service', () => ({
     end: new Date('2026-09-01T00:00:00.000Z'),
     label: 'August 2026',
   }),
+}));
+vi.mock('../attendance-streaks/attendance-streaks.service', () => ({
+  refreshAllMemberStreaks: streaksMock,
+}));
+vi.mock('./birthday-jobs.service', () => ({
+  runBirthdayAnnouncements: birthdayMock,
 }));
 
 import { runDailyNotificationCoordinator } from './daily-jobs.service';
@@ -64,6 +72,8 @@ describe('daily notification coordinator claim and lease behavior', () => {
     announcementExpiryMock.mockResolvedValue({ expired: 0 });
     retryMock.mockResolvedValue({ scanned: 0, retried: 0 });
     monthlyReportsMock.mockResolvedValue({ branches: 0, sent: 0, skipped: 0 });
+    streaksMock.mockResolvedValue({ scanned: 0, refreshed: 0 });
+    birthdayMock.mockResolvedValue({ scanned: 0, created: 0 });
   });
 
   it('completes one claimed run after all bounded jobs finish', async () => {

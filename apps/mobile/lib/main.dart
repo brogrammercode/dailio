@@ -27,6 +27,8 @@ import 'features/branch/controllers/payroll_repository.dart';
 import 'features/organization/controllers/organization_repository.dart';
 import 'features/attendance/controllers/attendance_repository.dart';
 import 'features/fees/controllers/fees_repository.dart';
+import 'features/holidays/controllers/holiday_repository.dart';
+import 'features/attendance/controllers/streak_repository.dart';
 
 Future<bool> _restoreActiveContext(
   PreferencesStorage preferences,
@@ -116,6 +118,10 @@ void main() async {
       AttendanceRepository(apiClient: apiClient, cache: cacheStore);
   final feesRepository =
       FeesRepository(apiClient: apiClient, cache: cacheStore);
+  final holidayRepository =
+      HolidayRepository(apiClient: apiClient, cache: cacheStore);
+  final streakRepository =
+      StreakRepository(apiClient: apiClient, cache: cacheStore);
 
   String initialRoute = AppRoutes.onboarding;
 
@@ -166,6 +172,8 @@ void main() async {
       payrollRepository: payrollRepository,
       attendanceRepository: attendanceRepository,
       feesRepository: feesRepository,
+      holidayRepository: holidayRepository,
+      streakRepository: streakRepository,
       cacheStore: cacheStore,
       initialRoute: initialRoute,
     ),

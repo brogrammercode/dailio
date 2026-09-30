@@ -3,11 +3,14 @@ import { ulid } from 'ulid';
 
 import { logger } from '../../config/logger';
 import { prisma } from '../../lib/prisma';
+import { refreshAllMemberStreaks } from '../attendance-streaks/attendance-streaks.service';
 import {
   purgeExpiredAttendanceEvidence,
   reviewOpenAttendanceSessions,
 } from '../attendance/attendance.service';
 
+import { runBirthdayAnnouncements } from './birthday-jobs.service';
+import { runMonthlyMemberReports, previousMonthPeriod } from './monthly-reports.service';
 import {
   runOverdueFeeNotifications,
   runAnnouncementExpiry,
@@ -16,7 +19,6 @@ import {
   runScheduledAnnouncementPublishing,
   runSubscriptionExpiryNotifications,
 } from './scheduled-jobs.service';
-import { runMonthlyMemberReports, previousMonthPeriod } from './monthly-reports.service';
 
 const dailyCoordinatorKey = 'DAILY_NOTIFICATION_COORDINATOR';
 const leaseMinutes = 5;
@@ -118,6 +120,8 @@ async function runDailyNotificationCoordinatorInternal() {
 
   const reportPeriod = previousMonthPeriod();
   const reportClaim = await claimDailyRun('MONTHLY_MEMBER_REPORT', reportPeriod.start);
+  const streakClaim = await claimDailyRun('ATTENDANCE_STREAK_REFRESH', businessDate);
+  const birthdayClaim = await claimDailyRun('BIRTHDAY_ANNOUNCEMENTS', businessDate);
 
   try {
     // Keep maintenance database pressure bounded. These jobs are triggered by
@@ -131,6 +135,14 @@ async function runDailyNotificationCoordinatorInternal() {
     const scheduledAnnouncements = await runScheduledAnnouncementPublishing();
     const expiredAnnouncements = await runAnnouncementExpiry();
     const deliveryRetries = await runNotificationDeliveryRetries();
+    const streaks =
+      streakClaim.status === 'CLAIMED'
+        ? await refreshAllMemberStreaks()
+        : { status: streakClaim.status.toLowerCase(), scanned: 0, refreshed: 0 };
+    const birthdayAnnouncements =
+      birthdayClaim.status === 'CLAIMED'
+        ? await runBirthdayAnnouncements()
+        : { status: birthdayClaim.status.toLowerCase(), scanned: 0, created: 0 };
     const monthlyMemberReports =
       reportClaim.status === 'CLAIMED'
         ? await runMonthlyMemberReports(reportPeriod)
@@ -143,6 +155,18 @@ async function runDailyNotificationCoordinatorInternal() {
     if (reportClaim.status === 'CLAIMED' && reportClaim.run) {
       await prisma.dailyJobRun.update({
         where: { id: reportClaim.run.id },
+        data: { status: 'COMPLETED', lease_until: null, completed_at: new Date() },
+      });
+    }
+    if (streakClaim.status === 'CLAIMED' && streakClaim.run) {
+      await prisma.dailyJobRun.update({
+        where: { id: streakClaim.run.id },
+        data: { status: 'COMPLETED', lease_until: null, completed_at: new Date() },
+      });
+    }
+    if (birthdayClaim.status === 'CLAIMED' && birthdayClaim.run) {
+      await prisma.dailyJobRun.update({
+        where: { id: birthdayClaim.run.id },
         data: { status: 'COMPLETED', lease_until: null, completed_at: new Date() },
       });
     }
@@ -161,6 +185,8 @@ async function runDailyNotificationCoordinatorInternal() {
       scheduled_announcements: scheduledAnnouncements,
       expired_announcements: expiredAnnouncements,
       delivery_retries: deliveryRetries,
+      attendance_streaks: streaks,
+      birthday_announcements: birthdayAnnouncements,
       monthly_member_reports: monthlyMemberReports,
     };
   } catch (error) {
@@ -175,6 +201,14 @@ async function runDailyNotificationCoordinatorInternal() {
         where: { id: reportClaim.run.id },
         data: { status: 'FAILED', lease_until: null, last_error: safeError },
       });
+    }
+    for (const jobClaim of [streakClaim, birthdayClaim]) {
+      if (jobClaim.status === 'CLAIMED' && jobClaim.run) {
+        await prisma.dailyJobRun.update({
+          where: { id: jobClaim.run.id },
+          data: { status: 'FAILED', lease_until: null, last_error: safeError },
+        });
+      }
     }
     logger.error('Daily notification coordinator failed', { error: safeError });
     throw error;

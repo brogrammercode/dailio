@@ -41,11 +41,31 @@ class FeesRepository {
     String? status,
     void Function(List<FeeCardModel> freshCards)? onFresh,
   }) async {
-    List<FeeCardModel> parse(Map<String, dynamic> data) =>
-        ((data['data'] as List?) ?? const [])
-            .map((item) =>
-                FeeCardModel.fromJson(Map<String, dynamic>.from(item as Map)))
-            .toList();
+    List<FeeCardModel> parse(Map<String, dynamic> data) {
+      final cards = ((data['data'] as List?) ?? const [])
+          .map((item) =>
+              FeeCardModel.fromJson(Map<String, dynamic>.from(item as Map)))
+          .toList();
+      cards.sort((left, right) {
+        int priority(FeeCardModel card) {
+          final days = card.remainingDays;
+          if (days != null && days >= 0 && days <= 7) return 0;
+          if (card.status == 'EXPIRING_SOON') return 0;
+          if ((days != null && days < 0) || card.status == 'EXPIRED') return 1;
+          return 2;
+        }
+
+        final order = priority(left) - priority(right);
+        if (order != 0) return order;
+        if (left.remainingDays != null && right.remainingDays != null) {
+          final days = left.remainingDays! - right.remainingDays!;
+          if (priority(left) < 2 && days != 0) return days;
+        }
+        return left.memberName.compareTo(right.memberName);
+      });
+      return cards;
+    }
+
     final data = await _getContext(branchId, 'fees',
         query: {
           'period': period,

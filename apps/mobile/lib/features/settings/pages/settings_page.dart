@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
@@ -13,6 +14,8 @@ import '../../auth/controllers/auth_cubit.dart';
 import '../../auth/controllers/auth_state.dart';
 import '../../auth/models/user_model.dart';
 import '../../organization/controllers/organization_repository.dart';
+import '../../attendance/controllers/streak_repository.dart';
+import '../../../core/widgets/dailio_streak_card.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -65,6 +68,24 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     if (confirmed == true && mounted) {
       await context.read<AuthCubit>().signOut();
+    }
+  }
+
+  Future<void> _openFacingIssue() async {
+    final uri = Uri(
+      scheme: 'https',
+      host: 'wa.me',
+      path: '916204251844',
+      queryParameters: const {
+        'text': 'Hi Harsh, I am facing issue in ...',
+      },
+    );
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
+        mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('WhatsApp is not available on this device.')),
+      );
     }
   }
 
@@ -125,6 +146,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
                   //  Profile Card
                   _buildProfileCard(context, user, prefs),
+                  if (prefs.activeBranchId != null &&
+                      prefs.hasPermission('ATTENDANCE_READ_SELF'))
+                    DailioStreakCard(
+                      future: context.read<StreakRepository>().getMyStreak(
+                            prefs.activeBranchId!,
+                          ),
+                    ),
                   const SizedBox(height: 16),
 
                   //  Organization Card
@@ -133,7 +161,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 24),
 
                   //  Management Modules
-                  _sectionHeader('MANAGEMENT & OPERATIONS', '6 Modules'),
+                  _sectionHeader('MANAGEMENT & OPERATIONS', 'Workspace tools'),
                   const SizedBox(height: 12),
 
                   if (canReadRoles)
@@ -154,6 +182,21 @@ class _SettingsPageState extends State<SettingsPage> {
                       subtitle: 'Manage enrolled members & join requests',
                       actionLabel: 'Manage',
                       onTap: () => context.push(AppRoutes.members),
+                    ),
+
+                  if (prefs.hasPermission('LEAVE_READ_SELF') ||
+                      prefs.hasPermission('LEAVE_READ_ALL') ||
+                      prefs.hasPermission('LEAVE_MANAGE') ||
+                      prefs.hasPermission('HOLIDAY_READ') ||
+                      prefs.hasPermission('HOLIDAY_MANAGE'))
+                    _buildModuleCard(
+                      icon: Iconsax.calendar,
+                      iconColor: Colors.orange,
+                      iconBg: Colors.orange.shade50,
+                      title: 'Leaves & Holidays',
+                      subtitle: 'Branch calendar and leave requests',
+                      actionLabel: 'Open',
+                      onTap: () => context.push(AppRoutes.leavesHolidays),
                     ),
 
                   if (canManageBranches)
@@ -193,6 +236,16 @@ class _SettingsPageState extends State<SettingsPage> {
                       actionLabel: 'Manage',
                       onTap: () => context.push(AppRoutes.payrollManagement),
                     ),
+
+                  _buildModuleCard(
+                    icon: Iconsax.message_question,
+                    iconColor: AppColors.brandAccent,
+                    iconBg: AppColors.brandAccent.withValues(alpha: 0.10),
+                    title: 'Facing an issue?',
+                    subtitle: 'Talk to Harsh on WhatsApp with evidence',
+                    actionLabel: 'Contact',
+                    onTap: _openFacingIssue,
+                  ),
                 ],
               ),
             ),

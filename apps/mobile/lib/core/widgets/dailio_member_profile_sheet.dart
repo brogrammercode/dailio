@@ -9,6 +9,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../router/route_names.dart';
 import '../storage/preferences_storage.dart';
+import 'dailio_streak_card.dart';
+import '../../features/attendance/controllers/streak_repository.dart';
 
 /// The minimum member information needed by the shared profile surface.
 class DailioMemberPreview {
@@ -109,6 +111,7 @@ class _DailioMemberProfileSurface extends StatelessWidget {
                     _primaryActions(context),
                     const SizedBox(height: 20),
                     _secondaryActions(context),
+                    _streakCard(),
                   ],
                 ),
               ),
@@ -260,6 +263,20 @@ class _DailioMemberProfileSurface extends StatelessWidget {
               : null,
         ),
       ],
+    );
+  }
+
+  Widget _streakCard() {
+    final preferences = parentContext.read<PreferencesStorage>();
+    final branchId = preferences.activeBranchId;
+    final canRead = preferences.hasPermission('ATTENDANCE_READ_ALL');
+    if (branchId == null || !canRead) return const SizedBox.shrink();
+    return DailioStreakCard(
+      dark: true,
+      future: parentContext.read<StreakRepository>().getMemberStreak(
+            branchId,
+            member.memberId,
+          ),
     );
   }
 
