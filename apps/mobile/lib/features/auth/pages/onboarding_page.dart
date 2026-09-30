@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
@@ -41,334 +44,251 @@ class _OnboardingPageState extends State<OnboardingPage> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _isRouting = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Could not finish sign-in. Please try again.'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not finish sign-in. Please try again.'),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return BlocListener<AuthCubit, AuthState>(
-      listener: (context, state) {
-        if (state is AuthAuthenticated) _handleAuthenticated();
-      },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxHeight < 720;
-              return BlocBuilder<AuthCubit, AuthState>(
-                builder: (context, state) {
-                  final loading = state is AuthLoading || _isRouting;
-                  final error = state is AuthError ? state.message : null;
-
-                  return Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      18,
-                      compact ? 14 : 22,
-                      18,
-                      20,
-                    ),
-                    child: Column(
-                      children: [
-                        _LoginHero(compact: compact),
-                        SizedBox(height: compact ? 22 : 28),
-                        Text(
-                          'Start with Dailio.',
-                          style: textTheme.headlineSmall?.copyWith(
-                            color: const Color(0xFF17120E),
-                            fontSize: compact ? 24 : 27,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.8,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          'Your people, plans and progress — in sync.',
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: const Color(0xFF817A75),
-                            fontSize: 13,
-                            height: 1.35,
-                          ),
-                        ),
-                        SizedBox(height: compact ? 18 : 22),
-                        Spacer(),
-                        if (error != null) ...[
-                          _LoginError(message: error),
-                          const SizedBox(height: 12),
-                        ],
-                        _GoogleSignInButton(
-                          loading: loading,
-                          onPressed: () =>
-                              context.read<AuthCubit>().signInWithGoogle(),
-                        ),
-                        const SizedBox(height: 13),
-                        const _TrustRow(),
-                        const SizedBox(height: 18),
-                        const _LegalCopy(),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: _LoginBackground.color,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: BlocListener<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AuthAuthenticated) _handleAuthenticated();
+        },
+        child: const _LoginBackground(child: _LoginContent()),
       ),
     );
   }
 }
 
-class _LoginHero extends StatelessWidget {
-  const _LoginHero({required this.compact});
+class _LoginContent extends StatelessWidget {
+  const _LoginContent();
 
-  final bool compact;
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final height = constraints.maxHeight;
+          final horizontalPadding = (width * .08).clamp(24.0, 48.0);
+          final logoWidth = (width * .74).clamp(240.0, 320.0);
+          final headlineSize = (width * .098).clamp(31.0, 48.0);
+          final compact = height < 700;
+
+          return BlocBuilder<AuthCubit, AuthState>(
+            builder: (context, state) {
+              final loading = state is AuthLoading ||
+                  context
+                          .findAncestorStateOfType<_OnboardingPageState>()
+                          ?._isRouting ==
+                      true;
+              final error = state is AuthError ? state.message : null;
+
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  compact ? 22 : height * .085,
+                  horizontalPadding,
+                  compact ? 24 : 34,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: math.max(0, height - (compact ? 46 : 119)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _DailioLogo(width: logoWidth),
+                      SizedBox(height: compact ? 25 : height * .035),
+                      Text(
+                        'SMART\nATTENDANCE\nIS HERE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: headlineSize,
+                          height: .99,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -1.3,
+                        ),
+                      ),
+                      SizedBox(height: compact ? 14 : 22),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 360),
+                        child: Text(
+                          'Attendance, memberships,\nschedules, and operations\nin one clean platform.',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: .82),
+                            fontSize: (width * .048).clamp(16.0, 22.0),
+                            height: 1.3,
+                            fontWeight: FontWeight.w400,
+                            letterSpacing: -.25,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height:
+                            compact ? 105 : (height * .275).clamp(145.0, 570.0),
+                      ),
+                      if (error != null) ...[
+                        _LoginError(message: error),
+                        const SizedBox(height: 14),
+                      ],
+                      _GoogleSignInButton(
+                        loading: loading,
+                        onPressed: () =>
+                            context.read<AuthCubit>().signInWithGoogle(),
+                      ),
+                      const SizedBox(height: 26),
+                      const _LegalCopy(),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _LoginBackground extends StatelessWidget {
+  const _LoginBackground({required this.child});
+
+  static const color = Color(0xFF080C11);
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: color,
+      body: CustomPaint(
+        painter: _LoginBackgroundPainter(),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _LoginBackgroundPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = _LoginBackground.color,
+    );
+
+    _drawGlow(
+      canvas,
+      size,
+      center: Offset(size.width * 1.08, size.height * .03),
+      radius: size.width * 1.05,
+      strength: .95,
+    );
+    _drawGlow(
+      canvas,
+      size,
+      center: Offset(size.width * 1.09, size.height * .97),
+      radius: size.width * 1.1,
+      strength: .9,
+    );
+
+    _drawArcs(
+      canvas,
+      size,
+      center: Offset(size.width * 1.08, size.height * .02),
+      startRadius: size.width * .55,
+      count: 5,
+      step: size.width * .15,
+    );
+    _drawArcs(
+      canvas,
+      size,
+      center: Offset(size.width * 1.08, size.height * .98),
+      startRadius: size.width * .56,
+      count: 6,
+      step: size.width * .15,
+    );
+  }
+
+  void _drawGlow(
+    Canvas canvas,
+    Size size, {
+    required Offset center,
+    required double radius,
+    required double strength,
+  }) {
+    final paint = Paint()
+      ..shader = RadialGradient(
+        center: Alignment(
+          (center.dx / size.width) * 2 - 1,
+          (center.dy / size.height) * 2 - 1,
+        ),
+        radius: radius / math.max(size.width, size.height),
+        colors: [
+          AppColors.brandAccent.withValues(alpha: .74 * strength),
+          AppColors.brandAccent.withValues(alpha: .25 * strength),
+          Colors.transparent,
+        ],
+        stops: const [.02, .28, .8],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, paint);
+  }
+
+  void _drawArcs(
+    Canvas canvas,
+    Size size, {
+    required Offset center,
+    required double startRadius,
+    required int count,
+    required double step,
+  }) {
+    for (var index = 0; index < count; index++) {
+      final radius = startRadius + (index * step);
+      final opacity = .52 - (index * .065);
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = index == 0 ? 1.35 : 1
+        ..color =
+            AppColors.brandAccent.withValues(alpha: opacity.clamp(.12, .52));
+      final rect = Rect.fromCircle(center: center, radius: radius);
+      canvas.drawArc(rect, math.pi * .48, math.pi * .52, false, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _DailioLogo extends StatelessWidget {
+  const _DailioLogo({required this.width});
+
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: compact ? 264 : 306,
+      width: width,
+      height: width * .34,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: DecoratedBox(
-          decoration: const BoxDecoration(color: Color(0xFF1A1715)),
-          child: Stack(
-            clipBehavior: Clip.hardEdge,
-            children: [
-              Positioned(
-                top: -112,
-                right: -72,
-                child: _GlowCircle(
-                  size: 250,
-                  fill: AppColors.brandAccent.withValues(alpha: .22),
-                  stroke: AppColors.brandAccent.withValues(alpha: .35),
-                ),
-              ),
-              Positioned(
-                right: -24,
-                bottom: -110,
-                child: _GlowCircle(
-                  size: 210,
-                  fill: Colors.transparent,
-                  stroke: Colors.white.withValues(alpha: .08),
-                ),
-              ),
-              Positioned(
-                left: -108,
-                bottom: -142,
-                child: _GlowCircle(
-                  size: 270,
-                  fill: Colors.white.withValues(alpha: .025),
-                  stroke: Colors.white.withValues(alpha: .07),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 17, 18, 17),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _HeroBrandRow(),
-                    const Spacer(),
-                    Text(
-                      'Run the day.\nKeep it simple.',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: compact ? 29 : 33,
-                        height: 1.02,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'A calmer way to manage everyday operations.',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .64),
-                        fontSize: 12,
-                        height: 1.35,
-                      ),
-                    ),
-                    SizedBox(height: compact ? 15 : 20),
-                    const _WorkspacePreview(),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        borderRadius: BorderRadius.circular(10),
+        child: Image.asset(
+          'assets/logo.png',
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
         ),
-      ),
-    );
-  }
-}
-
-class _HeroBrandRow extends StatelessWidget {
-  const _HeroBrandRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 39,
-          height: 39,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: .12)),
-          ),
-          child: Image.asset('assets/logo.png', fit: BoxFit.cover),
-        ),
-        const SizedBox(width: 10),
-        const Text(
-          'Dailio',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -.3,
-          ),
-        ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .07),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withValues(alpha: .1)),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Iconsax.activity, color: Color(0xFFFFA15C), size: 13),
-              SizedBox(width: 5),
-              Text(
-                'IN SYNC',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: .8,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _WorkspacePreview extends StatelessWidget {
-  const _WorkspacePreview();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: const [
-        Expanded(
-          child: _PreviewTile(
-            icon: Iconsax.activity,
-            label: 'Attendance',
-            value: 'Live',
-          ),
-        ),
-        SizedBox(width: 8),
-        Expanded(
-          child: _PreviewTile(
-            icon: Iconsax.people,
-            label: 'Members',
-            value: 'Together',
-          ),
-        ),
-        SizedBox(width: 8),
-        Expanded(
-          child: _PreviewTile(
-            icon: Iconsax.wallet_3,
-            label: 'Payments',
-            value: 'Clear',
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PreviewTile extends StatelessWidget {
-  const _PreviewTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(9, 9, 6, 9),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .075),
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: Colors.white.withValues(alpha: .1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: const Color(0xFFFFA15C), size: 15),
-          const SizedBox(height: 9),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: .56),
-              fontSize: 9,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GlowCircle extends StatelessWidget {
-  const _GlowCircle({
-    required this.size,
-    required this.fill,
-    required this.stroke,
-  });
-
-  final double size;
-  final Color fill;
-  final Color stroke;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: fill,
-        shape: BoxShape.circle,
-        border: Border.all(color: stroke),
       ),
     );
   }
@@ -387,40 +307,38 @@ class _GoogleSignInButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 54,
+      height: 64,
       child: Material(
-        color: const Color(0xFF191512),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(34),
         child: InkWell(
           onTap: loading ? null : onPressed,
-          borderRadius: BorderRadius.circular(16),
-          splashColor: AppColors.brandAccent.withValues(alpha: .2),
+          borderRadius: BorderRadius.circular(34),
+          splashColor: AppColors.brandAccent.withValues(alpha: .12),
           child: Center(
             child: loading
                 ? const SizedBox(
-                    width: 20,
-                    height: 20,
+                    width: 22,
+                    height: 22,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2.2,
-                      color: Colors.white,
+                      strokeWidth: 2.4,
+                      color: Color(0xFF11151B),
                     ),
                   )
                 : const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _GoogleMark(),
-                      SizedBox(width: 11),
+                      SizedBox(width: 16),
                       Text(
                         'Continue with Google',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
+                          color: Color(0xFF11151B),
+                          fontSize: 17,
                           fontWeight: FontWeight.w700,
+                          letterSpacing: -.2,
                         ),
                       ),
-                      SizedBox(width: 10),
-                      Icon(Iconsax.arrow_right_3,
-                          color: Color(0xFFFFA15C), size: 17),
                     ],
                   ),
           ),
@@ -435,44 +353,26 @@ class _GoogleMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 25,
-      height: 25,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-      ),
+    return ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: (bounds) => const LinearGradient(
+        colors: [
+          Color(0xFF4285F4),
+          Color(0xFF34A853),
+          Color(0xFFFBBC05),
+          Color(0xFFEA4335),
+          Color(0xFF4285F4),
+        ],
+      ).createShader(bounds),
       child: const Text(
         'G',
         style: TextStyle(
-          color: Color(0xFF4285F4),
-          fontSize: 16,
+          color: Colors.white,
+          fontSize: 28,
           fontWeight: FontWeight.w800,
+          height: 1,
         ),
       ),
-    );
-  }
-}
-
-class _TrustRow extends StatelessWidget {
-  const _TrustRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(Iconsax.shield_tick, size: 15, color: AppColors.brandAccent),
-        const SizedBox(width: 6),
-        Text(
-          'Secure sign-in · no password to remember',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF8B8580),
-                fontSize: 11,
-              ),
-        ),
-      ],
     );
   }
 }
@@ -485,22 +385,25 @@ class _LoginError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF2F0),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFD7D2)),
+        color: const Color(0xFF3A1518).withValues(alpha: .9),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFFFF807A).withValues(alpha: .35),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Iconsax.danger, color: Color(0xFFB3261E), size: 17),
-          const SizedBox(width: 8),
+          const Icon(Iconsax.danger, color: Color(0xFFFFA39D), size: 18),
+          const SizedBox(width: 9),
           Expanded(
             child: Text(
               message,
               style: const TextStyle(
-                color: Color(0xFF8D2D27),
+                color: Color(0xFFFFD8D5),
                 fontSize: 12,
                 height: 1.3,
               ),
@@ -517,34 +420,42 @@ class _LegalCopy extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(
-        text: 'By continuing, you agree to Dailio’s ',
-        style: const TextStyle(
-          color: Color(0xFF9B9590),
-          fontSize: 10,
-          height: 1.35,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 1),
+          child: Icon(
+            Iconsax.tick_square,
+            color: Colors.white,
+            size: 22,
+          ),
         ),
-        children: const [
-          TextSpan(
-            text: 'Terms of Service',
-            style: TextStyle(
-              color: AppColors.brandDark,
-              fontWeight: FontWeight.w600,
+        const SizedBox(width: 13),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              text: 'By continuing, you agree to our ',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .88),
+                fontSize: 14,
+                height: 1.45,
+              ),
+              children: const [
+                TextSpan(
+                  text: 'Privacy Policy',
+                  style: TextStyle(decoration: TextDecoration.underline),
+                ),
+                TextSpan(text: ' and '),
+                TextSpan(
+                  text: 'Terms of Service.',
+                  style: TextStyle(decoration: TextDecoration.underline),
+                ),
+              ],
             ),
           ),
-          TextSpan(text: ' and '),
-          TextSpan(
-            text: 'Privacy Policy',
-            style: TextStyle(
-              color: AppColors.brandDark,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          TextSpan(text: '.'),
-        ],
-      ),
-      textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 }

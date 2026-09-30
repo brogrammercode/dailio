@@ -174,7 +174,7 @@ These rules apply to all Stitch generations and implementation unless a later de
 
 ### 4.1 Visual language
 
-- **Light theme only** for the current product.
+- **Light theme only** for the current product screens, with the approved dark branded authentication entry screen as the sole visual exception.
 - Use the **canonical supplied app logo only** wherever a logo is required. Do not substitute, redraw, recolor arbitrarily, or invent another logo.
 - Derive accent/theme direction from the canonical logo while keeping contrast and accessibility intact.
 - Font: **Space Grotesk** throughout the product UI.
@@ -309,10 +309,11 @@ flowchart LR
 
 **Layout/content:**
 
-- Canonical logo in a restrained placement.
-- Themed illustration/graphics occupy most of the screen.
+- Full-screen dark branded surface with warm orange radial light and fine arc details.
+- Canonical Dailio logo and the headline `SMART ATTENDANCE IS HERE` are the primary hero content.
+- Supporting copy explains attendance, memberships, schedules, and operations in one platform.
 - Exactly one main authentication action: **Continue with Google**.
-- Minimal legal/support copy if required.
+- Minimal legal consent copy below the authentication action.
 - No email/password form in the current release.
 
 **Actions:**
@@ -2351,6 +2352,7 @@ A feature is complete only when all applicable items are true:
 | 2026-09-27 | Self Attendance removes the redundant app-bar subtitle; its Attendance Record period strip is intentionally centered, while its Today view uses a large branch-local time, concentric direct-punch/QR action control, accurate Check in/Check out/Total hrs metrics, compact policy parameters, and a live timeline for an open session. | Makes personal attendance more glanceable without changing evidence collection, server confirmation, or self-scope rules. |
 | 2026-09-29 | Announcements use validated rich JSON content, permanent durable reactions, threaded soft-deletable comments, authenticated private media, and a first-position mobile feed with notification deep links. | Provides the approved simple Instagram-like announcement experience without introducing a separate social service or unscoped public media. |
 | 2026-09-29 | Feeds are private participant-scoped tabs inside Announcements. Feed managers create/disband/manage participants; participant posting is configurable; post timeouts hide expired posts; report thresholds hide posts for moderation; read receipts, reactions, threaded comments/replies, notifications, and JSON stale-while-refresh cache are included. | Adds focused team communication without a separate bottom-nav destination or cross-tenant audience. |
+| 2026-09-30 | The authentication entry screen uses a dark Dailio-branded hero with warm orange light arcs, `SMART ATTENDANCE IS HERE` messaging, a white Google sign-in pill, and compact legal consent copy. | Approved visual direction for the login screen; the rest of the product remains light-theme. |
 
 ---
 
