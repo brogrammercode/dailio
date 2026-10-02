@@ -20,6 +20,8 @@ export type AttendancePolicy = {
   punch_required?: boolean;
   selfie_on_clock_in?: boolean;
   selfie_on_clock_out?: boolean;
+  qr_scan_on_clock_in?: boolean;
+  qr_scan_on_clock_out?: boolean;
   location_on_clock_in?: boolean;
   location_on_clock_out?: boolean;
   geofence_enabled?: boolean;

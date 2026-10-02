@@ -35,10 +35,21 @@ export function StateCard({
 }
 
 export function LoadingCard({ label = "Loading…" }: { label?: string }) {
+  return <MinimalLoading label={label} />;
+}
+
+export function MinimalLoading({ label = "Loading…" }: { label?: string }) {
   return (
-    <StateCard
-      title={label}
-      message="Please wait while Dailio confirms the latest state."
-    />
+    <div
+      aria-label={label}
+      aria-live="polite"
+      className="flex min-h-[58vh] items-center justify-center"
+      role="status"
+    >
+      <div className="text-center">
+        <span className="loading-spinner" />
+        <p className="mt-4 text-sm text-slate-500">{label}</p>
+      </div>
+    </div>
   );
 }

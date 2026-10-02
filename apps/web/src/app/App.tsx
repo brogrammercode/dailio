@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppShell } from "../components/layout/AppShell";
 import { LoadingCard, StateCard } from "../components/feedback/StateCard";
@@ -99,77 +99,81 @@ export function App() {
       </div>
     );
   if (!user) return <AuthPage onAuthenticated={setUser} />;
+  const context = getContext();
+  const authenticatedShell = (
+    children: ReactNode,
+    active: "attendance" | "fees" = "attendance",
+  ) => (
+    <AppShell
+      user={user}
+      context={context}
+      active={active}
+      onBack={() =>
+        window.history.length > 1 ? navigate(-1) : navigate("/home/attendance")
+      }
+      onNavigate={(route) => navigate(`/home/${route}`)}
+      onSignOut={() => void handleSignOut()}
+    >
+      {children}
+    </AppShell>
+  );
   if (inviteLoading)
-    return (
-      <div className="page flex items-center justify-center px-5">
-        <div className="shell">
-          <LoadingCard label="Checking QR code" />
-        </div>
-      </div>
-    );
+    return authenticatedShell(<LoadingCard label="Checking QR code" />);
   if (inviteError)
-    return (
-      <div className="page flex items-center justify-center px-5">
-        <div className="shell">
-          <StateCard
-            title="QR code unavailable"
-            message={inviteError}
-            tone="error"
-            action={
-              <button
-                className="primary-button w-full"
-                onClick={() => {
-                  setInviteError(null);
-                  navigate("/home/attendance");
-                }}
-              >
-                Go to Dailio
-              </button>
-            }
-          />
-        </div>
-      </div>
+    return authenticatedShell(
+      <StateCard
+        title="QR code unavailable"
+        message={inviteError}
+        tone="error"
+        action={
+          <button
+            className="primary-button w-full"
+            onClick={() => {
+              setInviteError(null);
+              navigate("/home/attendance");
+            }}
+            type="button"
+          >
+            Go to Dailio
+          </button>
+        }
+      />,
     );
   if (result)
-    return (
-      <div className="page flex items-center justify-center px-5">
-        <div className="shell">
-          <StateCard
-            title={result.title}
-            message={result.message}
-            tone={result.tone}
-            action={
-              <button
-                className="primary-button w-full"
-                onClick={() => {
-                  setResult(null);
-                  navigate("/home/fees");
-                }}
-              >
-                Open member home
-              </button>
-            }
-          />
-        </div>
-      </div>
+    return authenticatedShell(
+      <StateCard
+        title={result.title}
+        message={result.message}
+        tone={result.tone}
+        action={
+          <button
+            className="primary-button w-full"
+            onClick={() => {
+              setResult(null);
+              navigate("/home/fees");
+            }}
+            type="button"
+          >
+            Open member home
+          </button>
+        }
+      />,
+      "fees",
     );
 
   if (inviteState) {
     const { token, invite } = inviteState;
     if (invite.purpose === "PLAN_PURCHASE")
-      return (
-        <div className="page">
-          <div className="shell px-5 py-6">
-            <PurchasePage
-              token={token}
-              invite={invite}
-              onDone={handlePaymentDone}
-            />
-          </div>
-        </div>
+      return authenticatedShell(
+        <PurchasePage
+          token={token}
+          invite={invite}
+          onDone={handlePaymentDone}
+        />,
+        "fees",
       );
     if (invite.joinability === "JOINABLE")
-      return (
+      return authenticatedShell(
         <JoinRequestPage
           invite={invite}
           token={token}
@@ -181,67 +185,51 @@ export function App() {
               tone: "pending",
             })
           }
-        />
+        />,
       );
     if (invite.joinability === "ALREADY_PENDING")
-      return (
-        <div className="page flex items-center justify-center px-5">
-          <div className="shell">
-            <StateCard
-              title="Request pending"
-              message={`Your request to join ${invite.branch.name} is waiting for approval.`}
-              tone="pending"
-              action={
-                <button
-                  className="primary-button w-full"
-                  onClick={() => {
-                    setInviteState(null);
-                    navigate("/home/attendance");
-                  }}
-                >
-                  Continue
-                </button>
-              }
-            />
-          </div>
-        </div>
+      return authenticatedShell(
+        <StateCard
+          title="Request pending"
+          message={`Your request to join ${invite.branch.name} is waiting for approval.`}
+          tone="pending"
+          action={
+            <button
+              className="primary-button w-full"
+              onClick={() => {
+                setInviteState(null);
+                navigate("/home/attendance");
+              }}
+              type="button"
+            >
+              Continue
+            </button>
+          }
+        />,
       );
     if (invite.joinability === "MEMBERSHIP_INACTIVE")
-      return (
-        <div className="page flex items-center justify-center px-5">
-          <div className="shell">
-            <StateCard
-              title="Membership unavailable"
-              message="This membership is not active, so Dailio cannot perform branch operations."
-              tone="error"
-            />
-          </div>
-        </div>
+      return authenticatedShell(
+        <StateCard
+          title="Membership unavailable"
+          message="This membership is not active, so Dailio cannot perform branch operations."
+          tone="error"
+        />,
       );
-    return (
-      <div className="page">
-        <div className="shell px-5 py-6">
-          <QrAttendancePage
-            token={token}
-            invite={invite}
-            onDone={handleAttendanceDone}
-          />
-        </div>
-      </div>
+    return authenticatedShell(
+      <QrAttendancePage
+        token={token}
+        invite={invite}
+        onDone={handleAttendanceDone}
+      />,
     );
   }
 
-  const context = getContext();
   if (!context)
-    return (
-      <div className="page flex items-center justify-center px-5">
-        <div className="shell">
-          <StateCard
-            title="Scan a Dailio QR code"
-            message="Use the branch gate QR for attendance or a plan QR to start a subscription request."
-          />
-        </div>
-      </div>
+    return authenticatedShell(
+      <StateCard
+        title="Scan a Dailio QR code"
+        message="Use the branch gate QR for attendance or a plan QR to start a subscription request."
+      />,
     );
   const active = location.pathname.includes("fees") ? "fees" : "attendance";
   const content =
@@ -259,17 +247,7 @@ export function App() {
     ) : (
       <MemberAttendancePage />
     );
-  return (
-    <AppShell
-      user={user}
-      context={context}
-      active={active}
-      onNavigate={(route) => navigate(`/home/${route}`)}
-      onSignOut={() => void handleSignOut()}
-    >
-      {content}
-    </AppShell>
-  );
+  return authenticatedShell(content, active);
 }
 
 function JoinRequestPage({

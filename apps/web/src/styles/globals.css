@@ -51,10 +51,173 @@ button:disabled {
   .secondary-button {
     @apply inline-flex min-h-12 items-center justify-center rounded-lg border border-line bg-white px-5 py-3 font-semibold text-ink transition hover:border-brand hover:text-brand;
   }
+  .danger-button {
+    @apply inline-flex min-h-12 items-center justify-center rounded-lg bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700;
+  }
   .field {
     @apply min-h-12 w-full rounded-lg border border-line bg-white px-4 py-3 text-ink placeholder:text-slate-400;
   }
   .section-title {
     @apply text-sm font-semibold uppercase tracking-[.12em] text-slate-500;
   }
+}
+
+.app-bar {
+  @apply sticky top-0 z-20 flex min-h-[72px] items-center border-b border-line bg-canvas/95 px-5 backdrop-blur;
+}
+
+.icon-button {
+  @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink transition hover:bg-white hover:text-brand;
+}
+
+.app-menu {
+  @apply absolute right-0 top-12 z-30 w-56 overflow-hidden rounded-xl border border-line bg-white py-1 shadow-soft;
+}
+
+.app-menu-item {
+  @apply flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-ink transition hover:bg-brand-soft;
+}
+
+.confirm-backdrop {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-5;
+}
+
+.confirm-dialog {
+  @apply w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl;
+}
+
+.loading-spinner {
+  @apply inline-block h-7 w-7 animate-spin rounded-full border-2 border-brand/20 border-t-brand;
+}
+
+.auth-page {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: #080c10;
+}
+
+.auth-page::before,
+.auth-page::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  border: 1px solid rgba(180, 83, 9, 0.58);
+  border-radius: 50%;
+  transform: rotate(16deg);
+}
+
+.auth-page::before {
+  top: -22%;
+  right: -54%;
+  width: 138%;
+  height: 140%;
+  box-shadow:
+    -32px 0 0 -31px rgba(180, 83, 9, 0.58),
+    -64px 0 0 -63px rgba(180, 83, 9, 0.52),
+    -96px 0 0 -95px rgba(180, 83, 9, 0.46),
+    -128px 0 0 -127px rgba(180, 83, 9, 0.4),
+    -160px 0 0 -159px rgba(180, 83, 9, 0.34);
+}
+
+.auth-page::after {
+  bottom: -55%;
+  left: -65%;
+  width: 122%;
+  height: 105%;
+  opacity: 0.45;
+}
+
+.auth-content {
+  position: relative;
+  z-index: 1;
+}
+
+.google-button-shell {
+  @apply min-h-[56px] overflow-hidden rounded-full bg-white px-2 py-2 shadow-xl;
+}
+
+.google-button-host {
+  @apply flex min-h-10 items-center justify-center overflow-hidden rounded-full;
+}
+
+.attendance-page {
+  @apply pb-4;
+}
+
+.attendance-tabs {
+  @apply mx-auto flex max-w-[330px] border-b border-line;
+}
+
+.attendance-tab {
+  @apply relative flex-1 px-3 py-3 text-sm text-slate-500 transition;
+}
+
+.attendance-tab.active {
+  @apply font-semibold text-brand;
+}
+
+.attendance-tab.active::after {
+  @apply absolute bottom-[-1px] left-1/2 h-0.5 w-20 -translate-x-1/2 bg-brand content-[''];
+}
+
+.attendance-time {
+  @apply text-5xl font-normal tracking-[-0.06em] text-ink;
+}
+
+.attendance-action-ring {
+  @apply relative flex h-64 w-64 items-center justify-center;
+}
+
+.attendance-ring {
+  @apply absolute rounded-full border border-[#eee7df];
+}
+
+.ring-one {
+  @apply inset-0;
+}
+
+.ring-two {
+  @apply inset-4;
+}
+
+.ring-three {
+  @apply inset-8;
+}
+
+.ring-four {
+  @apply inset-12;
+}
+
+.attendance-action-core {
+  @apply relative z-10 flex h-32 w-32 flex-col items-center justify-center rounded-full bg-white text-center shadow-[0_7px_22px_rgba(36,31,27,0.08)];
+}
+
+.attendance-panel {
+  @apply rounded-2xl border border-[#e8e4df] bg-white p-4;
+}
+
+.status-badge {
+  @apply rounded-lg bg-brand-soft px-2.5 py-1 text-[10px] font-semibold tracking-wide text-brand;
+}
+
+.timeline {
+  @apply relative space-y-5;
+}
+
+.timeline::before {
+  @apply absolute bottom-4 left-4 top-4 w-px bg-[#eadfd5] content-[''];
+}
+
+.timeline-row {
+  @apply relative z-10 flex items-center gap-3 text-sm;
+}
+
+.timeline-dot {
+  @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand;
+}
+
+.attendance-record-row {
+  @apply flex items-center justify-between rounded-xl border border-line bg-white p-4;
 }

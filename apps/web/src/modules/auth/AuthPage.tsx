@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { signInWithGoogle } from "./auth.api";
 import { StateCard } from "../../components/feedback/StateCard";
 import { safeMessage } from "../../lib/errors";
 import type { User } from "../../types/domain";
+import { signInWithGoogle } from "./auth.api";
 
 let googleScriptPromise: Promise<void> | null = null;
 
@@ -92,7 +92,6 @@ export function AuthPage({
     return () => {
       cancelled = true;
     };
-    // handleCredential is stable for this screen instance.
   }, [clientId]);
 
   async function handleCredential(idToken: string) {
@@ -108,66 +107,76 @@ export function AuthPage({
   }
 
   return (
-    <div className="page flex min-h-screen items-center justify-center bg-brand-dark px-5 py-10">
-      <div className="w-full max-w-[420px] rounded-3xl bg-white p-7 shadow-2xl">
-        <div className="mb-8">
-          <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand text-xl font-bold text-white">
-            D
-          </div>
-          <p className="text-xs font-bold uppercase tracking-[.18em] text-brand">
-            Dailio
-          </p>
-          <h1 className="mt-3 text-4xl font-semibold leading-tight">
-            Smart attendance is here.
-          </h1>
-          <p className="mt-4 text-sm leading-6 text-slate-600">
-            Use the same member experience from your phone browser. Scan a gym
-            QR, sign in once, and continue safely.
-          </p>
-        </div>
-        <div className="space-y-4">
-          <div
-            ref={buttonRef}
-            className="flex min-h-12 justify-center"
-            aria-label="Google sign-in"
+    <div className="auth-page min-h-screen text-white">
+      <div className="auth-content mx-auto flex min-h-screen w-full max-w-[520px] flex-col px-6 py-7">
+        <div className="rounded-[28px] bg-[#242424] shadow-2xl">
+          <img
+            alt="Dailio"
+            className="h-36 w-full rounded-[28px] object-cover"
+            src="/logo.png"
           />
-          <div className="space-y-2">
-            {!clientId && (
-              <p className="text-center text-sm text-slate-500">
-                Google sign-in is not configured for this environment.
-              </p>
-            )}
-            {clientId && googleLoading && (
-              <p className="text-center text-sm text-slate-500">
-                Loading Google sign-in…
-              </p>
-            )}
-            {googleUnavailable && (
-              <div className="space-y-2 text-center">
-                <p className="text-sm text-red-600">
-                  Google sign-in could not load. Check your connection and
-                  refresh this page.
-                </p>
-                <button
-                  className="secondary-button px-4 py-2 text-sm"
-                  onClick={() => window.location.reload()}
-                >
-                  Try again
-                </button>
-              </div>
-            )}
-            {loading && (
-              <p className="text-sm text-slate-500">Signing you in…</p>
-            )}
-          </div>
-          {error && (
-            <StateCard title="Sign-in failed" message={error} tone="error" />
-          )}
         </div>
-        <p className="mt-7 text-center text-xs leading-5 text-slate-500">
-          By continuing, you agree to use Dailio only for your organization’s
-          member services.
-        </p>
+
+        <section className="mt-12">
+          <h1 className="max-w-[390px] text-5xl font-semibold uppercase leading-[0.98] tracking-[-0.055em] sm:text-6xl">
+            Smart attendance is here
+          </h1>
+          <p className="mt-8 max-w-[390px] text-xl leading-[1.45] text-white/75 sm:text-2xl">
+            Attendance, memberships, schedules, and operations in one clean
+            platform.
+          </p>
+        </section>
+
+        <section className="mt-auto pt-16">
+          <div className="google-button-shell">
+            <div
+              ref={buttonRef}
+              aria-label="Continue with Google"
+              className="google-button-host"
+            />
+          </div>
+          <div className="mt-8 flex items-start gap-4 text-base leading-6 text-white/75">
+            <span
+              aria-hidden="true"
+              className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/80 text-white"
+            >
+              ✓
+            </span>
+            <p>
+              By continuing, you agree to our Privacy Policy and Terms of
+              Service.
+            </p>
+          </div>
+          {clientId && googleLoading && (
+            <p className="mt-4 text-center text-sm text-white/60">
+              Loading Google sign-in…
+            </p>
+          )}
+          {googleUnavailable && (
+            <div className="mt-4 space-y-2 text-center">
+              <p className="text-sm text-red-200">
+                Google sign-in could not load. Check the connection and refresh.
+              </p>
+              <button
+                className="rounded-full border border-white/40 px-5 py-2 text-sm font-semibold text-white"
+                onClick={() => window.location.reload()}
+                type="button"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+          {loading && (
+            <p className="mt-4 text-center text-sm text-white/60">
+              Signing you in…
+            </p>
+          )}
+          {error && (
+            <div className="mt-4 text-slate-900">
+              <StateCard title="Sign-in failed" message={error} tone="error" />
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
