@@ -3,6 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
 import { ulid } from 'ulid';
 
+import { env } from '../../config/env';
 import { ConflictError, ForbiddenError, NotFoundError, UnprocessableError } from '../../lib/errors';
 import { prisma } from '../../lib/prisma';
 import * as attendanceService from '../attendance/attendance.service';
@@ -13,8 +14,6 @@ import type {
   CreateSubscriptionDraftInput,
   JoinInviteRequestInput,
 } from './invites.schema';
-
-const INVITE_PREFIX = 'dailio://invite?token=';
 
 const inviteTransactionOptions = {
   maxWait: 10_000,
@@ -30,7 +29,8 @@ export function hashInviteToken(token: string) {
 }
 
 function qrPayload(token: string) {
-  return `${INVITE_PREFIX}${encodeURIComponent(token)}`;
+  const base = env.WEB_APP_BASE_URL.replace(/\/$/, '');
+  return `${base}/invite#token=${encodeURIComponent(token)}`;
 }
 
 type InviteResponseInput = {

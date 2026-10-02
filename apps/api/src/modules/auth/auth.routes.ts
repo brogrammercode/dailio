@@ -3,12 +3,23 @@ import { type Router, Router as ExpressRouter } from 'express';
 import { authenticate } from '../../middleware/auth';
 import { authRateLimiter } from '../../middleware/rateLimiter';
 
-import { googleSignIn, logout, me, refreshToken } from './auth.controller';
+import {
+  browserGoogleSignIn,
+  browserLogout,
+  browserRefreshToken,
+  googleSignIn,
+  logout,
+  me,
+  refreshToken,
+} from './auth.controller';
 
 const router: Router = ExpressRouter();
 
 router.post('/google', authRateLimiter, googleSignIn);
 router.post('/refresh', authRateLimiter, refreshToken);
+router.post('/browser/google', authRateLimiter, browserGoogleSignIn);
+router.post('/browser/refresh', authRateLimiter, browserRefreshToken);
+router.post('/browser/logout', browserLogout);
 router.post('/logout', authenticate, logout);
 router.get('/me', authenticate, me);
 

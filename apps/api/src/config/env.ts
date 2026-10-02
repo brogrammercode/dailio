@@ -26,6 +26,8 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().default(100),
   CORS_ORIGIN: z.string().default('*'),
   API_BASE_URL: z.string().default('http://localhost:3000'),
+  WEB_APP_BASE_URL: z.string().url().default('http://localhost:5173'),
+  WEB_AUTH_COOKIE_NAME: z.string().min(1).default('dailio_web_refresh'),
   ATTENDANCE_EVIDENCE_RETENTION_DAYS: z.coerce.number().int().min(1).default(90),
 });
 

@@ -17,12 +17,26 @@ String? extractDailioInviteToken(BarcodeCapture? capture) {
     if (rawValue == null || rawValue.isEmpty) continue;
 
     final uri = Uri.tryParse(rawValue);
-    if (uri?.scheme.toLowerCase() != 'dailio' ||
-        uri?.host.toLowerCase() != 'invite') {
+    final isLegacyInvite = uri?.scheme.toLowerCase() == 'dailio' &&
+        uri?.host.toLowerCase() == 'invite';
+    final isWebInvite = (uri?.scheme.toLowerCase() == 'https' ||
+            uri?.scheme.toLowerCase() == 'http') &&
+        uri?.path.toLowerCase() == '/invite';
+    if (!isLegacyInvite && !isWebInvite) {
       continue;
     }
 
-    final token = uri?.queryParameters['token']?.trim();
+    final fragment = uri?.fragment ?? '';
+    final fragmentParams = <String, String>{};
+    if (fragment.isNotEmpty) {
+      try {
+        fragmentParams.addAll(Uri.splitQueryString(fragment));
+      } catch (_) {
+        // Ignore non-query fragments and let the server reject the payload.
+      }
+    }
+    final token =
+        (uri?.queryParameters['token'] ?? fragmentParams['token'])?.trim();
     if (token != null && token.isNotEmpty) return token;
   }
   return null;

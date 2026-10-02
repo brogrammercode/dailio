@@ -25,6 +25,18 @@ void main() {
     expect(extractDailioInviteToken(capture), isNull);
   });
 
+  test('extracts a token from the HTTPS web invite QR', () {
+    final capture = BarcodeCapture(
+      barcodes: [
+        const Barcode(
+          rawValue: 'https://web.example.com/invite#token=permanent-token',
+        ),
+      ],
+    );
+
+    expect(extractDailioInviteToken(capture), 'permanent-token');
+  });
+
   test('maps invite membership states to the correct next flow', () {
     expect(qrInviteFlowState({'joinability': 'JOINABLE'}), 'JOINABLE');
     expect(qrInviteFlowState({'joinability': 'ALREADY_PENDING'}), 'PENDING');

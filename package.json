@@ -5,9 +5,13 @@
   "description": "Multi-tenant gym management platform monorepo",
   "scripts": {
     "dev": "pnpm --filter api dev",
+    "web:dev": "pnpm --filter web dev",
     "build": "pnpm --filter api build",
+    "web:build": "pnpm --filter web build",
     "lint": "pnpm -r lint",
+    "web:lint": "pnpm --filter web lint",
     "test": "pnpm -r test",
+    "web:test": "pnpm --filter web test",
     "format": "pnpm -r format",
     "db:migrate": "pnpm --filter api db:migrate",
     "db:seed": "pnpm --filter api db:seed",
