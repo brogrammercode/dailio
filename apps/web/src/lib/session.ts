@@ -10,16 +10,28 @@ export function getAccessToken() {
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
-  if (!token) sessionStorage.removeItem(ACCESS_KEY);
+  if (!token) {
+    sessionStorage.removeItem(ACCESS_KEY);
+    localStorage.removeItem(ACCESS_KEY);
+  }
 }
 
 export function rememberAccessToken(token: string) {
   accessToken = token;
   sessionStorage.setItem(ACCESS_KEY, token);
+  // QR links commonly open in a new tab. Persisting the short-lived access
+  // token across tabs avoids asking the member to sign in again while the
+  // HttpOnly refresh cookie remains the durable session authority.
+  localStorage.setItem(ACCESS_KEY, token);
 }
 
 export function restoreAccessToken() {
-  accessToken = sessionStorage.getItem(ACCESS_KEY);
+  accessToken =
+    sessionStorage.getItem(ACCESS_KEY) ?? localStorage.getItem(ACCESS_KEY);
+  if (accessToken) {
+    sessionStorage.setItem(ACCESS_KEY, accessToken);
+    localStorage.setItem(ACCESS_KEY, accessToken);
+  }
   return accessToken;
 }
 
@@ -41,6 +53,7 @@ export function setContext(context: TenantContext | null) {
 export function clearSession() {
   accessToken = null;
   sessionStorage.removeItem(ACCESS_KEY);
+  localStorage.removeItem(ACCESS_KEY);
   sessionStorage.removeItem(CONTEXT_KEY);
   sessionStorage.removeItem("dailio_web_qr_intent");
 }
