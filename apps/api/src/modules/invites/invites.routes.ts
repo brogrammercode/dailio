@@ -38,6 +38,12 @@ router.post(
 router.get('/invites/:token', authenticate, qrResolutionRateLimiter, controller.resolveInvite);
 router.post('/join-invites/:token/requests', authenticate, controller.submitJoinRequest);
 router.post(
+  '/join-invites/:token/fast-join',
+  authenticate,
+  qrResolutionRateLimiter,
+  controller.fastJoin,
+);
+router.post(
   '/attendance/qr-punch',
   authenticate,
   qrPunchRateLimiter,

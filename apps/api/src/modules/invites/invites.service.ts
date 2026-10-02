@@ -7,6 +7,7 @@ import { env } from '../../config/env';
 import { ConflictError, ForbiddenError, NotFoundError, UnprocessableError } from '../../lib/errors';
 import { prisma } from '../../lib/prisma';
 import * as attendanceService from '../attendance/attendance.service';
+import * as admissionsService from '../admissions/admissions.service';
 import type { QrPunchInput } from '../attendance/attendance.schema';
 
 import type {
@@ -427,6 +428,104 @@ export async function submitJoinRequestFromInvite(
     }
     throw error;
   }
+}
+
+/**
+ * Permanently printed QR codes are the approved fast-admission path. This
+ * command is deliberately separate from the normal discovery join request:
+ * it admits the user immediately, but only after the server verifies that
+ * they are not already an active member of another organization.
+ */
+export async function fastJoinFromInvite(
+  userId: string,
+  rawToken: string,
+  idempotencyKey: string,
+  data: JoinInviteRequestInput = {},
+) {
+  const invite = await findActiveInvite(rawToken);
+  const existingMember = await prisma.member.findFirst({
+    where: {
+      user_id: userId,
+      organization_id: invite.organization_id,
+      branch_id: invite.branch_id,
+    },
+  });
+
+  if (existingMember?.status === 'ACTIVE') return existingMember;
+  if (existingMember?.status === 'SUSPENDED') {
+    throw new ForbiddenError('Your membership in this branch is inactive');
+  }
+
+  const otherOrganizationMember = await prisma.member.findFirst({
+    where: {
+      user_id: userId,
+      status: 'ACTIVE',
+      organization_id: { not: invite.organization_id },
+    },
+    select: { organization_id: true },
+  });
+  if (otherOrganizationMember) {
+    throw new ConflictError('Okay, you are a member of another organization.');
+  }
+
+  const idempotentRequest = await prisma.joinRequest.findUnique({
+    where: { idempotency_key: idempotencyKey },
+  });
+  if (
+    idempotentRequest &&
+    (idempotentRequest.user_id !== userId ||
+      idempotentRequest.organization_id !== invite.organization_id ||
+      idempotentRequest.branch_id !== invite.branch_id)
+  ) {
+    throw new ConflictError('Idempotency key is already used for another request');
+  }
+
+  let request = idempotentRequest;
+  if (!request) {
+    request = await prisma.joinRequest.findFirst({
+      where: {
+        user_id: userId,
+        organization_id: invite.organization_id,
+        branch_id: invite.branch_id,
+        status: 'PENDING',
+      },
+    });
+  }
+
+  if (!request) {
+    try {
+      request = await prisma.joinRequest.create({
+        data: {
+          id: ulid(),
+          user_id: userId,
+          organization_id: invite.organization_id,
+          branch_id: invite.branch_id,
+          status: 'PENDING',
+          message: data.message,
+          idempotency_key: idempotencyKey,
+        },
+      });
+    } catch (error) {
+      if ((error as { code?: string }).code !== 'P2002') throw error;
+      request = await prisma.joinRequest.findFirst({
+        where: {
+          user_id: userId,
+          organization_id: invite.organization_id,
+          branch_id: invite.branch_id,
+          status: 'PENDING',
+        },
+      });
+      if (!request) throw error;
+    }
+  }
+
+  return admissionsService.approveJoinRequest(
+    userId,
+    invite.organization_id,
+    invite.branch_id,
+    request.id,
+    { reason: 'Automatically approved through QR fast join' },
+  );
 }
 
 export async function createSubscriptionDraftFromInvite(

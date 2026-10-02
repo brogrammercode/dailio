@@ -24,6 +24,21 @@ export async function submitJoinRequest(
   return body.data;
 }
 
+export async function fastJoinFromInvite(
+  token: string,
+  idempotencyKey: string,
+) {
+  const body = await apiRequest<{ data: { id: string } }>(
+    `/join-invites/${encodeURIComponent(token)}/fast-join`,
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify({}),
+    },
+  );
+  return body.data;
+}
+
 export async function createSubscriptionDraft(
   token: string,
   idempotencyKey: string,

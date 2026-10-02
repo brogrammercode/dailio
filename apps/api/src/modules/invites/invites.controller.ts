@@ -74,6 +74,20 @@ export async function submitJoinRequest(req: Request, res: Response, next: NextF
   }
 }
 
+export async function fastJoin(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await service.fastJoinFromInvite(
+      req.user!.id,
+      token(req),
+      idempotencyKey(req),
+      JoinInviteRequestSchema.parse(req.body),
+    );
+    res.status(201).json({ data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function punchAttendanceFromInvite(req: Request, res: Response, next: NextFunction) {
   try {
     const idempotency = idempotencyKey(req);

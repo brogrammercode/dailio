@@ -5,6 +5,7 @@ import { LoadingCard, StateCard } from "../components/feedback/StateCard";
 import { AuthPage } from "../modules/auth/AuthPage";
 import { getCurrentUser, signOut } from "../modules/auth/auth.api";
 import {
+  fastJoinFromInvite,
   resolveInvite,
   submitJoinRequest,
 } from "../modules/invites/invites.api";
@@ -56,6 +57,16 @@ export function App() {
     setInviteLoading(true);
     setInviteError(null);
     resolveInvite(token)
+      .then(async (invite) => {
+        if (
+          invite.joinability === "JOINABLE" ||
+          invite.joinability === "ALREADY_PENDING"
+        ) {
+          await fastJoinFromInvite(token, newIdempotencyKey("web-fast-join"));
+          return resolveInvite(token);
+        }
+        return invite;
+      })
       .then((invite) => {
         setInviteState({ token, invite });
         setContext(contextFromInvite(invite));
@@ -163,6 +174,14 @@ export function App() {
 
   if (inviteState) {
     const { token, invite } = inviteState;
+    if (invite.joinability === "MEMBERSHIP_INACTIVE")
+      return authenticatedShell(
+        <StateCard
+          title="Membership unavailable"
+          message="This membership is not active, so Dailio cannot perform branch operations."
+          tone="error"
+        />,
+      );
     if (invite.purpose === "PLAN_PURCHASE")
       return authenticatedShell(
         <PurchasePage
@@ -171,49 +190,6 @@ export function App() {
           onDone={handlePaymentDone}
         />,
         "fees",
-      );
-    if (invite.joinability === "JOINABLE")
-      return authenticatedShell(
-        <JoinRequestPage
-          invite={invite}
-          token={token}
-          onSubmitted={() =>
-            setResult({
-              title: "Join request submitted",
-              message:
-                "Your request is pending branch approval. You will be able to use attendance and fees after approval.",
-              tone: "pending",
-            })
-          }
-        />,
-      );
-    if (invite.joinability === "ALREADY_PENDING")
-      return authenticatedShell(
-        <StateCard
-          title="Request pending"
-          message={`Your request to join ${invite.branch.name} is waiting for approval.`}
-          tone="pending"
-          action={
-            <button
-              className="primary-button w-full"
-              onClick={() => {
-                setInviteState(null);
-                navigate("/home/attendance");
-              }}
-              type="button"
-            >
-              Continue
-            </button>
-          }
-        />,
-      );
-    if (invite.joinability === "MEMBERSHIP_INACTIVE")
-      return authenticatedShell(
-        <StateCard
-          title="Membership unavailable"
-          message="This membership is not active, so Dailio cannot perform branch operations."
-          tone="error"
-        />,
       );
     return authenticatedShell(
       <QrAttendancePage
@@ -250,7 +226,7 @@ export function App() {
   return authenticatedShell(content, active);
 }
 
-function JoinRequestPage({
+export function JoinRequestPage({
   invite,
   token,
   onSubmitted,

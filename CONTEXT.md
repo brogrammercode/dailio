@@ -2047,8 +2047,8 @@ Every implemented page must document/encode:
 1. Owner/admin creates a permanent branch join invite.
 2. The server stores only a SHA-256 hash of the opaque invite token. Every generated invite remains permanently valid; generating another QR never invalidates an existing QR, and invite revocation is not supported.
 3. A signed-in user scans the Dailio invite QR and receives a server-resolved organization/branch preview.
-4. After explicit confirmation, the server derives the organization, branch, and user identity from the invite/session and creates one idempotent `PENDING` join request.
-5. Owner/admin approves the request transactionally; the server reuses or creates the branch membership, assigns the protected default `MEMBER` role, and emits audit/notification records.
+4. For a signed-in user who is not already an active member of another organization, QR admission is the fast-join path: the server creates or reuses the branch admission record, marks it approved, creates/reactivates the active branch membership, and continues directly to the original QR purpose. A user who is already an active member of another organization receives a clear conflict and is not cross-admitted.
+5. The fast-join command is idempotent and transactional; it assigns the protected default `MEMBER` role and emits audit/notification records. Normal organization discovery join requests remain pending until owner/admin approval.
 
 ### 26.2 New owner creates organization
 
@@ -2091,7 +2091,7 @@ The permanent branch join QR is also the branch gate QR. It remains reusable per
 
 1. Owner/admin opens the branch QR display, prints the permanent QR, and posts it at the entrance.
 2. A signed-in person scans the QR with the Dailio camera. Gallery QR selection may resolve the branch for discovery, but a QR punch must follow the configured anti-spoof/evidence policy and may require a live camera scan.
-3. The server resolves the token and branch. If the person is not an active member, the existing fast-join confirmation/request flow is shown. If the person is pending, the pending state is shown.
+3. The server resolves the token and branch. If the person is not an active member, the QR fast-join command automatically approves admission and activates the branch membership before continuing to attendance. If the person is already an active member of another organization, the server returns a conflict and does not create a cross-organization membership.
 4. If the person is an active member, the server determines the next action from server state: no open session means Clock In; an open session means Clock Out. The client cannot choose a different action by changing a payload.
 5. The app loads and displays the resolved member/role policy, shift, evidence requirements, geofence status, and the action that will be performed. The person confirms.
 6. A single idempotent QR-punch command validates the permanent invite, active membership, branch scope, permission, policy version, server time, geofence, required live selfie/location evidence, and open-session transition.
@@ -2362,6 +2362,7 @@ A feature is complete only when all applicable items are true:
 | 2026-10-02 | Add a React + TypeScript + Tailwind member web client for QR-first access to authentication, branch attendance, subscription purchase, payment-request submission, self attendance and fees. New QR displays use HTTPS web payloads while legacy permanent Dailio QR payloads remain compatible; browser refresh sessions use an HttpOnly cookie. | Reduces the need for members to install the mobile app while reusing the existing API, tenant isolation, server-derived attendance action, evidence rules, idempotency and immutable financial workflow. Browser QR attendance requires the effective live evidence policy, but a forwarded web link is not treated as cryptographic proof of physical QR presence. |
 | 2026-10-02 | Browser QR links may open a new tab, so the web client persists the access-token cache across same-origin tabs and continues to use the HttpOnly refresh cookie as the durable session authority; logout and rejected tokens clear both stores. | Prevents repeated Google sign-in during normal same-browser QR use while preserving server refresh, expiry, logout, and authorization behavior. |
 | 2026-10-02 | The member web client adopts the supplied Dailio authentication and self-attendance references: dark branded login, compact branch-local attendance time/tabs/action rings/policy/timeline, shared Dailio app bar, and overflow-menu sign-out confirmation on authenticated pages. | Keeps the QR web experience visually aligned with the mobile member experience while preserving server-confirmed attendance and permission boundaries. |
+| 2026-10-02 | QR admission for attendance and plan-purchase links uses an authenticated fast-join command. Users without an active membership in another organization are auto-approved and activated for the scanned branch, then continue to the original QR purpose; users already active in another organization receive a conflict instead. | Removes the unnecessary admin approval step from printed QR onboarding while preserving server-side tenant checks, idempotency, audit history, and the original attendance/financial flow. |
 
 ---
 

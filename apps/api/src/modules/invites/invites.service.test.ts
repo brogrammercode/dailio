@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const prismaMock = vi.hoisted(() => ({
   inviteToken: { findUnique: vi.fn() },
   member: { findFirst: vi.fn() },
-  joinRequest: { findFirst: vi.fn() },
+  joinRequest: { findFirst: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
   attendanceSession: { findFirst: vi.fn() },
   auditLog: { create: vi.fn() },
 }));
@@ -14,10 +14,15 @@ const attendanceMock = vi.hoisted(() => ({
   getEffectivePolicyForMember: vi.fn(),
 }));
 
+const admissionsMock = vi.hoisted(() => ({
+  approveJoinRequest: vi.fn(),
+}));
+
 vi.mock('../../lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('../attendance/attendance.service', () => attendanceMock);
+vi.mock('../admissions/admissions.service', () => admissionsMock);
 
-import { punchAttendanceFromInvite, resolveInvite } from './invites.service';
+import { fastJoinFromInvite, punchAttendanceFromInvite, resolveInvite } from './invites.service';
 
 describe('permanent gate QR idempotency', () => {
   beforeEach(() => vi.resetAllMocks());
@@ -215,5 +220,58 @@ describe('permanent gate QR idempotency', () => {
     );
     const expired = await resolveInvite('user-1', 'raw-token');
     expect(expired.joinability).toBe('JOINABLE');
+  });
+
+  it('auto-approves a QR fast join before a plan purchase', async () => {
+    prismaMock.inviteToken.findUnique.mockResolvedValue(
+      invite({
+        purpose: 'PLAN_PURCHASE',
+        plan: {
+          id: 'plan-1',
+          name: 'Monthly',
+          duration_days: 30,
+          amount_minor_unit: 1000,
+          joining_fee_minor: 0,
+          currency: 'INR',
+          discount_percent: 0,
+          is_active: true,
+        },
+      }),
+    );
+    prismaMock.member.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+    prismaMock.joinRequest.findUnique.mockResolvedValue(null);
+    prismaMock.joinRequest.findFirst.mockResolvedValue(null);
+    prismaMock.joinRequest.create.mockResolvedValue({
+      id: 'join-1',
+      user_id: 'user-1',
+      organization_id: 'org-1',
+      branch_id: 'branch-1',
+      status: 'PENDING',
+    });
+    admissionsMock.approveJoinRequest.mockResolvedValue({ id: 'member-1', status: 'ACTIVE' });
+
+    const result = await fastJoinFromInvite('user-1', 'raw-token', 'fast-join-1');
+
+    expect(result).toEqual({ id: 'member-1', status: 'ACTIVE' });
+    expect(admissionsMock.approveJoinRequest).toHaveBeenCalledWith(
+      'user-1',
+      'org-1',
+      'branch-1',
+      'join-1',
+      { reason: 'Automatically approved through QR fast join' },
+    );
+  });
+
+  it('rejects QR fast join for an active member of another organization', async () => {
+    prismaMock.inviteToken.findUnique.mockResolvedValue(invite());
+    prismaMock.member.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ organization_id: 'other-org' });
+
+    await expect(fastJoinFromInvite('user-1', 'raw-token', 'fast-join-2')).rejects.toThrow(
+      'Okay, you are a member of another organization.',
+    );
+    expect(prismaMock.joinRequest.create).not.toHaveBeenCalled();
+    expect(admissionsMock.approveJoinRequest).not.toHaveBeenCalled();
   });
 });
