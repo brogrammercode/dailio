@@ -1,74 +1,6 @@
 import { useState, type ReactNode } from "react";
+import { Icon } from "../ui/Icon";
 import type { TenantContext, User } from "../../types/domain";
-
-function Icon({
-  name,
-  size = 22,
-}: {
-  name: "arrow-left" | "bell" | "more" | "calendar" | "fees" | "logout";
-  size?: number;
-}) {
-  const paths = {
-    "arrow-left": (
-      <>
-        <path d="M19 12H5" />
-        <path d="m12 19-7-7 7-7" />
-      </>
-    ),
-    bell: (
-      <>
-        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
-        <path d="M10 21h4" />
-      </>
-    ),
-    more: (
-      <>
-        <circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" />
-        <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
-        <circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" />
-      </>
-    ),
-    calendar: (
-      <>
-        <rect x="4" y="5" width="16" height="15" rx="2" />
-        <path d="M8 3v4M16 3v4M4 10h16" />
-      </>
-    ),
-    fees: (
-      <>
-        <rect x="4" y="5" width="16" height="14" rx="2" />
-        <path d="M8 9h8M8 13h5" />
-      </>
-    ),
-    logout: (
-      <>
-        <path d="M10 17l5-5-5-5" />
-        <path d="M15 12H3" />
-        <path d="M21 19V5a2 2 0 0 0-2-2h-6" />
-      </>
-    ),
-  };
-
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      height={size}
-      viewBox="0 0 24 24"
-      width={size}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <g
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      >
-        {paths[name]}
-      </g>
-    </svg>
-  );
-}
 
 export function AppShell({
   user,
@@ -88,6 +20,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   function requestSignOut() {
@@ -102,7 +35,7 @@ export function AppShell({
           <button
             aria-label="Go back"
             className="icon-button"
-            onClick={onBack}
+            onClick={onBack ?? (() => window.history.back())}
             type="button"
           >
             <Icon name="arrow-left" />
@@ -119,17 +52,32 @@ export function AppShell({
           </div>
           <button
             aria-label="Notifications"
+            aria-expanded={notificationOpen}
             className="icon-button"
+            onClick={() => {
+              setMenuOpen(false);
+              setNotificationOpen((open) => !open);
+            }}
             type="button"
           >
             <Icon name="bell" size={21} />
           </button>
+          {notificationOpen && (
+            <div className="app-menu right-16 top-12 w-52" role="status">
+              <p className="px-4 py-4 text-sm text-slate-600">
+                No new notifications.
+              </p>
+            </div>
+          )}
           <div className="relative">
             <button
               aria-expanded={menuOpen}
               aria-label="Open actions"
               className="icon-button"
-              onClick={() => setMenuOpen((open) => !open)}
+              onClick={() => {
+                setNotificationOpen(false);
+                setMenuOpen((open) => !open);
+              }}
               type="button"
             >
               <Icon name="more" size={24} />

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { StateCard } from "../../components/feedback/StateCard";
+import { Icon } from "../../components/ui/Icon";
 import { safeMessage } from "../../lib/errors";
 import type { User } from "../../types/domain";
 import { signInWithGoogle } from "./auth.api";
@@ -140,7 +141,7 @@ export function AuthPage({
               aria-hidden="true"
               className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/80 text-white"
             >
-              ✓
+              <Icon name="check" size={16} />
             </span>
             <p>
               By continuing, you agree to our Privacy Policy and Terms of

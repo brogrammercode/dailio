@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { SelfieCapture } from "../../components/media/SelfieCapture";
 import { MinimalLoading, StateCard } from "../../components/feedback/StateCard";
+import { Icon } from "../../components/ui/Icon";
 import { readBrowserLocation } from "../../lib/browser-capabilities";
 import { safeMessage } from "../../lib/errors";
 import { setContext } from "../../lib/session";
@@ -13,6 +14,7 @@ import {
   requiredAttendanceEvidence,
   uploadAttendanceSelfie,
 } from "./attendance.api";
+import type { ReactNode } from "react";
 import type {
   AttendancePolicy,
   AttendanceSession,
@@ -82,7 +84,7 @@ function PolicyItem({
   value,
   required,
 }: {
-  icon: string;
+  icon: ReactNode;
   label: string;
   value: string;
   required?: boolean;
@@ -261,17 +263,24 @@ export function QrAttendancePage({
               <span className="attendance-ring ring-two" />
               <span className="attendance-ring ring-three" />
               <span className="attendance-ring ring-four" />
-              <div className="attendance-action-core">
-                <span className="text-4xl text-brand">
-                  {action === "Clock out" ? "\u21e5" : "\u21e4"}
-                </span>
+              <button
+                aria-label={`Confirm ${action}`}
+                className="attendance-action-core border-0 p-0"
+                disabled={busy || (requirements.selfie && !selfie)}
+                onClick={() => void submit()}
+                type="button"
+              >
+                <Icon
+                  name={action === "Clock out" ? "log-out" : "log-in"}
+                  size={36}
+                />
                 <span className="mt-1 text-base font-medium text-ink">
                   {action}
                 </span>
                 <span className="mt-1 text-[11px] text-slate-500">
                   Confirm below
                 </span>
-              </div>
+              </button>
             </div>
           </section>
 
@@ -279,17 +288,17 @@ export function QrAttendancePage({
             <Metric
               value={formatTime(active?.clock_in_at ?? latest?.clock_in_at)}
               label="Check in"
-              icon="\u21e5"
+              icon={<Icon name="log-in" size={24} />}
             />
             <Metric
               value={formatTime(active?.clock_out_at ?? latest?.clock_out_at)}
               label="Check out"
-              icon="\u21e4"
+              icon={<Icon name="log-out" size={24} />}
             />
             <Metric
               value={formatDuration(totalMinutes)}
               label="Total hrs"
-              icon="\u25f7"
+              icon={<Icon name="clock" size={24} />}
             />
           </section>
 
@@ -299,30 +308,30 @@ export function QrAttendancePage({
             </h2>
             <div className="mt-5 grid grid-cols-5 gap-1">
               <PolicyItem
-                icon="\u2316"
+                icon={<Icon name="location" size={20} />}
                 label="Location"
                 value={values.location}
                 required={values.locationRequired}
               />
               <PolicyItem
-                icon="\u25a3"
+                icon={<Icon name="camera" size={20} />}
                 label="Selfie"
                 value={values.selfie}
                 required={values.selfieRequired}
               />
               <PolicyItem
-                icon="@"
+                icon={<Icon name="geofence" size={20} />}
                 label="Geofence"
                 value={values.geofence}
                 required={values.geofenceRequired}
               />
               <PolicyItem
-                icon="\u25f7"
+                icon={<Icon name="clock" size={20} />}
                 label="Late grace"
                 value={values.lateGrace}
               />
               <PolicyItem
-                icon="\u25a6"
+                icon={<Icon name="qr" size={20} />}
                 label="QR scan"
                 value={values.qr}
                 required={values.qrRequired}
@@ -388,13 +397,13 @@ function Metric({
   label,
   value,
 }: {
-  icon: string;
+  icon: ReactNode;
   label: string;
   value: string;
 }) {
   return (
     <div>
-      <p className="text-2xl text-brand">{icon}</p>
+      <span className="inline-flex text-brand">{icon}</span>
       <p className="mt-1 text-sm font-medium text-ink">{value}</p>
       <p className="mt-1 text-xs text-slate-500">{label}</p>
     </div>
@@ -424,14 +433,18 @@ function Timeline({
       ) : (
         <div className="timeline mt-5">
           <div className="timeline-row">
-            <span className="timeline-dot">\u21e5</span>
+            <span className="timeline-dot">
+              <Icon name="log-in" size={16} />
+            </span>
             <span className="font-medium">Clocked in</span>
             <time className="ml-auto text-sm text-slate-500">
               {formatTime(session.clock_in_at, timezone)}
             </time>
           </div>
           <div className="timeline-row">
-            <span className="timeline-dot">\u25f7</span>
+            <span className="timeline-dot">
+              <Icon name="clock" size={16} />
+            </span>
             <span className="font-medium">
               {active ? "In progress" : "Completed"}
             </span>

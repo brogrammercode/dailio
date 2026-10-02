@@ -172,6 +172,7 @@ button:disabled {
 
 .attendance-ring {
   @apply absolute rounded-full border border-[#eee7df];
+  pointer-events: none;
 }
 
 .ring-one {
@@ -191,7 +192,7 @@ button:disabled {
 }
 
 .attendance-action-core {
-  @apply relative z-10 flex h-32 w-32 flex-col items-center justify-center rounded-full bg-white text-center shadow-[0_7px_22px_rgba(36,31,27,0.08)];
+  @apply relative z-10 flex h-32 w-32 appearance-none flex-col items-center justify-center rounded-full bg-white text-center shadow-[0_7px_22px_rgba(36,31,27,0.08)];
 }
 
 .attendance-panel {
