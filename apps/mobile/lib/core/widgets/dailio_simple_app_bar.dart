@@ -4,6 +4,7 @@ import 'package:iconsax/iconsax.dart';
 import '../theme/app_colors.dart';
 import 'dailio_overflow_menu.dart';
 import 'dailio_notification_button.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// The standard top bar for secondary Dailio pages.
 ///
@@ -39,9 +40,9 @@ class DailioSimpleAppBar extends StatelessWidget
               onPressed: onBack,
               icon: const Icon(Iconsax.arrow_left_2),
             ),
-      title: const Text(
+      title: Text(
         'Dailio',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20.r),
       ),
       actions: [
         const DailioNotificationButton(),
@@ -50,7 +51,7 @@ class DailioSimpleAppBar extends StatelessWidget
             items: menuItems,
             onSelected: onMenuSelected ?? (_) {},
           ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8.r),
       ],
       bottom: bottom,
     );

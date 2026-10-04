@@ -19,6 +19,7 @@ import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_picker_field.dart';
 import '../../../core/widgets/shimmer_loader.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// Returns unique, selectable subscription records for the member selector.
 ///
@@ -338,10 +339,11 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                     : Stack(
                         children: [
                           ListView(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                            padding:
+                                EdgeInsets.fromLTRB(16.r, 16.r, 16.r, 120.r),
                             children: [
                               _buildProfileInfo(),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16.r),
                               _buildRoleAndFacility(),
                               _buildReportingLine(),
                               _buildAssignedWork(),
@@ -361,40 +363,40 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                               right: 0,
                               child: Container(
                                 padding:
-                                    const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                                    EdgeInsets.fromLTRB(24.r, 16.r, 24.r, 32.r),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   boxShadow: [
                                     BoxShadow(
                                         color: Colors.black
                                             .withValues(alpha: 0.05),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, -4))
+                                        blurRadius: 10.r,
+                                        offset: Offset(0, (-4).r))
                                   ],
                                 ),
                                 child: ElevatedButton.icon(
                                   onPressed:
                                       _isSubmitting ? null : _saveChanges,
                                   icon: _isSubmitting
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
+                                      ? SizedBox(
+                                          width: 16.r,
+                                          height: 16.r,
                                           child: CircularProgressIndicator(
                                               color: Colors.white,
-                                              strokeWidth: 2))
-                                      : const Icon(Iconsax.save_2, size: 18),
+                                              strokeWidth: 2.r))
+                                      : Icon(Iconsax.save_2, size: 18.r),
                                   label: const Text('Save Member Configuration',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.orange.shade700,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 16),
+                                    padding:
+                                        EdgeInsets.symmetric(vertical: 16.r),
                                     minimumSize: const Size(double.infinity, 0),
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
-                                            BorderRadius.circular(12)),
+                                            BorderRadius.circular(12.r)),
                                   ),
                                 ),
                               ),
@@ -415,47 +417,47 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         children: [
           Row(
             children: [
               Container(
-                  width: 40,
-                  height: 40,
+                  width: 40.r,
+                  height: 40.r,
                   decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8))),
-              const SizedBox(width: 12),
+                      borderRadius: BorderRadius.circular(8.r))),
+              SizedBox(width: 12.r),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(width: 150, height: 20, color: Colors.white),
-                    const SizedBox(height: 8),
-                    Container(width: 100, height: 12, color: Colors.white),
+                    Container(width: 150.r, height: 20.r, color: Colors.white),
+                    SizedBox(height: 8.r),
+                    Container(width: 100.r, height: 12.r, color: Colors.white),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24.r),
           Container(
-              height: 120,
+              height: 120.r,
               decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16))),
-          const SizedBox(height: 16),
+                  borderRadius: BorderRadius.circular(16.r))),
+          SizedBox(height: 16.r),
           Container(
-              height: 180,
+              height: 180.r,
               decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16))),
-          const SizedBox(height: 16),
+                  borderRadius: BorderRadius.circular(16.r))),
+          SizedBox(height: 16.r),
           Container(
-              height: 180,
+              height: 180.r,
               decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16))),
+                  borderRadius: BorderRadius.circular(16.r))),
         ],
       ),
     );
@@ -473,41 +475,42 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         Container(
           decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8)),
+              borderRadius: BorderRadius.circular(8.r)),
           child: IconButton(
-            icon: const Icon(Iconsax.arrow_left, size: 20),
+            icon: Icon(Iconsax.arrow_left, size: 20.r),
             onPressed: () => context.pop(),
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            constraints: BoxConstraints(minWidth: 40.r, minHeight: 40.r),
             padding: EdgeInsets.zero,
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12.r),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Configure Member',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
+              Text('Configure Member',
+                  style:
+                      TextStyle(fontSize: 20.r, fontWeight: FontWeight.bold)),
+              SizedBox(height: 4.r),
               Text(
                   'Member #${_member!.membershipNumber.isNotEmpty ? _member!.membershipNumber : _member!.id.substring(0, 8)} Ã¢â‚¬Â¢ ${_member!.name}',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  style: TextStyle(fontSize: 12.r, color: Colors.grey)),
             ],
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: 12.r, vertical: 8.r),
           decoration: BoxDecoration(
               color: statusColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(20.r),
               border: Border.all(color: statusColor.withValues(alpha: 0.2))),
           child: Row(
             children: [
-              CircleAvatar(radius: 4, backgroundColor: statusColor),
-              const SizedBox(width: 6),
+              CircleAvatar(radius: 4.r, backgroundColor: statusColor),
+              SizedBox(width: 6.r),
               Text(_member!.status,
                   style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 10.r,
                       color: statusColor,
                       fontWeight: FontWeight.bold)),
             ],
@@ -522,10 +525,10 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
         ? _member!.membershipNumber
         : _member!.id.substring(0, 8);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: Colors.grey.shade200)),
       child: Column(
         children: [
@@ -549,7 +552,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                 child: Stack(
                   children: [
                     CircleAvatar(
-                      radius: 28,
+                      radius: 28.r,
                       backgroundColor: Colors.orange.shade100,
                       backgroundImage: _member!.avatarUrl != null
                           ? NetworkImage(_member!.avatarUrl!)
@@ -557,7 +560,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                       child: _member!.avatarUrl == null
                           ? Text(_member!.name.substring(0, 1).toUpperCase(),
                               style: TextStyle(
-                                  fontSize: 20,
+                                  fontSize: 20.r,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.orange.shade800))
                           : null,
@@ -566,20 +569,20 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                       bottom: 0,
                       right: 0,
                       child: Container(
-                        padding: const EdgeInsets.all(2),
+                        padding: EdgeInsets.all(2.r),
                         decoration: const BoxDecoration(
                             color: Colors.white, shape: BoxShape.circle),
                         child: CircleAvatar(
-                            radius: 8,
+                            radius: 8.r,
                             backgroundColor: Colors.orange.shade600,
-                            child: const Icon(Icons.bolt,
-                                size: 10, color: Colors.white)),
+                            child: Icon(Icons.bolt,
+                                size: 10.r, color: Colors.white)),
                       ),
                     )
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16.r),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,42 +591,43 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                       children: [
                         Expanded(
                             child: Text(_member!.name,
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                    fontSize: 16.r,
+                                    fontWeight: FontWeight.bold),
                                 overflow: TextOverflow.ellipsis)),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8.r),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 8.r, vertical: 4.r),
                           decoration: BoxDecoration(
                               color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(4)),
+                              borderRadius: BorderRadius.circular(4.r)),
                           child: Text('ID | $displayId',
-                              style: const TextStyle(
-                                  fontSize: 10,
+                              style: TextStyle(
+                                  fontSize: 10.r,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.grey)),
                         )
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4.r),
                     Row(children: [
-                      const Icon(Iconsax.sms, size: 12, color: Colors.grey),
-                      const SizedBox(width: 4),
+                      Icon(Iconsax.sms, size: 12.r, color: Colors.grey),
+                      SizedBox(width: 4.r),
                       Expanded(
                           child: Text(_member!.email ?? 'No email',
-                              style: const TextStyle(
-                                  fontSize: 11, color: Colors.grey),
+                              style:
+                                  TextStyle(fontSize: 11.r, color: Colors.grey),
                               overflow: TextOverflow.ellipsis))
                     ]),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2.r),
                     Row(children: [
-                      const Icon(Iconsax.call, size: 12, color: Colors.grey),
-                      const SizedBox(width: 4),
+                      Icon(Iconsax.call, size: 12.r, color: Colors.grey),
+                      SizedBox(width: 4.r),
                       Expanded(
                           child: Text(_member!.phone ?? 'No phone',
-                              style: const TextStyle(
-                                  fontSize: 11, color: Colors.grey),
+                              style:
+                                  TextStyle(fontSize: 11.r, color: Colors.grey),
                               overflow: TextOverflow.ellipsis))
                     ]),
                   ],
@@ -631,68 +635,68 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
               )
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.r),
           Row(
             children: [
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: EdgeInsets.symmetric(vertical: 12.r),
                   decoration: BoxDecoration(
                       color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12.r)),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Iconsax.calendar_1,
-                          size: 18, color: Colors.orange.shade400),
-                      const SizedBox(width: 8),
+                          size: 18.r, color: Colors.orange.shade400),
+                      SizedBox(width: 8.r),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('JOINED',
+                          Text('JOINED',
                               style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 9.r,
                                   color: Colors.grey,
                                   fontWeight: FontWeight.bold)),
                           Text(_member!.joinedAt?.split('T')[0] ?? 'N/A',
-                              style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold)),
+                              style: TextStyle(
+                                  fontSize: 12.r, fontWeight: FontWeight.bold)),
                         ],
                       )
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.r),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: EdgeInsets.symmetric(vertical: 12.r),
                   decoration: BoxDecoration(
                       color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12.r)),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: EdgeInsets.all(4.r),
                         decoration: BoxDecoration(
                             color: Colors.orange.shade600,
                             shape: BoxShape.circle),
-                        child: const Icon(Icons.local_fire_department,
-                            size: 14, color: Colors.white),
+                        child: Icon(Icons.local_fire_department,
+                            size: 14.r, color: Colors.white),
                       ),
-                      const SizedBox(width: 8),
-                      const Column(
+                      SizedBox(width: 8.r),
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('STREAK',
                               style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 9.r,
                                   color: Colors.grey,
                                   fontWeight: FontWeight.bold)),
                           Text('0 Days',
                               style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 12.r,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.orange)),
                         ],
@@ -715,8 +719,8 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       children: [
         _buildLabel('Assigned roles (first is primary)'),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 8.r,
+          runSpacing: 8.r,
           children: _roles
               .map((role) => FilterChip(
                     label: Text(role.name),
@@ -731,12 +735,12 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                   ))
               .toList(),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6.r),
         Text(
           'Attendance policy resolution checks a direct member policy first, then the selected roles in this order, then the branch default.',
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12.r),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.r),
         _buildLabel('Assigned Branch'),
         DailioPickerField<String>(
           initialValue: _selectedBranchId,
@@ -778,10 +782,10 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
           ],
           onChanged: (value) => setState(() => _selectedManagerId = value),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6.r),
         Text(
           'Team-scoped attendance access follows this branch reporting tree; it does not come from the member role name.',
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12.r),
         ),
       ],
     );
@@ -837,7 +841,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
           ],
           onChanged: (val) => setState(() => _selectedPlanId = val),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10.r),
         Align(
           alignment: Alignment.centerLeft,
           child: OutlinedButton.icon(
@@ -852,7 +856,7 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
                     );
                     if (assigned == true && mounted) await _loadData();
                   },
-            icon: const Icon(Iconsax.add_circle, size: 17),
+            icon: Icon(Iconsax.add_circle, size: 17.r),
             label: const Text('Assign a new plan'),
           ),
         ),
@@ -866,14 +870,14 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       icon: Iconsax.shield_tick,
       badge: 'Managed in Attendance Policy',
       children: [
-        const Text(
+        Text(
           'Attendance rules are assigned by branch, role, or directly to this member. Use the policy assignment screen to create a real versioned override.',
-          style: TextStyle(fontSize: 12, color: Colors.grey),
+          style: TextStyle(fontSize: 12.r, color: Colors.grey),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.r),
         OutlinedButton.icon(
           onPressed: () => context.push(AppRoutes.attendancePolicy),
-          icon: const Icon(Iconsax.setting_2, size: 17),
+          icon: Icon(Iconsax.setting_2, size: 17.r),
           label: const Text('Manage attendance policies'),
         ),
       ],
@@ -882,53 +886,53 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
 
   Widget _buildAdminControls() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: 16.r),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: Colors.grey.shade200)),
       child: Column(
         children: [
           Row(
             children: [
               Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: EdgeInsets.all(8.r),
                   decoration: BoxDecoration(
                       color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Iconsax.setting_2,
-                      color: Colors.orange, size: 18)),
-              const SizedBox(width: 12),
-              const Expanded(
+                      borderRadius: BorderRadius.circular(8.r)),
+                  child: Icon(Iconsax.setting_2,
+                      color: Colors.orange, size: 18.r)),
+              SizedBox(width: 12.r),
+              Expanded(
                   child: Text('Administrative\nControls',
                       style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.bold))),
-              const Icon(Iconsax.user_add, size: 14, color: Colors.orange),
-              const SizedBox(width: 4),
-              const Text('Assign Additional\nRole',
+                          fontSize: 12.r, fontWeight: FontWeight.bold))),
+              Icon(Iconsax.user_add, size: 14.r, color: Colors.orange),
+              SizedBox(width: 4.r),
+              Text('Assign Additional\nRole',
                   style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 10.r,
                       color: Colors.orange,
                       fontWeight: FontWeight.bold)),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.r),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: 16.r, vertical: 12.r),
             decoration: BoxDecoration(
                 color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
                 border: Border.all(color: Colors.grey.shade200)),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Iconsax.receipt_item, size: 16, color: Colors.orange),
-                SizedBox(width: 12),
+                Icon(Iconsax.receipt_item, size: 16.r, color: Colors.orange),
+                SizedBox(width: 12.r),
                 Text('Issue Fine / Fee Adjustment',
                     style:
-                        TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        TextStyle(fontSize: 12.r, fontWeight: FontWeight.bold)),
                 Spacer(),
-                Icon(Iconsax.arrow_right_3, size: 14, color: Colors.grey),
+                Icon(Iconsax.arrow_right_3, size: 14.r, color: Colors.grey),
               ],
             ),
           )
@@ -962,57 +966,56 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
 
   Widget _buildDangerZone() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
           color: Colors.red.shade50.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: Colors.red.shade100)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Iconsax.warning_2, size: 14, color: Colors.red),
-              const SizedBox(width: 8),
+              Icon(Iconsax.warning_2, size: 14.r, color: Colors.red),
+              SizedBox(width: 8.r),
               Text('DANGER ZONE',
                   style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 10.r,
                       fontWeight: FontWeight.bold,
                       color: Colors.red.shade800)),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.r),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed:
                       _member!.status == 'SUSPENDED' ? null : _suspendMember,
-                  icon: const Icon(Iconsax.minus_cirlce, size: 14),
-                  label: const Text('Suspend Access',
-                      style: TextStyle(fontSize: 11, color: Colors.black)),
+                  icon: Icon(Iconsax.minus_cirlce, size: 14.r),
+                  label: Text('Suspend Access',
+                      style: TextStyle(fontSize: 11.r, color: Colors.black)),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: EdgeInsets.symmetric(vertical: 16.r),
                     backgroundColor: Colors.white,
                     side: BorderSide(color: Colors.grey.shade300),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12.r)),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.r),
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: _deactivateMember,
-                  icon: const Icon(Iconsax.close_circle, size: 14),
-                  label:
-                      const Text('Deactivate', style: TextStyle(fontSize: 11)),
+                  icon: Icon(Iconsax.close_circle, size: 14.r),
+                  label: Text('Deactivate', style: TextStyle(fontSize: 11.r)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red.shade600,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: EdgeInsets.symmetric(vertical: 16.r),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12.r)),
                   ),
                 ),
               ),
@@ -1031,11 +1034,11 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
       Color? badgeTextColor,
       required List<Widget> children}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: 16.r),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: Colors.grey.shade200)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1043,32 +1046,31 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
           Row(
             children: [
               Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: EdgeInsets.all(8.r),
                   decoration: BoxDecoration(
                       color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(8)),
-                  child: Icon(icon, color: Colors.orange, size: 18)),
-              const SizedBox(width: 12),
+                      borderRadius: BorderRadius.circular(8.r)),
+                  child: Icon(icon, color: Colors.orange, size: 18.r)),
+              SizedBox(width: 12.r),
               Expanded(
                   child: Text(title,
-                      style: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.bold))),
+                      style: TextStyle(
+                          fontSize: 12.r, fontWeight: FontWeight.bold))),
               if (badge != null)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 4.r),
                   decoration: BoxDecoration(
                       color: badgeColor ?? Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16.r)),
                   child: Text(badge,
                       style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 9.r,
                           color: badgeTextColor ?? Colors.grey.shade600,
                           fontWeight: FontWeight.bold)),
                 )
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.r),
           ...children,
         ],
       ),
@@ -1077,30 +1079,29 @@ class _ConfigureMemberPageState extends State<ConfigureMemberPage> {
 
   Widget _buildLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 8.r),
       child: Text(text,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          style: TextStyle(fontSize: 11.r, fontWeight: FontWeight.bold)),
     );
   }
 
   InputDecoration _pickerDecoration(String hint) => InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF777777)),
+        hintStyle: TextStyle(fontSize: 13.r, color: Color(0xFF777777)),
         filled: true,
         fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        contentPadding: EdgeInsets.symmetric(horizontal: 14.r, vertical: 13.r),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: const BorderSide(color: Color(0xFFE7E7E7)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: const BorderSide(color: Color(0xFFE7E7E7)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFFF8A00), width: 1.4),
+          borderRadius: BorderRadius.circular(10.r),
+          borderSide: BorderSide(color: Color(0xFFFF8A00), width: 1.4.r),
         ),
       );
 }

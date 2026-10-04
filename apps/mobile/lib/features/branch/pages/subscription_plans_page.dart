@@ -14,6 +14,7 @@ import '../../../core/widgets/shimmer_loader.dart';
 import '../../organization/controllers/organization_repository.dart';
 import '../../context_selection/controllers/branch_repository.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SubscriptionPlansPage extends StatefulWidget {
   const SubscriptionPlansPage({super.key});
@@ -292,27 +293,27 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
           title: Text('Plan QR • ${plan['name'] ?? 'Plan'}'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             SizedBox(
-              width: 220,
-              height: 220,
+              width: 220.r,
+              height: 220.r,
               child: QrImageView(
                 data: invite['qr_payload'].toString(),
-                size: 220,
+                size: 220.r,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             Text(
                 '${plan['duration_days'] ?? 0} days • ${plan['currency'] ?? 'INR'} ${(plan['amount_minor_unit'] as num? ?? 0) / 100}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             Text(
                 'Admission fee: ${plan['currency'] ?? 'INR'} ${((plan['joining_fee_minor'] as num? ?? 0) / 100).toStringAsFixed(2)}',
-                style: const TextStyle(color: Colors.grey, fontSize: 12)),
-            const SizedBox(height: 6),
+                style: TextStyle(color: Colors.grey, fontSize: 12.r)),
+            SizedBox(height: 6.r),
             const Text('Permanent QR • no expiry or revocation',
                 style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 8),
-            const Text('Generating another QR never invalidates this one.',
-                textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+            SizedBox(height: 8.r),
+            Text('Generating another QR never invalidates this one.',
+                textAlign: TextAlign.center, style: TextStyle(fontSize: 12.r)),
           ]),
           actions: [
             TextButton(
@@ -355,7 +356,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 8),
+            SizedBox(height: 8.r),
             BranchFilterTabs(
               selectedBranchId: _selectedFilterBranchId,
               onChanged: (val) {
@@ -370,7 +371,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                 });
               },
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.r),
             Expanded(
               child: _isLoading
                   ? _buildSkeleton()
@@ -391,36 +392,36 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   // ignore: unused_element
   Widget _buildLegacySkeleton() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: EdgeInsets.symmetric(horizontal: 24.r),
       child: Column(
         children: [
           Container(
-              height: 120,
+              height: 120.r,
               decoration: BoxDecoration(
                   color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(16))),
-          const SizedBox(height: 16),
+                  borderRadius: BorderRadius.circular(16.r))),
+          SizedBox(height: 16.r),
           Row(children: [
             Container(
-                height: 40,
-                width: 100,
+                height: 40.r,
+                width: 100.r,
                 decoration: BoxDecoration(
                     color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(8))),
-            const SizedBox(width: 8),
+                    borderRadius: BorderRadius.circular(8.r))),
+            SizedBox(width: 8.r),
             Container(
-                height: 40,
-                width: 100,
+                height: 40.r,
+                width: 100.r,
                 decoration: BoxDecoration(
                     color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(8))),
+                    borderRadius: BorderRadius.circular(8.r))),
           ]),
-          const SizedBox(height: 24),
+          SizedBox(height: 24.r),
           Container(
-              height: 300,
+              height: 300.r,
               decoration: BoxDecoration(
                   color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(16))),
+                  borderRadius: BorderRadius.circular(16.r))),
         ],
       ),
     );
@@ -430,7 +431,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
     return Stack(
       children: [
         ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
+          padding: EdgeInsets.fromLTRB(16.r, 4.r, 16.r, 120.r),
           children: [
             if (_filteredPlans.isEmpty && !_isCreating)
               _buildEmptyState()
@@ -444,37 +445,37 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
             left: 0,
             right: 0,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+              padding: EdgeInsets.fromLTRB(24.r, 16.r, 24.r, 32.r),
               decoration: BoxDecoration(color: Colors.white, boxShadow: [
                 BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -4))
+                    blurRadius: 10.r,
+                    offset: Offset(0, (-4).r))
               ]),
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _savePlan,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange.shade800,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: 16.r),
                   minimumSize: const Size(double.infinity, 0),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12.r)),
                 ),
                 child: _isSaving
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
+                    ? SizedBox(
+                        width: 24.r,
+                        height: 24.r,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
+                            color: Colors.white, strokeWidth: 2.r))
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(_isCreating ? 'Create Plan' : 'Save Changes',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16)),
-                          const SizedBox(width: 8),
-                          const Icon(Iconsax.save_2, size: 20),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16.r)),
+                          SizedBox(width: 8.r),
+                          Icon(Iconsax.save_2, size: 20.r),
                         ],
                       ),
               ),
@@ -489,30 +490,30 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   Widget _buildHeader(BuildContext context) {
     final prefs = context.read<PreferencesStorage>();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      padding: EdgeInsets.fromLTRB(24.r, 16.r, 24.r, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8.r)),
             child: IconButton(
-                icon: const Icon(Iconsax.arrow_left, size: 20),
+                icon: Icon(Iconsax.arrow_left, size: 20.r),
                 onPressed: () => context.pop(),
-                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                constraints: BoxConstraints(minWidth: 40.r, minHeight: 40.r),
                 padding: EdgeInsets.zero),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16.r),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Subscription Plans',
+                Text('Subscription Plans',
                     style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        TextStyle(fontSize: 20.r, fontWeight: FontWeight.bold)),
                 Text(prefs.activeOrganizationName ?? 'Gym Management',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    style: TextStyle(fontSize: 12.r, color: Colors.grey)),
               ],
             ),
           ),
@@ -525,34 +526,34 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   // ignore: unused_element
   Widget _buildCatalogHeader() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: Colors.grey.shade200)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.local_offer, size: 16, color: Colors.orange),
-              const SizedBox(width: 8),
-              const Text('Membership Plans Catalog',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              Icon(Icons.local_offer, size: 16.r, color: Colors.orange),
+              SizedBox(width: 8.r),
+              Text('Membership Plans Catalog',
+                  style:
+                      TextStyle(fontSize: 14.r, fontWeight: FontWeight.bold)),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 4.r),
                 decoration: BoxDecoration(
                     color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12.r)),
                 child: Row(
                   children: [
-                    const CircleAvatar(
-                        radius: 3, backgroundColor: Colors.green),
-                    const SizedBox(width: 4),
+                    CircleAvatar(radius: 3.r, backgroundColor: Colors.green),
+                    SizedBox(width: 4.r),
                     Text('Live Sync',
                         style: TextStyle(
-                            fontSize: 9,
+                            fontSize: 9.r,
                             color: Colors.green.shade700,
                             fontWeight: FontWeight.bold)),
                   ],
@@ -560,11 +561,11 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
               )
             ],
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8.r),
+          Text(
               'Configure branch-level commercial pricing, access rules, and membership perks.',
-              style: TextStyle(fontSize: 11, color: Colors.grey)),
-          const SizedBox(height: 16),
+              style: TextStyle(fontSize: 11.r, color: Colors.grey)),
+          SizedBox(height: 16.r),
           Row(
             children: [
               Expanded(
@@ -577,11 +578,11 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                           .padLeft(2, '0'),
                       'Selected Branch',
                       null)),
-              const SizedBox(width: 8),
+              SizedBox(width: 8.r),
               Expanded(
                   child: _buildStatBox(
                       'Enrolled', '--', 'Coming Soon', Colors.green)),
-              const SizedBox(width: 8),
+              SizedBox(width: 8.r),
               Expanded(
                   child: _buildStatBox(
                       'Avg Amount',
@@ -598,25 +599,24 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   Widget _buildStatBox(
       String title, String value, String subtitle, Color? subtitleColor) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12.r),
       decoration: BoxDecoration(
           color: Colors.blue.shade50.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(8)),
+          borderRadius: BorderRadius.circular(8.r)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
+              style: TextStyle(fontSize: 10.r, color: Colors.grey),
               maxLines: 1,
               overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
+          SizedBox(height: 4.r),
           Text(value,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
+              style: TextStyle(fontSize: 16.r, fontWeight: FontWeight.bold)),
+          SizedBox(height: 2.r),
           Text(subtitle,
               style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 9.r,
                   fontWeight: FontWeight.bold,
                   color: subtitleColor ?? Colors.grey.shade600),
               maxLines: 1,
@@ -628,26 +628,26 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
 
   Widget _buildEmptyState() {
     return Padding(
-      padding: const EdgeInsets.only(top: 48),
+      padding: EdgeInsets.only(top: 48.r),
       child: Column(
         children: [
-          const Icon(Iconsax.card, size: 30, color: Colors.orange),
-          const SizedBox(height: 12),
-          const Text('No plans yet',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          const Text('Create a plan with its price and duration.',
+          Icon(Iconsax.card, size: 30.r, color: Colors.orange),
+          SizedBox(height: 12.r),
+          Text('No plans yet',
+              style: TextStyle(fontSize: 15.r, fontWeight: FontWeight.w800)),
+          SizedBox(height: 6.r),
+          Text('Create a plan with its price and duration.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 11)),
-          const SizedBox(height: 18),
+              style: TextStyle(color: Colors.grey, fontSize: 11.r)),
+          SizedBox(height: 18.r),
           ElevatedButton.icon(
             onPressed: _startCreating,
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange.shade800,
                 foregroundColor: Colors.white,
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 11)),
-            icon: const Icon(Iconsax.add, size: 16),
+                    EdgeInsets.symmetric(horizontal: 18.r, vertical: 11.r)),
+            icon: Icon(Iconsax.add, size: 16.r),
             label: const Text('Create plan'),
           ),
         ],
@@ -658,19 +658,19 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   Widget _buildError() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Iconsax.warning_2, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
-            const Text('Failed to load plans',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            Icon(Iconsax.warning_2, size: 48.r, color: Colors.red),
+            SizedBox(height: 16.r),
+            Text('Failed to load plans',
+                style: TextStyle(fontSize: 16.r, fontWeight: FontWeight.bold)),
+            SizedBox(height: 8.r),
             Text(_error ?? 'Unknown error',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.grey)),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.r),
             ElevatedButton(
                 onPressed: _loadPlans,
                 style: ElevatedButton.styleFrom(
@@ -688,7 +688,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildPlanTabs(),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.r),
         Form(
           key: _formKey,
           child: Column(
@@ -699,22 +699,22 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                   Expanded(
                     child: Text(
                       _isCreating ? 'Create plan' : 'Plan details',
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                          fontSize: 15.r, fontWeight: FontWeight.w800),
                     ),
                   ),
                   if (!_isCreating)
                     IconButton(
                       tooltip: 'Show plan purchase QR',
                       onPressed: _showPlanQr,
-                      icon: const Icon(Iconsax.scan_barcode, size: 19),
+                      icon: Icon(Iconsax.scan_barcode, size: 19.r),
                       padding: EdgeInsets.zero,
                       constraints:
-                          const BoxConstraints(minWidth: 32, minHeight: 32),
+                          BoxConstraints(minWidth: 32.r, minHeight: 32.r),
                     ),
                 ],
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14.r),
               if (_branches.isNotEmpty) ...[
                 _buildFieldLabel('Branch'),
                 DailioPickerField<String>(
@@ -731,31 +731,31 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                       ? (val) => setState(() => _formBranchId = val)
                       : null,
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14.r),
               ],
               _buildTextField('Plan name', _nameCtrl, 'e.g. 3 Months',
                   TextInputType.text, Iconsax.card),
-              const SizedBox(height: 14),
+              SizedBox(height: 14.r),
               _buildTextField('Plan amount (₹)', _amountCtrl, 'e.g. 2500',
                   TextInputType.number, Iconsax.wallet_2),
-              const SizedBox(height: 14),
+              SizedBox(height: 14.r),
               _buildTextField('Admission fee (₹)', _joiningFeeCtrl, '0 if none',
                   TextInputType.number, Iconsax.money_recive),
-              const SizedBox(height: 14),
+              SizedBox(height: 14.r),
               Row(
                 children: [
                   Expanded(
                     child: _buildTextField('Duration (days)', _durationCtrl,
                         'e.g. 90', TextInputType.number, Iconsax.calendar_1),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12.r),
                   Expanded(
                     child: _buildTextField('Grace (days)', _graceDaysCtrl,
                         '0 if none', TextInputType.number, Iconsax.clock),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14.r),
               _buildActiveRow(),
             ],
           ),
@@ -788,7 +788,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
             onPressed: _startCreating,
             icon: const Icon(Iconsax.add_circle, color: Colors.orange),
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            constraints: BoxConstraints(minWidth: 34.r, minHeight: 34.r),
           ),
       ],
     );
@@ -797,16 +797,17 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
   Widget _buildActiveRow() {
     return Row(
       children: [
-        const Icon(Iconsax.eye, size: 17, color: Colors.grey),
-        const SizedBox(width: 10),
-        const Expanded(
+        Icon(Iconsax.eye, size: 17.r, color: Colors.grey),
+        SizedBox(width: 10.r),
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Available for purchase',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  style:
+                      TextStyle(fontSize: 12.r, fontWeight: FontWeight.w600)),
               Text('Members can see and buy this plan.',
-                  style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  style: TextStyle(fontSize: 10.r, color: Colors.grey)),
             ],
           ),
         ),
@@ -823,32 +824,32 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
 
   Widget _buildFieldLabel(String label) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 8.r),
       child: Text(label,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+          style: TextStyle(fontSize: 12.r, fontWeight: FontWeight.w500)),
     );
   }
 
   InputDecoration _buildInputDecoration(String hint, [IconData? icon]) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+      hintStyle: TextStyle(fontSize: 13.r, color: Colors.grey),
       prefixIcon:
-          icon == null ? null : Icon(icon, size: 16, color: Colors.grey),
+          icon == null ? null : Icon(icon, size: 16.r, color: Colors.grey),
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+      contentPadding: EdgeInsets.symmetric(vertical: 13.r, horizontal: 14.r),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(10.r),
         borderSide: BorderSide(color: Colors.grey.shade200),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(10.r),
         borderSide: BorderSide(color: Colors.grey.shade200),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5),
+        borderRadius: BorderRadius.circular(10.r),
+        borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5.r),
       ),
     );
   }
@@ -869,12 +870,12 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                 return GestureDetector(
                   onTap: () => _selectPlan(index),
                   child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                    margin: EdgeInsets.only(right: 8.r),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.r, vertical: 12.r),
                     decoration: BoxDecoration(
                       color: isActive ? Colors.orange.shade800 : Colors.white,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       border: Border.all(
                           color: isActive
                               ? Colors.orange.shade800
@@ -883,7 +884,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                     child: Text(
                       _filteredPlans[index]['name'] ?? 'Unnamed Plan',
                       style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 12.r,
                           fontWeight: FontWeight.bold,
                           color:
                               isActive ? Colors.white : Colors.grey.shade700),
@@ -895,13 +896,13 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                 GestureDetector(
                   onTap: _startCreating,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.r, vertical: 12.r),
                     decoration: BoxDecoration(
                       color: _isCreating
                           ? Colors.blue.shade600
                           : Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       border: Border.all(
                           color: _isCreating
                               ? Colors.blue.shade600
@@ -910,14 +911,14 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                     child: Row(
                       children: [
                         Icon(Iconsax.add,
-                            size: 14,
+                            size: 14.r,
                             color: _isCreating
                                 ? Colors.white
                                 : Colors.blue.shade700),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4.r),
                         Text('New Plan',
                             style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 12.r,
                                 fontWeight: FontWeight.bold,
                                 color: _isCreating
                                     ? Colors.white
@@ -929,12 +930,12 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24.r),
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20.r),
           decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16.r),
               border: Border.all(color: Colors.grey.shade200)),
           child: Form(
             key: _formKey,
@@ -943,19 +944,18 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
               children: [
                 Row(
                   children: [
-                    const CircleAvatar(
-                        radius: 4, backgroundColor: Colors.green),
-                    const SizedBox(width: 12),
+                    CircleAvatar(radius: 4.r, backgroundColor: Colors.green),
+                    SizedBox(width: 12.r),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Active & Publicly Available',
+                          Text('Active & Publicly Available',
                               style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold)),
+                                  fontSize: 12.r, fontWeight: FontWeight.bold)),
                           Text('Members can purchase this plan',
                               style: TextStyle(
-                                  fontSize: 10, color: Colors.grey.shade600)),
+                                  fontSize: 10.r, color: Colors.grey.shade600)),
                         ],
                       ),
                     ),
@@ -974,9 +974,9 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                       ),
                   ],
                 ),
-                const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Divider(height: 1)),
+                Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16.r),
+                    child: Divider(height: 1.r)),
                 if (_branches.isNotEmpty) ...[
                   DailioPickerField<String>(
                     initialValue: _formBranchId,
@@ -992,29 +992,29 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                         ? (val) => setState(() => _formBranchId = val)
                         : null,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.r),
                 ],
                 _buildTextField('Plan Name', _nameCtrl, 'e.g. Annual Elite',
                     TextInputType.text),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.r),
                 Row(
                   children: [
                     Expanded(
                         child: _buildTextField('Base Amount (\u20B9)',
                             _amountCtrl, '0', TextInputType.number)),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12.r),
                     Expanded(
                         child: _buildTextField('Joining Fee (\u20B9)',
                             _joiningFeeCtrl, '0', TextInputType.number)),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.r),
                 Row(
                   children: [
                     Expanded(
                         child: _buildTextField('Duration (Days)', _durationCtrl,
                             'e.g. 365', TextInputType.number)),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12.r),
                     Expanded(
                         child: _buildTextField('Grace Period (Days)',
                             _graceDaysCtrl, 'e.g. 7', TextInputType.number)),
@@ -1041,7 +1041,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
           keyboardType: type,
           validator: (v) => v == null || v.isEmpty ? 'Required' : null,
           decoration: _buildInputDecoration(hint, icon),
-          style: const TextStyle(fontSize: 13),
+          style: TextStyle(fontSize: 13.r),
         ),
       ],
     );

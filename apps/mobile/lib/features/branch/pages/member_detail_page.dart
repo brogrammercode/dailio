@@ -14,6 +14,7 @@ import '../controllers/members_repository.dart';
 import '../../attendance/controllers/streak_repository.dart';
 import '../models/member_model.dart';
 import '../../../core/widgets/dailio_streak_card.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class MemberDetailPage extends StatefulWidget {
   final String membershipId;
@@ -171,7 +172,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       onRefresh: _loadMember,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+        padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 32.r),
         children: [
           _profileHeader(member),
           DailioStreakCard(
@@ -180,21 +181,21 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                   member.id,
                 ),
           ),
-          const SizedBox(height: 22),
+          SizedBox(height: 22.r),
           _sectionLabel('Subscription'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.r),
           _subscriptionSection(member),
-          const SizedBox(height: 22),
+          SizedBox(height: 22.r),
           _sectionLabel('Member details'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.r),
           _detailsSection(member),
-          const SizedBox(height: 22),
+          SizedBox(height: 22.r),
           _sectionLabel('Roles'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.r),
           _rolesSection(member),
-          const SizedBox(height: 22),
+          SizedBox(height: 22.r),
           _sectionLabel('Access and operations'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.r),
           _operationsSection(member),
         ],
       ),
@@ -220,9 +221,9 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
               subscriptionLabel: member.activeSubscription?.planName,
             ),
           ),
-          child: _avatar(member, radius: 29),
+          child: _avatar(member, radius: 29.r),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12.r),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,29 +232,28 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                 member.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.brandDark,
-                  fontSize: 18,
+                  fontSize: 18.r,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 5),
+              SizedBox(height: 5.r),
               Wrap(
-                spacing: 6,
-                runSpacing: 5,
+                spacing: 6.r,
+                runSpacing: 5.r,
                 children: [
                   _badge(member.role?.name ?? 'Member', AppColors.brandAccent),
                   _badge(_pretty(member.status), _statusColor(member.status)),
                 ],
               ),
               if (member.email?.isNotEmpty == true) ...[
-                const SizedBox(height: 7),
+                SizedBox(height: 7.r),
                 Text(
                   member.email!,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style:
-                      const TextStyle(color: Color(0xFF777777), fontSize: 11),
+                  style: TextStyle(color: Color(0xFF777777), fontSize: 11.r),
                 ),
               ],
             ],
@@ -274,8 +274,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         children: [
           for (var index = 0; index < member.subscriptions.length; index++) ...[
             _subscriptionRow(member.subscriptions[index], index == 0),
-            if (index != member.subscriptions.length - 1)
-              const Divider(height: 18),
+            if (index != member.subscriptions.length - 1) Divider(height: 18.r),
           ],
         ],
       ),
@@ -294,10 +293,10 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       children: [
         Icon(
           isCurrent ? Iconsax.tick_circle : Iconsax.card,
-          size: 19,
+          size: 19.r,
           color: statusColor,
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: 10.r),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,9 +308,9 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                       subscription.planName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.brandDark,
-                        fontSize: 13,
+                        fontSize: 13.r,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -319,10 +318,10 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                   _badge(_pretty(subscription.status), statusColor),
                 ],
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4.r),
               Text(
                 '${DateFormat('dd MMM yyyy').format(subscription.startDate.toLocal())} – ${DateFormat('dd MMM yyyy').format(subscription.endDate.toLocal())} · $amount',
-                style: const TextStyle(color: Color(0xFF777777), fontSize: 11),
+                style: TextStyle(color: Color(0xFF777777), fontSize: 11.r),
               ),
             ],
           ),
@@ -359,8 +358,8 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       child: roles.isEmpty
           ? _emptyLine(Iconsax.security_user, 'No roles assigned')
           : Wrap(
-              spacing: 7,
-              runSpacing: 7,
+              spacing: 7.r,
+              runSpacing: 7.r,
               children: roles
                   .map((role) => _badge(role, AppColors.brandAccent))
                   .toList(),
@@ -385,24 +384,24 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
 
   Widget _detailRow(IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: EdgeInsets.symmetric(vertical: 7.r),
       child: Row(
         children: [
-          Icon(icon, size: 17, color: AppColors.brandAccent),
-          const SizedBox(width: 9),
+          Icon(icon, size: 17.r, color: AppColors.brandAccent),
+          SizedBox(width: 9.r),
           SizedBox(
-            width: 106,
+            width: 106.r,
             child: Text(label,
-                style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
+                style: TextStyle(color: Color(0xFF888888), fontSize: 11.r)),
           ),
           Expanded(
             child: Text(
               value,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.brandDark,
-                fontSize: 12,
+                fontSize: 12.r,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -415,11 +414,11 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
   Widget _outlinedBox({required Widget child}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12.r),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFFE9E2DC)),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
       ),
       child: child,
     );
@@ -428,15 +427,14 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
   Widget _emptyLine(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: const Color(0xFF999999)),
-        const SizedBox(width: 9),
-        Text(text,
-            style: const TextStyle(color: Color(0xFF777777), fontSize: 12)),
+        Icon(icon, size: 18.r, color: const Color(0xFF999999)),
+        SizedBox(width: 9.r),
+        Text(text, style: TextStyle(color: Color(0xFF777777), fontSize: 12.r)),
       ],
     );
   }
 
-  Widget _avatar(MemberModel member, {double radius = 25}) {
+  Widget _avatar(MemberModel member, {required double radius}) {
     final hasImage = member.avatarUrl?.isNotEmpty == true;
     return CircleAvatar(
       radius: radius,
@@ -457,17 +455,17 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
 
   Widget _badge(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 7.r, vertical: 3.r),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(5.r),
       ),
       child: Text(
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style:
-            TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w700),
+            TextStyle(color: color, fontSize: 9.r, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -475,9 +473,9 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
   Widget _sectionLabel(String label) {
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         color: AppColors.brandDark,
-        fontSize: 13,
+        fontSize: 13.r,
         fontWeight: FontWeight.w800,
       ),
     );
@@ -486,17 +484,17 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
   Widget _errorState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Iconsax.warning_2, color: AppColors.error, size: 30),
-            const SizedBox(height: 10),
+            Icon(Iconsax.warning_2, color: AppColors.error, size: 30.r),
+            SizedBox(height: 10.r),
             const Text('Unable to load member details'),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.r),
             TextButton.icon(
               onPressed: _loadMember,
-              icon: const Icon(Iconsax.refresh, size: 16),
+              icon: Icon(Iconsax.refresh, size: 16.r),
               label: const Text('Try again'),
             ),
           ],

@@ -9,9 +9,11 @@ import 'package:iconsax/iconsax.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/error/app_exception.dart';
 import '../../organization/controllers/organization_repository.dart';
 import '../controllers/auth_cubit.dart';
 import '../controllers/auth_state.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -31,25 +33,89 @@ class _OnboardingPageState extends State<OnboardingPage> {
           await context.read<OrganizationRepository>().getMyOrganizations();
       if (!mounted) return;
       if (organizations.isEmpty) {
+        await context.read<PreferencesStorage>().clearContext();
+        if (!mounted) return;
         context.go(AppRoutes.joinOrCreate);
         return;
       }
       final preferences = context.read<PreferencesStorage>();
-      if (preferences.activeOrganizationId == null ||
-          preferences.activeBranchId == null) {
+      final activeMembership =
+          _findActiveMembership(organizations, preferences);
+      if (activeMembership == null) {
+        await preferences.clearContext();
+        if (!mounted) return;
         context.go(AppRoutes.contextSwitcher);
       } else {
+        await preferences.setActiveContext(
+          organizationId: activeMembership.organizationId,
+          branchId: activeMembership.branchId,
+          organizationName: activeMembership.organizationName,
+          branchName: activeMembership.branchName,
+          branchTimezone: activeMembership.branchTimezone,
+          roleSystemKey: activeMembership.roleSystemKey,
+          permissions: activeMembership.permissions,
+        );
+        if (!mounted) return;
         context.go(AppRoutes.home);
       }
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() => _isRouting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not finish sign-in. Please try again.'),
-        ),
+        SnackBar(content: Text(_signInErrorMessage(error))),
       );
     }
+  }
+
+  _ActiveMembership? _findActiveMembership(
+    List<Map<String, dynamic>> organizations,
+    PreferencesStorage preferences,
+  ) {
+    final organizationId = preferences.activeOrganizationId;
+    final branchId = preferences.activeBranchId;
+    if (organizationId == null || branchId == null) return null;
+
+    for (final organizationEntry in organizations) {
+      final organization = organizationEntry['organization'];
+      if (organization is! Map ||
+          organization['id']?.toString() != organizationId) {
+        continue;
+      }
+      final memberships = organizationEntry['location_memberships'];
+      if (memberships is! List) continue;
+
+      for (final rawMembership in memberships) {
+        if (rawMembership is! Map) continue;
+        final location = rawMembership['location'];
+        if (location is! Map || location['id']?.toString() != branchId) {
+          continue;
+        }
+        final role = rawMembership['role'];
+        final roleMap = role is Map ? Map<String, dynamic>.from(role) : null;
+        final rawPermissions = roleMap?['permissions'];
+        return _ActiveMembership(
+          organizationId: organizationId,
+          branchId: branchId,
+          organizationName: organization['name']?.toString(),
+          branchName: location['name']?.toString(),
+          branchTimezone: location['timezone']?.toString(),
+          roleSystemKey: roleMap?['system_key']?.toString(),
+          permissions: rawPermissions is List
+              ? rawPermissions
+                  .map((permission) => permission.toString())
+                  .toList()
+              : const <String>[],
+        );
+      }
+    }
+    return null;
+  }
+
+  // Keep provider/transport details out of the login screen. The actual
+  // Google/API failure is already represented by AuthError in the login UI.
+  String _signInErrorMessage(Object error) {
+    if (error is AppException) return error.message;
+    return 'Could not load your workspaces. Please try again.';
   }
 
   @override
@@ -72,6 +138,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 }
 
+class _ActiveMembership {
+  const _ActiveMembership({
+    required this.organizationId,
+    required this.branchId,
+    this.organizationName,
+    this.branchName,
+    this.branchTimezone,
+    this.roleSystemKey,
+    required this.permissions,
+  });
+
+  final String organizationId;
+  final String branchId;
+  final String? organizationName;
+  final String? branchName;
+  final String? branchTimezone;
+  final String? roleSystemKey;
+  final List<String> permissions;
+}
+
 class _LoginContent extends StatelessWidget {
   const _LoginContent();
 
@@ -82,9 +168,9 @@ class _LoginContent extends StatelessWidget {
         builder: (context, constraints) {
           final width = constraints.maxWidth;
           final height = constraints.maxHeight;
-          final horizontalPadding = (width * .08).clamp(24.0, 48.0);
-          final logoWidth = (width * .74).clamp(240.0, 320.0);
-          final headlineSize = (width * .098).clamp(31.0, 48.0);
+          final horizontalPadding = (width * .08).clamp(24.0.r, 48.0.r);
+          final logoWidth = (width * .74).clamp(240.0.r, 320.0.r);
+          final headlineSize = (width * .098).clamp(31.0.r, 48.0.r);
           final compact = height < 700;
 
           return BlocBuilder<AuthCubit, AuthState>(
@@ -100,19 +186,19 @@ class _LoginContent extends StatelessWidget {
                 physics: const ClampingScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(
                   horizontalPadding,
-                  compact ? 22 : height * .085,
+                  compact ? 22.r : height * .085,
                   horizontalPadding,
-                  compact ? 24 : 34,
+                  compact ? 24.r : 34.r,
                 ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: math.max(0, height - (compact ? 46 : 119)),
+                    minHeight: math.max(0, height - (compact ? 46.r : 119.r)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _DailioLogo(width: logoWidth),
-                      SizedBox(height: compact ? 25 : height * .035),
+                      SizedBox(height: compact ? 25.r : height * .035),
                       Text(
                         'SMART\nATTENDANCE\nIS HERE',
                         style: TextStyle(
@@ -120,37 +206,38 @@ class _LoginContent extends StatelessWidget {
                           fontSize: headlineSize,
                           height: .99,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: -1.3,
+                          letterSpacing: (-1.3).r,
                         ),
                       ),
-                      SizedBox(height: compact ? 14 : 22),
+                      SizedBox(height: compact ? 14.r : 22.r),
                       ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 360),
+                        constraints: BoxConstraints(maxWidth: 360.r),
                         child: Text(
                           'Attendance, memberships,\nschedules, and operations\nin one clean platform.',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: .82),
-                            fontSize: (width * .048).clamp(16.0, 22.0),
+                            fontSize: (width * .048).clamp(16.0.r, 22.0.r),
                             height: 1.3,
                             fontWeight: FontWeight.w400,
-                            letterSpacing: -.25,
+                            letterSpacing: (-.25).r,
                           ),
                         ),
                       ),
                       SizedBox(
-                        height:
-                            compact ? 105 : (height * .275).clamp(145.0, 570.0),
+                        height: compact
+                            ? 105.r
+                            : (height * .275).clamp(145.0.r, 570.0.r),
                       ),
                       if (error != null) ...[
                         _LoginError(message: error),
-                        const SizedBox(height: 14),
+                        SizedBox(height: 14.r),
                       ],
                       _GoogleSignInButton(
                         loading: loading,
                         onPressed: () =>
                             context.read<AuthCubit>().signInWithGoogle(),
                       ),
-                      const SizedBox(height: 26),
+                      SizedBox(height: 26.r),
                       const _LegalCopy(),
                     ],
                   ),
@@ -260,7 +347,7 @@ class _LoginBackgroundPainter extends CustomPainter {
       final opacity = .52 - (index * .065);
       final paint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = index == 0 ? 1.35 : 1
+        ..strokeWidth = index == 0 ? 1.35.r : 1.r
         ..color =
             AppColors.brandAccent.withValues(alpha: opacity.clamp(.12, .52));
       final rect = Rect.fromCircle(center: center, radius: radius);
@@ -283,7 +370,7 @@ class _DailioLogo extends StatelessWidget {
       width: width,
       height: width * .34,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(10.r),
         child: Image.asset(
           'assets/logo.png',
           fit: BoxFit.cover,
@@ -307,36 +394,36 @@ class _GoogleSignInButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 64,
+      height: 64.r,
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(34),
+        borderRadius: BorderRadius.circular(34.r),
         child: InkWell(
           onTap: loading ? null : onPressed,
-          borderRadius: BorderRadius.circular(34),
+          borderRadius: BorderRadius.circular(34.r),
           splashColor: AppColors.brandAccent.withValues(alpha: .12),
           child: Center(
             child: loading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
+                ? SizedBox(
+                    width: 22.r,
+                    height: 22.r,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2.4,
+                      strokeWidth: 2.4.r,
                       color: Color(0xFF11151B),
                     ),
                   )
-                : const Row(
+                : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _GoogleMark(),
-                      SizedBox(width: 16),
+                      SizedBox(width: 16.r),
                       Text(
                         'Continue with Google',
                         style: TextStyle(
                           color: Color(0xFF11151B),
-                          fontSize: 17,
+                          fontSize: 17.r,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: -.2,
+                          letterSpacing: (-.2).r,
                         ),
                       ),
                     ],
@@ -364,11 +451,11 @@ class _GoogleMark extends StatelessWidget {
           Color(0xFF4285F4),
         ],
       ).createShader(bounds),
-      child: const Text(
+      child: Text(
         'G',
         style: TextStyle(
           color: Colors.white,
-          fontSize: 28,
+          fontSize: 28.r,
           fontWeight: FontWeight.w800,
           height: 1,
         ),
@@ -386,10 +473,10 @@ class _LoginError extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      padding: EdgeInsets.symmetric(horizontal: 14.r, vertical: 11.r),
       decoration: BoxDecoration(
         color: const Color(0xFF3A1518).withValues(alpha: .9),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14.r),
         border: Border.all(
           color: const Color(0xFFFF807A).withValues(alpha: .35),
         ),
@@ -397,14 +484,14 @@ class _LoginError extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Iconsax.danger, color: Color(0xFFFFA39D), size: 18),
-          const SizedBox(width: 9),
+          Icon(Iconsax.danger, color: Color(0xFFFFA39D), size: 18.r),
+          SizedBox(width: 9.r),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Color(0xFFFFD8D5),
-                fontSize: 12,
+                fontSize: 12.r,
                 height: 1.3,
               ),
             ),
@@ -423,22 +510,22 @@ class _LegalCopy extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 1),
+        Padding(
+          padding: EdgeInsets.only(top: 1.r),
           child: Icon(
             Iconsax.tick_square,
             color: Colors.white,
-            size: 22,
+            size: 22.r,
           ),
         ),
-        const SizedBox(width: 13),
+        SizedBox(width: 13.r),
         Expanded(
           child: Text.rich(
             TextSpan(
               text: 'By continuing, you agree to our ',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: .88),
-                fontSize: 14,
+                fontSize: 14.r,
                 height: 1.45,
               ),
               children: const [

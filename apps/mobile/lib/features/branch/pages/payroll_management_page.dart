@@ -14,6 +14,7 @@ import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../organization/controllers/organization_repository.dart';
 import '../controllers/payroll_repository.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class PayrollManagementPage extends StatefulWidget {
   const PayrollManagementPage({super.key});
@@ -77,8 +78,8 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18.r)),
       ),
       builder: (_) => _StructureFormSheet(
         orgId: _orgId,
@@ -130,7 +131,7 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
           children: [
             Column(
               children: [
-                const SizedBox(height: 8),
+                SizedBox(height: 8.r),
                 BranchFilterTabs(
                   selectedBranchId: _selectedFilterBranchId,
                   onChanged: (value) {
@@ -138,9 +139,9 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
                     _loadData();
                   },
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.r),
                 _buildPrimaryTabs(),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.r),
                 Expanded(
                   child: _selectedPrimaryTab == 1
                       ? _buildRunsEmpty()
@@ -156,15 +157,15 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
             ),
             if (_selectedPrimaryTab == 0)
               Positioned(
-                right: 16,
-                bottom: 16,
+                right: 16.r,
+                bottom: 16.r,
                 child: FloatingActionButton.small(
                   heroTag: 'add-salary-structure',
                   backgroundColor: const Color(0xFFCC5A00),
                   foregroundColor: Colors.white,
                   tooltip: 'Add salary structure',
                   onPressed: () => _showFormModal(),
-                  child: const Icon(Iconsax.add, size: 20),
+                  child: Icon(Iconsax.add, size: 20.r),
                 ),
               ),
           ],
@@ -195,24 +196,24 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
   }
 
   Widget _buildEmpty() {
-    return const Center(
+    return Center(
       child: Text('No salary structures yet',
-          style: TextStyle(fontSize: 14, color: Color(0xFF858585))),
+          style: TextStyle(fontSize: 14.r, color: Color(0xFF858585))),
     );
   }
 
   Widget _buildRunsEmpty() {
-    return const Center(
+    return Center(
       child: Text('No payroll runs yet',
-          style: TextStyle(fontSize: 14, color: Color(0xFF858585))),
+          style: TextStyle(fontSize: 14.r, color: Color(0xFF858585))),
     );
   }
 
   Widget _buildList() {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(0, 8, 0, 88),
+      padding: EdgeInsets.fromLTRB(0, 8.r, 0, 88.r),
       itemCount: _structures.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, indent: 66),
+      separatorBuilder: (_, __) => Divider(height: 1.r, indent: 66.r),
       itemBuilder: (context, index) {
         final structure = _structures[index];
         final earnings = _items(structure['earnings']);
@@ -236,10 +237,10 @@ class _PayrollManagementPageState extends State<PayrollManagementPage> {
         ].join(' · ');
 
         return DailioCompactTile(
-          avatar: const CircleAvatar(
-            radius: 22,
+          avatar: CircleAvatar(
+            radius: 22.r,
             backgroundColor: Color(0xFFFFF0E6),
-            child: Icon(Iconsax.wallet_2, size: 20, color: Color(0xFFCC5A00)),
+            child: Icon(Iconsax.wallet_2, size: 20.r, color: Color(0xFFCC5A00)),
           ),
           title: structure['name']?.toString() ?? 'Unnamed structure',
           titleBadge: branch,
@@ -398,21 +399,21 @@ class _StructureFormSheetState extends State<_StructureFormSheet> {
 
   InputDecoration _decoration(String hint, IconData icon) {
     final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(10.r),
       borderSide: const BorderSide(color: Color(0xFFE4E4E4)),
     );
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF929292)),
-      prefixIcon: Icon(icon, size: 17, color: const Color(0xFF929292)),
+      hintStyle: TextStyle(fontSize: 13.r, color: Color(0xFF929292)),
+      prefixIcon: Icon(icon, size: 17.r, color: const Color(0xFF929292)),
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      contentPadding: EdgeInsets.symmetric(horizontal: 14.r, vertical: 13.r),
       border: border,
       enabledBorder: border,
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFCC5A00), width: 1.4),
+        borderRadius: BorderRadius.circular(10.r),
+        borderSide: BorderSide(color: Color(0xFFCC5A00), width: 1.4.r),
       ),
     );
   }
@@ -427,23 +428,24 @@ class _StructureFormSheetState extends State<_StructureFormSheet> {
           children: [
             Text(title,
                 style: TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w800, color: color)),
+                    fontSize: 13.r, fontWeight: FontWeight.w800, color: color)),
             TextButton.icon(
               onPressed: () =>
                   setState(() => items.add({'label': '', 'amount': 0})),
-              icon: Icon(Iconsax.add, size: 14, color: color),
-              label: Text('Add', style: TextStyle(fontSize: 12, color: color)),
+              icon: Icon(Iconsax.add, size: 14.r, color: color),
+              label:
+                  Text('Add', style: TextStyle(fontSize: 12.r, color: color)),
               style: TextButton.styleFrom(padding: EdgeInsets.zero),
             ),
           ],
         ),
         if (items.isEmpty)
-          const Text('None added',
-              style: TextStyle(fontSize: 11, color: Color(0xFF929292))),
+          Text('None added',
+              style: TextStyle(fontSize: 11.r, color: Color(0xFF929292))),
         ...List.generate(items.length, (index) {
           final item = items[index];
           return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.only(bottom: 8.r),
             child: Row(
               children: [
                 Expanded(
@@ -453,9 +455,9 @@ class _StructureFormSheetState extends State<_StructureFormSheet> {
                     onChanged: (value) => item['label'] = value,
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8.r),
                 SizedBox(
-                  width: 105,
+                  width: 105.r,
                   child: TextFormField(
                     initialValue: _asInt(item['amount']) == 0
                         ? ''
@@ -467,7 +469,7 @@ class _StructureFormSheetState extends State<_StructureFormSheet> {
                 ),
                 IconButton(
                   onPressed: () => setState(() => items.removeAt(index)),
-                  icon: const Icon(Iconsax.trash, size: 17, color: Colors.red),
+                  icon: Icon(Iconsax.trash, size: 17.r, color: Colors.red),
                   visualDensity: VisualDensity.compact,
                 ),
               ],
@@ -488,27 +490,27 @@ class _StructureFormSheetState extends State<_StructureFormSheet> {
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            padding: EdgeInsets.fromLTRB(16.r, 10.r, 16.r, 16.r),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Center(
                   child: Container(
-                    width: 34,
-                    height: 4,
+                    width: 34.r,
+                    height: 4.r,
                     decoration: BoxDecoration(
                         color: const Color(0xFFD5D5D5),
-                        borderRadius: BorderRadius.circular(99)),
+                        borderRadius: BorderRadius.circular(99.r)),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.r),
                 Text(editing ? 'Edit salary structure' : 'New salary structure',
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                const Text('Define the monthly pay and adjustments.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF858585))),
-                const SizedBox(height: 18),
+                    style:
+                        TextStyle(fontSize: 18.r, fontWeight: FontWeight.w800)),
+                SizedBox(height: 4.r),
+                Text('Define the monthly pay and adjustments.',
+                    style: TextStyle(fontSize: 12.r, color: Color(0xFF858585))),
+                SizedBox(height: 18.r),
                 if (!_isLoadingBranches) ...[
                   DailioPickerField<String>(
                     initialValue: _selectedBranchId,
@@ -522,7 +524,7 @@ class _StructureFormSheetState extends State<_StructureFormSheet> {
                     onChanged: (value) =>
                         setState(() => _selectedBranchId = value),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12.r),
                 ],
                 TextFormField(
                   initialValue: _name,
@@ -531,7 +533,7 @@ class _StructureFormSheetState extends State<_StructureFormSheet> {
                   validator: (value) =>
                       value == null || value.trim().isEmpty ? 'Required' : null,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.r),
                 TextFormField(
                   initialValue:
                       editing ? (_amount / 100).round().toString() : '',
@@ -542,15 +544,15 @@ class _StructureFormSheetState extends State<_StructureFormSheet> {
                   validator: (value) =>
                       value == null || value.trim().isEmpty ? 'Required' : null,
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18.r),
                 _buildLineItems('Earnings', _earnings, const Color(0xFF2E9D59)),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.r),
                 _buildLineItems(
                     'Deductions', _deductions, const Color(0xFFC44545)),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.r),
                 SizedBox(
                   width: double.infinity,
-                  height: 46,
+                  height: 46.r,
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _submit,
                     style: ElevatedButton.styleFrom(
@@ -558,14 +560,14 @@ class _StructureFormSheetState extends State<_StructureFormSheet> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10.r)),
                     ),
                     child: _isSaving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
+                        ? SizedBox(
+                            width: 18.r,
+                            height: 18.r,
                             child: CircularProgressIndicator(
-                                color: Colors.white, strokeWidth: 2))
+                                color: Colors.white, strokeWidth: 2.r))
                         : Text(editing ? 'Save changes' : 'Create structure'),
                   ),
                 ),

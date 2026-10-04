@@ -16,7 +16,12 @@ function loadGoogleIdentityScript() {
       "script[data-google-identity]",
     );
     const script = existing ?? document.createElement("script");
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Google sign-in took too long to load."));
+    }, 15000);
     const cleanup = () => {
+      window.clearTimeout(timeout);
       script.removeEventListener("load", onLoad);
       script.removeEventListener("error", onError);
     };
@@ -63,6 +68,7 @@ export function AuthPage({
     let cancelled = false;
     async function render() {
       if (!clientId || !buttonRef.current) {
+        if (!clientId) setGoogleUnavailable(true);
         setGoogleLoading(false);
         return;
       }
@@ -156,7 +162,9 @@ export function AuthPage({
           {googleUnavailable && (
             <div className="mt-4 space-y-2 text-center">
               <p className="text-sm text-red-200">
-                Google sign-in could not load. Check the connection and refresh.
+                {clientId
+                  ? "Google sign-in could not load. Check the connection and refresh."
+                  : "Google sign-in is not configured. Set VITE_GOOGLE_CLIENT_ID in the web environment."}
               </p>
               <button
                 className="rounded-full border border-white/40 px-5 py-2 text-sm font-semibold text-white"

@@ -1,12 +1,14 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:injectable/injectable.dart';
 
 import 'auth_repository.dart';
 import 'auth_state.dart';
 import '../../../core/notifications/notification_runtime.dart';
+import '../../../core/error/app_exception.dart';
 
 @injectable
 class AuthCubit extends Cubit<AuthState> {
@@ -60,15 +62,21 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> signInWithGoogle() async {
     emit(const AuthLoading());
     try {
+      final serverClientId = dotenv.env['GOOGLE_SERVER_CLIENT_ID']?.trim();
+      if (serverClientId == null || serverClientId.isEmpty) {
+        throw const AppException(
+          code: 'GOOGLE_NOT_CONFIGURED',
+          message: 'Google sign-in is not configured for this build.',
+        );
+      }
+
       final googleSignIn = GoogleSignIn(
-        serverClientId: dotenv.env['GOOGLE_SERVER_CLIENT_ID'],
+        serverClientId: serverClientId,
       );
 
-      // Google Sign-In otherwise restores the last selected account without
-      // showing the account chooser. Sign out only from the Google picker so
-      // every login attempt can intentionally choose a different account.
-      // This does not sign the user out of Dailio or revoke Google access.
-      await googleSignIn.signOut();
+      // Keep Google's native session intact. Signing out on every attempt
+      // made authentication unreliable on some devices and defeated session
+      // persistence. Account switching can still be done through Google.
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         emit(const AuthUnauthenticated()); // User canceled
@@ -101,7 +109,7 @@ class AuthCubit extends Cubit<AuthState> {
         emit(const AuthError('Account is not active.'));
       }
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError(googleSignInErrorMessage(e)));
     }
   }
 
@@ -125,7 +133,8 @@ class AuthCubit extends Cubit<AuthState> {
       );
       emit(AuthAuthenticated(updated));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError(accountErrorMessage(
+          e, 'Could not update your profile. Please try again.')));
     }
   }
 
@@ -135,7 +144,8 @@ class AuthCubit extends Cubit<AuthState> {
       await _repository.deleteAccount();
       emit(const AuthUnauthenticated());
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError(accountErrorMessage(
+          e, 'Could not delete your account. Please try again.')));
     }
   }
 
@@ -150,4 +160,21 @@ class AuthCubit extends Cubit<AuthState> {
       emit(const AuthUnauthenticated());
     }
   }
+}
+
+String googleSignInErrorMessage(Object error) {
+  if (error is AppException) return error.message;
+  if (error is PlatformException) {
+    final message = error.message?.trim();
+    if (error.code == 'sign_in_failed' &&
+        (message == '10' || message?.contains('10') == true)) {
+      return 'Google sign-in is not configured for this Android build. Register the app package and signing SHA-1, then rebuild.';
+    }
+  }
+  return 'Google sign-in failed. Check your connection and try again.';
+}
+
+String accountErrorMessage(Object error, String fallback) {
+  if (error is AppException) return error.message;
+  return fallback;
 }

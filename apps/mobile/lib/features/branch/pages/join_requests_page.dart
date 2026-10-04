@@ -13,6 +13,7 @@ import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/admission_repository.dart';
 import '../models/join_request_model.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class JoinRequestsPage extends StatefulWidget {
   const JoinRequestsPage({super.key});
@@ -166,21 +167,21 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
 
   Widget _buildSummary() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 8.r),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Join requests',
                     style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 18.r,
                         fontWeight: FontWeight.w800,
                         color: AppColors.brandDark)),
-                SizedBox(height: 3),
+                SizedBox(height: 3.r),
                 Text('Review people waiting to join this branch.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF858585))),
+                    style: TextStyle(fontSize: 12.r, color: Color(0xFF858585))),
               ],
             ),
           ),
@@ -203,8 +204,8 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
         onRefresh: _loadRequests,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 130),
+          children: [
+            SizedBox(height: 130.r),
             _EmptyJoinRequestsState(),
           ],
         ),
@@ -214,9 +215,9 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
     return RefreshIndicator(
       onRefresh: _loadRequests,
       child: ListView.separated(
-        padding: const EdgeInsets.only(top: 8, bottom: 28),
+        padding: EdgeInsets.only(top: 8.r, bottom: 28.r),
         itemCount: _requests.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        separatorBuilder: (_, __) => SizedBox(height: 8.r),
         itemBuilder: (context, index) {
           final request = _requests[index];
           final displayName = request.user?.name.trim() ?? '';
@@ -282,16 +283,16 @@ class _CountBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 9.r, vertical: 5.r),
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(7.r),
       ),
       child: Text(
         '$count pending',
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.warning,
-          fontSize: 10,
+          fontSize: 10.r,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -312,27 +313,27 @@ class _RequestAvatar extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         CircleAvatar(
-          radius: 23,
+          radius: 23.r,
           backgroundColor: const Color(0xFFFFF7ED),
           foregroundColor: AppColors.brandAccent,
           child: Text(initial,
               style: const TextStyle(fontWeight: FontWeight.w700)),
         ),
         Positioned(
-          right: -1,
-          bottom: -1,
+          right: (-1).r,
+          bottom: (-1).r,
           child: Container(
-            width: 15,
-            height: 15,
+            width: 15.r,
+            height: 15.r,
             decoration: BoxDecoration(
               color: isUpdating ? AppColors.warning : AppColors.brandAccent,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(color: Colors.white, width: 2.r),
             ),
             child: Icon(
               isUpdating ? Iconsax.refresh : Iconsax.clock,
               color: Colors.white,
-              size: 8,
+              size: 8.r,
             ),
           ),
         ),
@@ -348,13 +349,13 @@ class _EmptyJoinRequestsState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(Iconsax.user_search, size: 42, color: Colors.grey.shade400),
-        const SizedBox(height: 12),
-        const Text('No pending requests',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 5),
+        Icon(Iconsax.user_search, size: 42.r, color: Colors.grey.shade400),
+        SizedBox(height: 12.r),
+        Text('No pending requests',
+            style: TextStyle(fontSize: 16.r, fontWeight: FontWeight.w700)),
+        SizedBox(height: 5.r),
         Text('New member requests will appear here.',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            style: TextStyle(fontSize: 12.r, color: Colors.grey.shade600)),
       ],
     );
   }
@@ -370,19 +371,18 @@ class _ErrorState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Iconsax.warning_2, size: 42, color: Colors.grey.shade500),
-            const SizedBox(height: 12),
+            Icon(Iconsax.warning_2, size: 42.r, color: Colors.grey.shade500),
+            SizedBox(height: 12.r),
             Text(message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13)),
-            const SizedBox(height: 14),
+                textAlign: TextAlign.center, style: TextStyle(fontSize: 13.r)),
+            SizedBox(height: 14.r),
             OutlinedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Iconsax.refresh, size: 16),
+              icon: Icon(Iconsax.refresh, size: 16.r),
               label: const Text('Try again'),
             ),
           ],

@@ -11,6 +11,7 @@ import '../../features/announcements/pages/announcements_page.dart';
 import '../../features/fees/pages/fees_page.dart';
 import '../../features/payments/pages/payments_page.dart';
 import '../../features/settings/pages/settings_page.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -93,19 +94,19 @@ class _AppShellState extends State<AppShell> {
       floatingActionButton: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          padding: EdgeInsets.fromLTRB(24.r, 0, 24.r, 16.r),
           child: Container(
-            height: 58,
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            height: 58.r,
+            padding: EdgeInsets.symmetric(horizontal: 6.r, vertical: 6.r),
             decoration: BoxDecoration(
               color: Colors.white,
-              border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
-              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: const Color(0xFFE5E7EB), width: 1.r),
+              borderRadius: BorderRadius.circular(30.r),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
+                  blurRadius: 24.r,
+                  offset: Offset(0, 10.r),
                 ),
               ],
             ),
@@ -158,14 +159,14 @@ class _BottomNavButton extends StatelessWidget {
       child: Tooltip(
         message: label,
         child: InkWell(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(24.r),
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            height: 46,
+            height: 46.r,
             decoration: BoxDecoration(
               color: isActive ? const Color(0xFFFFF1E6) : Colors.transparent,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(24.r),
             ),
             child: Center(
               child: Stack(
@@ -173,28 +174,28 @@ class _BottomNavButton extends StatelessWidget {
                 children: [
                   Icon(
                     isActive ? activeIcon : icon,
-                    size: isActive ? 22 : 20,
+                    size: isActive ? 22.r : 20.r,
                     color: color,
                   ),
                   if (badge != null && badge! > 0)
                     Positioned(
-                      top: -8,
-                      right: -11,
+                      top: (-8).r,
+                      right: (-11).r,
                       child: Container(
-                        constraints: const BoxConstraints(minWidth: 16),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 2),
+                        constraints: BoxConstraints(minWidth: 16.r),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 4.r, vertical: 2.r),
                         decoration: BoxDecoration(
                           color: const Color(0xFFDC2626),
-                          borderRadius: BorderRadius.circular(9),
-                          border: Border.all(color: Colors.white, width: 1.5),
+                          borderRadius: BorderRadius.circular(9.r),
+                          border: Border.all(color: Colors.white, width: 1.5.r),
                         ),
                         child: Text(
                           badge! > 99 ? '99+' : '$badge',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: Colors.white,
-                              fontSize: 9,
+                              fontSize: 9.r,
                               fontWeight: FontWeight.w700),
                         ),
                       ),

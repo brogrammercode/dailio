@@ -10,6 +10,7 @@ import '../../../core/widgets/dailio_compact_tile.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/organization_repository.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ManageBranchesPage extends StatefulWidget {
   const ManageBranchesPage({super.key});
@@ -91,12 +92,12 @@ class _ManageBranchesPageState extends State<ManageBranchesPage> {
         ),
       ),
       bottomSheet: Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        padding: EdgeInsets.fromLTRB(24.r, 16.r, 24.r, 32.r),
         decoration: BoxDecoration(color: Colors.white, boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -4),
+            blurRadius: 10.r,
+            offset: Offset(0, (-4).r),
           )
         ]),
         child: ElevatedButton(
@@ -107,18 +108,19 @@ class _ManageBranchesPageState extends State<ManageBranchesPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.orange.shade800,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: EdgeInsets.symmetric(vertical: 16.r),
             minimumSize: const Size(double.infinity, 0),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r)),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text('Create New Branch',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              SizedBox(width: 8),
-              Icon(Iconsax.add_square, size: 20),
+                  style:
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 16.r)),
+              SizedBox(width: 8.r),
+              Icon(Iconsax.add_square, size: 20.r),
             ],
           ),
         ),
@@ -130,29 +132,29 @@ class _ManageBranchesPageState extends State<ManageBranchesPage> {
   // ignore: unused_element
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      padding: EdgeInsets.fromLTRB(24.r, 16.r, 24.r, 16.r),
       child: Row(
         children: [
           Container(
             decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8.r)),
             child: IconButton(
-                icon: const Icon(Iconsax.arrow_left, size: 20),
+                icon: Icon(Iconsax.arrow_left, size: 20.r),
                 onPressed: () => context.pop(),
-                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                constraints: BoxConstraints(minWidth: 40.r, minHeight: 40.r),
                 padding: EdgeInsets.zero),
           ),
-          const SizedBox(width: 16),
-          const Expanded(
+          SizedBox(width: 16.r),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Manage Branches',
                     style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        TextStyle(fontSize: 20.r, fontWeight: FontWeight.bold)),
                 Text('View and edit your organization locations',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    style: TextStyle(fontSize: 12.r, color: Colors.grey)),
               ],
             ),
           ),
@@ -164,19 +166,19 @@ class _ManageBranchesPageState extends State<ManageBranchesPage> {
   Widget _buildError() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Iconsax.warning_2, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
-            const Text('Failed to load branches',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            Icon(Iconsax.warning_2, size: 48.r, color: Colors.red),
+            SizedBox(height: 16.r),
+            Text('Failed to load branches',
+                style: TextStyle(fontSize: 16.r, fontWeight: FontWeight.bold)),
+            SizedBox(height: 8.r),
             Text(_error ?? 'Unknown error',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.grey)),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.r),
             ElevatedButton(
               onPressed: _loadBranches,
               style: ElevatedButton.styleFrom(
@@ -191,14 +193,14 @@ class _ManageBranchesPageState extends State<ManageBranchesPage> {
 
   Widget _buildBranchList() {
     if (_branches.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Iconsax.shop, size: 48, color: Colors.grey),
-            SizedBox(height: 16),
+            Icon(Iconsax.shop, size: 48.r, color: Colors.grey),
+            SizedBox(height: 16.r),
             Text('No branches found',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: TextStyle(fontSize: 16.r, fontWeight: FontWeight.bold)),
             Text('Add a new branch to get started.',
                 style: TextStyle(color: Colors.grey)),
           ],
@@ -210,9 +212,9 @@ class _ManageBranchesPageState extends State<ManageBranchesPage> {
       onRefresh: _loadBranches,
       color: Colors.orange,
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+        padding: EdgeInsets.fromLTRB(16.r, 8.r, 16.r, 120.r),
         itemCount: _branches.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 4),
+        separatorBuilder: (_, __) => SizedBox(height: 4.r),
         itemBuilder: (context, index) {
           final branch = _branches[index];
           final branchId = branch['id']?.toString() ?? '';
@@ -229,9 +231,9 @@ class _ManageBranchesPageState extends State<ManageBranchesPage> {
 
           return DailioCompactTile(
             avatar: CircleAvatar(
-              radius: 22,
+              radius: 22.r,
               backgroundColor: Colors.orange.shade50,
-              child: const Icon(Iconsax.shop, color: Colors.orange, size: 20),
+              child: Icon(Iconsax.shop, color: Colors.orange, size: 20.r),
             ),
             title: branch['name']?.toString() ?? 'Unnamed Branch',
             titleBadge: isPrimary ? 'Current' : 'Branch',

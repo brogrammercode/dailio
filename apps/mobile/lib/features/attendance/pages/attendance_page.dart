@@ -27,6 +27,7 @@ import '../../branch/controllers/members_repository.dart';
 import '../../organization/controllers/organization_repository.dart';
 import 'attendance_detail_page.dart';
 import 'self_attendance_page.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AttendancePage extends StatefulWidget {
   const AttendancePage({super.key});
@@ -299,7 +300,7 @@ class _AttendancePageState extends State<AttendancePage>
           if (value == 'export') _exportAttendance();
         },
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(44),
+          preferredSize: Size.fromHeight(44.r),
           child: AnimatedBuilder(
             animation: _tabController,
             builder: (context, _) => DailioTabStrip<String>(
@@ -343,19 +344,19 @@ class _AttendancePageState extends State<AttendancePage>
                                   child: ListView.separated(
                                     physics:
                                         const AlwaysScrollableScrollPhysics(),
-                                    padding: const EdgeInsets.only(
-                                      top: 12,
-                                      bottom: 92,
+                                    padding: EdgeInsets.only(
+                                      top: 12.r,
+                                      bottom: 92.r,
                                     ),
                                     itemCount: _sessions.length +
                                         (_isLoadingMore ? 1 : 0),
                                     separatorBuilder: (_, __) =>
-                                        const SizedBox(height: 8),
+                                        SizedBox(height: 8.r),
                                     itemBuilder: (context, index) {
                                       if (index >= _sessions.length) {
-                                        return const Center(
+                                        return Center(
                                           child: Padding(
-                                            padding: EdgeInsets.all(12),
+                                            padding: EdgeInsets.all(12.r),
                                             child: CircularProgressIndicator(),
                                           ),
                                         );
@@ -373,7 +374,7 @@ class _AttendancePageState extends State<AttendancePage>
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 78),
+        padding: EdgeInsets.only(bottom: 78.r),
         child: FloatingActionButton(
           heroTag: 'self_attendance_fab',
           tooltip: 'Self attendance',
@@ -382,7 +383,7 @@ class _AttendancePageState extends State<AttendancePage>
           shape: const CircleBorder(),
           onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SelfAttendancePage())),
-          child: const Icon(Iconsax.finger_scan, size: 27),
+          child: Icon(Iconsax.finger_scan, size: 27.r),
         ),
       ),
     );
@@ -554,11 +555,11 @@ class _AttendancePageState extends State<AttendancePage>
         child: Ink(
           color: Colors.white,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+            padding: EdgeInsets.fromLTRB(16.r, 10.r, 8.r, 10.r),
             child: Row(
               children: [
                 _buildAttendanceAvatar(session, statusColor, statusIcon),
-                const SizedBox(width: 10),
+                SizedBox(width: 10.r),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -569,20 +570,21 @@ class _AttendancePageState extends State<AttendancePage>
                             child: Text(session.memberName ?? 'You',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w700, fontSize: 14)),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14.r)),
                           ),
                           if (roleLabel != null) ...[
-                            const SizedBox(width: 7),
+                            SizedBox(width: 7.r),
                             Flexible(child: _buildRoleBadge(roleLabel)),
                           ],
                         ],
                       ),
-                      const SizedBox(height: 3),
+                      SizedBox(height: 3.r),
                       Row(
                         children: [
-                          Icon(statusIcon, size: 13, color: statusColor),
-                          const SizedBox(width: 5),
+                          Icon(statusIcon, size: 13.r, color: statusColor),
+                          SizedBox(width: 5.r),
                           Flexible(
                             child: Text(
                               '$eventLabel ${DateFormat('hh:mm a').format(eventTime)}',
@@ -590,19 +592,19 @@ class _AttendancePageState extends State<AttendancePage>
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                   color: statusColor,
-                                  fontSize: 12,
+                                  fontSize: 12.r,
                                   fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2.r),
                       Text(
                           '$dateLabel  •  $statusLabel  •  ${session.durationLabel}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: AttendanceUi.muted, fontSize: 10)),
+                          style: TextStyle(
+                              color: AttendanceUi.muted, fontSize: 10.r)),
                     ],
                   ),
                 ),
@@ -642,18 +644,18 @@ class _AttendancePageState extends State<AttendancePage>
 
   Widget _buildRoleBadge(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 7.r, vertical: 3.r),
       decoration: BoxDecoration(
         color: AttendanceUi.accentTint,
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(5.r),
       ),
       child: Text(
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
+        style: TextStyle(
           color: AttendanceUi.accent,
-          fontSize: 9,
+          fontSize: 9.r,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -670,30 +672,30 @@ class _AttendancePageState extends State<AttendancePage>
       clipBehavior: Clip.none,
       children: [
         CircleAvatar(
-          radius: 25,
+          radius: 25.r,
           backgroundColor: AttendanceUi.accentTint,
           backgroundImage:
               image == null || image.isEmpty ? null : NetworkImage(image),
           child: image == null || image.isEmpty
               ? Text(initials,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AttendanceUi.accent,
-                      fontSize: 16,
+                      fontSize: 16.r,
                       fontWeight: FontWeight.bold))
               : null,
         ),
         Positioned(
-          right: -2,
-          bottom: -2,
+          right: (-2).r,
+          bottom: (-2).r,
           child: Container(
-            width: 18,
-            height: 18,
+            width: 18.r,
+            height: 18.r,
             decoration: BoxDecoration(
               color: statusColor,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(color: Colors.white, width: 2.r),
             ),
-            child: Icon(statusIcon, size: 9, color: Colors.white),
+            child: Icon(statusIcon, size: 9.r, color: Colors.white),
           ),
         ),
       ],
@@ -719,11 +721,11 @@ class _AttendancePageState extends State<AttendancePage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Iconsax.document_text_1,
-                        size: 48, color: Colors.grey.shade400),
-                    const SizedBox(height: 16),
+                        size: 48.r, color: Colors.grey.shade400),
+                    SizedBox(height: 16.r),
                     Text('No attendance records found',
                         style: TextStyle(
-                            color: Colors.grey.shade600, fontSize: 14)),
+                            color: Colors.grey.shade600, fontSize: 14.r)),
                   ],
                 ),
               ),
@@ -850,10 +852,13 @@ class _CorrectionModalState extends State<_CorrectionModal> {
     final mq = MediaQuery.of(context);
     return Container(
       padding: EdgeInsets.only(
-          left: 24, right: 24, top: 24, bottom: mq.viewInsets.bottom + 24),
-      decoration: const BoxDecoration(
+          left: 24.r,
+          right: 24.r,
+          top: 24.r,
+          bottom: mq.viewInsets.bottom + 24.r),
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -862,14 +867,15 @@ class _CorrectionModalState extends State<_CorrectionModal> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Correct Attendance',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Correct Attendance',
+                  style:
+                      TextStyle(fontSize: 18.r, fontWeight: FontWeight.bold)),
               IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close)),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.r),
           Row(
             children: [
               Expanded(
@@ -879,13 +885,13 @@ class _CorrectionModalState extends State<_CorrectionModal> {
                     decoration: InputDecoration(
                       labelText: 'Clock In',
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12.r)),
                     ),
                     child: Text(_clockInTime?.format(context) ?? '--:--'),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.r),
               Expanded(
                 child: InkWell(
                   onTap: () => _pickTime(false),
@@ -893,7 +899,7 @@ class _CorrectionModalState extends State<_CorrectionModal> {
                     decoration: InputDecoration(
                       labelText: 'Clock Out',
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12.r)),
                     ),
                     child: Text(_clockOutTime?.format(context) ?? '--:--'),
                   ),
@@ -901,13 +907,13 @@ class _CorrectionModalState extends State<_CorrectionModal> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.r),
           DailioPickerField<String>(
             initialValue: _status,
             decoration: InputDecoration(
               labelText: 'Status',
               border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
             ),
             items: const [
               'PRESENT',
@@ -922,7 +928,7 @@ class _CorrectionModalState extends State<_CorrectionModal> {
               if (val != null) setState(() => _status = val);
             },
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.r),
           TextField(
             controller: _reasonCtrl,
             maxLines: 2,
@@ -930,25 +936,25 @@ class _CorrectionModalState extends State<_CorrectionModal> {
               labelText: 'Correction Reason*',
               hintText: 'e.g. Forgot to clock out, network issue',
               border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24.r),
           ElevatedButton(
             onPressed: _isLoading ? null : _submit,
             style: ElevatedButton.styleFrom(
               backgroundColor: AttendanceUi.accent,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: EdgeInsets.symmetric(vertical: 16.r),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12.r)),
             ),
             child: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
+                ? SizedBox(
+                    width: 20.r,
+                    height: 20.r,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2))
+                        color: Colors.white, strokeWidth: 2.r))
                 : const Text('Save Changes',
                     style: TextStyle(fontWeight: FontWeight.bold)),
           ),
@@ -1076,10 +1082,10 @@ class _ManualRecordModalState extends State<_ManualRecordModal> {
   Widget build(BuildContext context) {
     final inset = MediaQuery.of(context).viewInsets.bottom;
     return Container(
-      padding: EdgeInsets.fromLTRB(24, 24, 24, inset + 24),
-      decoration: const BoxDecoration(
+      padding: EdgeInsets.fromLTRB(24.r, 24.r, 24.r, inset + 24.r),
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -1089,28 +1095,28 @@ class _ManualRecordModalState extends State<_ManualRecordModal> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Add manual attendance',
+                Text('Add manual attendance',
                     style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        TextStyle(fontSize: 18.r, fontWeight: FontWeight.bold)),
                 IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close)),
               ],
             ),
-            const Text(
+            Text(
               'This creates an ADMIN/MANUAL record and requires an audit reason. The server still enforces policy and one open session per member.',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(color: Colors.grey, fontSize: 12.r),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4.r),
             Text('Times use branch timezone: ${widget.branchTimezone}',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-            const SizedBox(height: 16),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12.r)),
+            SizedBox(height: 16.r),
             DailioPickerField<String>(
               initialValue: _memberId,
               decoration: InputDecoration(
                 labelText: 'Member',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r)),
               ),
               items: widget.members
                   .map((member) => DropdownMenuItem<String>(
@@ -1124,7 +1130,7 @@ class _ManualRecordModalState extends State<_ManualRecordModal> {
                       if (value != null) setState(() => _memberId = value);
                     },
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             _dateTimeField(
                 'Clock in', _clockIn, () => _pickDateTime(clockOut: false)),
             SwitchListTile(
@@ -1138,25 +1144,25 @@ class _ManualRecordModalState extends State<_ManualRecordModal> {
             if (_recordClockOut)
               _dateTimeField(
                   'Clock out', _clockOut, () => _pickDateTime(clockOut: true)),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             TextField(
               controller: _reasonCtrl,
               maxLines: 2,
               decoration: InputDecoration(
                 labelText: 'Reason*',
                 hintText: 'e.g. Member forgot to punch at the gate',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r)),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20.r),
             FilledButton(
               onPressed: _isLoading ? null : _submit,
               child: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                  ? SizedBox(
+                      width: 20.r,
+                      height: 20.r,
+                      child: CircularProgressIndicator(strokeWidth: 2.r),
                     )
                   : const Text('Create manual record'),
             ),
@@ -1172,7 +1178,7 @@ class _ManualRecordModalState extends State<_ManualRecordModal> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
         ),
         child: Text(value == null
             ? 'Select date and time'

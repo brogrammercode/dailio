@@ -10,6 +10,7 @@ import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../organization/controllers/organization_repository.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ContextSwitcherPage extends StatefulWidget {
   const ContextSwitcherPage({super.key});
@@ -106,14 +107,14 @@ class _ContextSwitcherPageState extends State<ContextSwitcherPage> {
 
   Widget _buildList() {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
+      padding: EdgeInsets.fromLTRB(16.r, 18.r, 16.r, 32.r),
       children: [
-        const Text('Choose a workspace',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 5),
-        const Text('Select the organization and branch you want to use.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF858585))),
-        const SizedBox(height: 22),
+        Text('Choose a workspace',
+            style: TextStyle(fontSize: 22.r, fontWeight: FontWeight.w800)),
+        SizedBox(height: 5.r),
+        Text('Select the organization and branch you want to use.',
+            style: TextStyle(fontSize: 13.r, color: Color(0xFF858585))),
+        SizedBox(height: 22.r),
         ..._memberships.expand((membership) {
           final organization =
               Map<String, dynamic>.from(membership['organization'] as Map);
@@ -133,16 +134,15 @@ class _ContextSwitcherPageState extends State<ContextSwitcherPage> {
                     title: branch['name']?.toString() ?? 'Branch',
                     subtitle:
                         '${branch['address']?.toString() ?? 'No address'} · $role',
-                    trailing: const Icon(Iconsax.arrow_right_3,
-                        size: 17, color: Color(0xFF9A9A9A)),
+                    trailing: Icon(Iconsax.arrow_right_3,
+                        size: 17.r, color: Color(0xFF9A9A9A)),
                     onTap: () => _selectContext(organization, item),
                   ),
-                  if (entry.key != branches.length - 1)
-                    const Divider(height: 1),
+                  if (entry.key != branches.length - 1) Divider(height: 1.r),
                 ],
               );
             }),
-            const SizedBox(height: 18),
+            SizedBox(height: 18.r),
           ];
         }),
         DailioOnboardingButton(

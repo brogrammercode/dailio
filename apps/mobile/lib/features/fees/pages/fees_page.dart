@@ -18,6 +18,7 @@ import '../controllers/fees_repository.dart';
 import '../models/fee_models.dart';
 import '../../payments/pages/payment_detail_page.dart';
 import 'member_subscription_detail_page.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class FeesPage extends StatefulWidget {
   const FeesPage({super.key});
@@ -119,7 +120,7 @@ class _FeesPageState extends State<FeesPage> {
                     : RefreshIndicator(
                         onRefresh: _load,
                         child: ListView(
-                          padding: const EdgeInsets.only(top: 12, bottom: 100),
+                          padding: EdgeInsets.only(top: 12.r, bottom: 100.r),
                           children: [
                             if (canReadAll) ...[
                               if (_visibleCards.isEmpty)
@@ -132,10 +133,10 @@ class _FeesPageState extends State<FeesPage> {
                               else
                                 _buildCard(_visibleCards.first),
                               if (!_hasCurrentCoverage) ...[
-                                const SizedBox(height: 4),
+                                SizedBox(height: 4.r),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16),
+                                  padding:
+                                      EdgeInsets.symmetric(horizontal: 16.r),
                                   child: _buildBuyPlanButton(),
                                 ),
                               ],
@@ -149,7 +150,7 @@ class _FeesPageState extends State<FeesPage> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: (canReadAll || !_hasCurrentCoverage)
           ? Padding(
-              padding: const EdgeInsets.only(bottom: 78),
+              padding: EdgeInsets.only(bottom: 78.r),
               child: FloatingActionButton(
                 heroTag: 'buy_plan_fab',
                 tooltip: 'Buy plan',
@@ -157,7 +158,7 @@ class _FeesPageState extends State<FeesPage> {
                 foregroundColor: Colors.white,
                 shape: const CircleBorder(),
                 onPressed: () => context.push(AppRoutes.buyPlan),
-                child: const Icon(Iconsax.medal_star, size: 27),
+                child: Icon(Iconsax.medal_star, size: 27.r),
               ),
             )
           : null,
@@ -168,27 +169,28 @@ class _FeesPageState extends State<FeesPage> {
     for (var index = 0; index < _visibleCards.length; index++) {
       yield _buildCard(_visibleCards[index]);
       if (index < _visibleCards.length - 1) {
-        yield const SizedBox(height: 8);
+        yield SizedBox(height: 8.r);
       }
     }
   }
 
   // ignore: unused_element
   Widget _buildMemberHeader() => Container(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(18.r),
         decoration: BoxDecoration(
           color: Colors.indigo.shade50,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
         ),
         child: Row(children: [
-          Icon(Iconsax.wallet, color: Colors.indigo.shade700, size: 30),
-          const SizedBox(width: 12),
-          const Expanded(
+          Icon(Iconsax.wallet, color: Colors.indigo.shade700, size: 30.r),
+          SizedBox(width: 12.r),
+          Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Your plan',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
+                  style:
+                      TextStyle(fontSize: 18.r, fontWeight: FontWeight.bold)),
+              SizedBox(height: 4.r),
               Text('View your coverage, balance, and payment status.'),
             ]),
           ),
@@ -211,10 +213,10 @@ class _FeesPageState extends State<FeesPage> {
         state: _cards.where((card) => card.status == state).length
     };
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(14.r),
           border: Border.all(color: Colors.grey.shade200)),
       child: Row(children: [
         Expanded(child: _metric('Paid', counts['PAID'] ?? 0, Colors.green)),
@@ -244,14 +246,14 @@ class _FeesPageState extends State<FeesPage> {
   Widget _metric(String label, int value, Color color) => Column(children: [
         Text(label,
             style: TextStyle(
-                fontSize: 11, color: color, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 4),
+                fontSize: 11.r, color: color, fontWeight: FontWeight.w700)),
+        SizedBox(height: 4.r),
         Text('$value',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 20.r, fontWeight: FontWeight.bold)),
       ]);
 
   Widget _divider() =>
-      Container(width: 1, height: 34, color: Colors.grey.shade200);
+      Container(width: 1.r, height: 34.r, color: Colors.grey.shade200);
 
   Widget _buildStatusTabs() => DailioTabStrip<String>(
         tabs: const [
@@ -413,13 +415,13 @@ class _FeesPageState extends State<FeesPage> {
             ? 'Expired ${card.remainingDays!.abs()} days ago'
             : '${card.remainingDays} days remaining';
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 12.r),
       elevation: 0,
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(14.r),
           side: BorderSide(color: Colors.grey.shade200)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14.r),
         onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
@@ -427,27 +429,27 @@ class _FeesPageState extends State<FeesPage> {
                     memberId: card.memberId,
                     subscriptionId: card.subscriptionId))),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: EdgeInsets.all(14.r),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               _avatar(card),
-              const SizedBox(width: 10),
+              SizedBox(width: 10.r),
               Expanded(
                   child: Text(card.memberName,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15))),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 15.r))),
               _statusBadge(card.status, color),
             ]),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.r),
             Text(card.planName ?? 'No active subscription',
-                style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
-            const SizedBox(height: 8),
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 13.r)),
+            SizedBox(height: 8.r),
             Row(children: [
               Expanded(
                   child: Text('Expiry: $endDate',
                       style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 12.r,
                           color: color,
                           fontWeight: FontWeight.w600))),
               Text('${showingPaidAmount ? 'Paid' : 'Due'}: $amount',
@@ -459,25 +461,25 @@ class _FeesPageState extends State<FeesPage> {
                               ? Colors.red.shade700
                               : Colors.green.shade700)),
             ]),
-            const SizedBox(height: 4),
+            SizedBox(height: 4.r),
             Text(urgency,
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                style: TextStyle(fontSize: 11.r, color: Colors.grey.shade600)),
             if (card.paymentDate != null || card.receiptNumber != null)
               Text(
                   'Paid: ${card.paymentDate == null ? '-' : DateFormat('dd MMM yyyy').format(card.paymentDate!.toLocal())}${card.receiptNumber == null ? '' : ' • Receipt ${card.receiptNumber}'}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  style:
+                      TextStyle(fontSize: 11.r, color: Colors.grey.shade600)),
             if (card.paidEarlierCoveringPeriod)
-              const Text(
-                  'Paid earlier; this payment covers the selected period.',
-                  style: TextStyle(fontSize: 11, color: Colors.blue)),
+              Text('Paid earlier; this payment covers the selected period.',
+                  style: TextStyle(fontSize: 11.r, color: Colors.blue)),
             if (card.pendingRequestId != null &&
                 context.read<PreferencesStorage>().canReviewPayments) ...[
-              const Divider(height: 18),
+              Divider(height: 18.r),
               Align(
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
                     onPressed: () => _reviewPayment(card.pendingRequestId!),
-                    icon: const Icon(Iconsax.task, size: 16),
+                    icon: Icon(Iconsax.task, size: 16.r),
                     label: const Text('Review payment'),
                   )),
             ],
@@ -494,7 +496,7 @@ class _FeesPageState extends State<FeesPage> {
       clipBehavior: Clip.none,
       children: [
         CircleAvatar(
-          radius: 21,
+          radius: 21.r,
           backgroundColor: AppColors.brandAccent.withValues(alpha: 0.12),
           backgroundImage:
               image == null || image.isEmpty ? null : NetworkImage(image),
@@ -509,19 +511,19 @@ class _FeesPageState extends State<FeesPage> {
               : null,
         ),
         Positioned(
-          right: -2,
-          bottom: -2,
+          right: (-2).r,
+          bottom: (-2).r,
           child: Container(
-            width: 16,
-            height: 16,
+            width: 16.r,
+            height: 16.r,
             decoration: BoxDecoration(
               color: statusColor ?? AppColors.brandAccent,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(color: Colors.white, width: 2.r),
             ),
             child: statusIcon == null
                 ? null
-                : Icon(statusIcon, size: 10, color: Colors.white),
+                : Icon(statusIcon, size: 10.r, color: Colors.white),
           ),
         ),
       ],
@@ -580,13 +582,13 @@ class _FeesPageState extends State<FeesPage> {
   }
 
   Widget _statusBadge(String status, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 5.r),
         decoration: BoxDecoration(
             color: color.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(20)),
+            borderRadius: BorderRadius.circular(20.r)),
         child: Text(status.replaceAll('_', ' '),
             style: TextStyle(
-                fontSize: 10, color: color, fontWeight: FontWeight.bold)),
+                fontSize: 10.r, color: color, fontWeight: FontWeight.bold)),
       );
 
   Color _statusColor(String status) {
@@ -610,8 +612,8 @@ class _FeesPageState extends State<FeesPage> {
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
   @override
-  Widget build(BuildContext context) => const Padding(
-      padding: EdgeInsets.all(40),
+  Widget build(BuildContext context) => Padding(
+      padding: EdgeInsets.all(40.r),
       child:
           Center(child: Text('No fee records match this period and status.')));
 }
@@ -623,12 +625,12 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
       child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24.r),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Iconsax.warning_2, color: Colors.red, size: 42),
-            const SizedBox(height: 12),
+            Icon(Iconsax.warning_2, color: Colors.red, size: 42.r),
+            SizedBox(height: 12.r),
             Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             ElevatedButton(onPressed: onRetry, child: const Text('Retry'))
           ])));
 }

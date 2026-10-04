@@ -12,6 +12,7 @@ import '../../auth/controllers/auth_state.dart';
 import '../../auth/models/user_model.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -75,8 +76,8 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _pickImage() async {
     final picked = await ImagePicker().pickImage(
       source: ImageSource.gallery,
-      maxWidth: 800,
-      maxHeight: 800,
+      maxWidth: 800.r,
+      maxHeight: 800.r,
       imageQuality: 80,
     );
     if (picked != null) {
@@ -185,10 +186,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   ListView(
                     padding: EdgeInsets.fromLTRB(
-                      24,
-                      16,
-                      24,
-                      _isDirty ? 140 : 40,
+                      24.r,
+                      16.r,
+                      24.r,
+                      _isDirty ? 140.r : 40.r,
                     ),
                     children: [
                       //  Avatar
@@ -200,18 +201,18 @@ class _ProfilePageState extends State<ProfilePage> {
                               child: Stack(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(3),
+                                    padding: EdgeInsets.all(3.r),
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       border: Border.all(
                                         color: _pickedImage != null
                                             ? Colors.orange.shade300
                                             : Colors.grey.shade200,
-                                        width: 2,
+                                        width: 2.r,
                                       ),
                                     ),
                                     child: CircleAvatar(
-                                      radius: 44,
+                                      radius: 44.r,
                                       backgroundColor: Colors.orange.shade50,
                                       backgroundImage: _pickedImage != null
                                           ? FileImage(_pickedImage!)
@@ -227,7 +228,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                                   ? user.name[0].toUpperCase()
                                                   : '?',
                                               style: TextStyle(
-                                                fontSize: 28,
+                                                fontSize: 28.r,
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors.orange.shade700,
                                               ),
@@ -239,22 +240,22 @@ class _ProfilePageState extends State<ProfilePage> {
                                     bottom: 0,
                                     right: 0,
                                     child: Container(
-                                      padding: const EdgeInsets.all(2),
+                                      padding: EdgeInsets.all(2.r),
                                       decoration: const BoxDecoration(
                                           color: Colors.white,
                                           shape: BoxShape.circle),
                                       child: CircleAvatar(
-                                        radius: 14,
+                                        radius: 14.r,
                                         backgroundColor: Colors.orange.shade700,
-                                        child: const Icon(Iconsax.camera,
-                                            size: 14, color: Colors.white),
+                                        child: Icon(Iconsax.camera,
+                                            size: 14.r, color: Colors.white),
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: 10.r),
                             TextButton(
                               onPressed: _pickImage,
                               child: Text(
@@ -262,89 +263,89 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ? 'Photo selected  tap to change'
                                     : 'Change profile photo',
                                 style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 12.r,
                                     color: Colors.orange.shade800,
                                     fontWeight: FontWeight.w600),
                               ),
                             ),
-                            const Text('JPG or PNG  Max 5 MB',
+                            Text('JPG or PNG  Max 5 MB',
                                 style: TextStyle(
-                                    fontSize: 10, color: Colors.grey)),
+                                    fontSize: 10.r, color: Colors.grey)),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24.r),
 
                       //  Google Account Badge
                       Container(
-                        padding: const EdgeInsets.all(14),
+                        padding: EdgeInsets.all(14.r),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12.r),
                           border: Border.all(color: Colors.orange.shade100),
                         ),
                         child: Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(8),
+                              padding: EdgeInsets.all(8.r),
                               decoration: BoxDecoration(
                                 color: Colors.orange.shade50,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(8.r),
                               ),
-                              child: const Icon(Iconsax.shield_tick,
-                                  color: Colors.orange, size: 18),
+                              child: Icon(Iconsax.shield_tick,
+                                  color: Colors.orange, size: 18.r),
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: 12.r),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Row(
+                                  Row(
                                     children: [
                                       Text('Google Verified Account',
                                           style: TextStyle(
-                                              fontSize: 12,
+                                              fontSize: 12.r,
                                               fontWeight: FontWeight.bold)),
-                                      SizedBox(width: 4),
+                                      SizedBox(width: 4.r),
                                       Icon(Iconsax.verify,
-                                          size: 12, color: Colors.green),
+                                          size: 12.r, color: Colors.green),
                                     ],
                                   ),
                                   Text(
                                     user?.email ?? 'No email linked',
-                                    style: const TextStyle(
-                                        fontSize: 11, color: Colors.grey),
+                                    style: TextStyle(
+                                        fontSize: 11.r, color: Colors.grey),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8.r),
                             Container(
-                              padding: const EdgeInsets.all(6),
+                              padding: EdgeInsets.all(6.r),
                               decoration: BoxDecoration(
                                 color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(6.r),
                               ),
-                              child: const Icon(Iconsax.lock,
-                                  size: 14, color: Colors.grey),
+                              child: Icon(Iconsax.lock,
+                                  size: 14.r, color: Colors.grey),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 28),
+                      SizedBox(height: 28.r),
 
                       //  Identity Fields
                       _buildSectionHeader('Identity', 'REQUIRED'),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14.r),
                       _buildFieldLabel('Full Name'),
                       _buildTextField(
                         controller: _nameCtrl,
                         hint: 'Your full name',
                         icon: Iconsax.user,
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14.r),
                       _buildFieldLabel('Phone Number'),
                       _buildTextField(
                         controller: _phoneCtrl,
@@ -356,28 +357,28 @@ class _ProfilePageState extends State<ProfilePage> {
                                 'Saved', Colors.green.shade50, Colors.green)
                             : null,
                       ),
-                      const SizedBox(height: 28),
+                      SizedBox(height: 28.r),
 
                       //  Notification Preferences
                       _buildSectionHeader('Notifications & Privacy', null),
-                      const SizedBox(height: 6),
-                      const Text(
+                      SizedBox(height: 6.r),
+                      Text(
                         'Choose which operational updates are sent to your registered devices.',
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                        style: TextStyle(fontSize: 11.r, color: Colors.grey),
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14.r),
                       _buildNotificationTile(
                         Iconsax.receipt,
                         'Punch confirmation alerts',
                         'Instant receipt on geotagged shifts',
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8.r),
                       _buildNotificationTile(
                         Iconsax.user_add,
                         'Join request alerts',
                         'Real-time alerts for new member requests',
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8.r),
                       _buildNotificationTile(
                         Iconsax.clock,
                         'Shift & schedule updates',
@@ -393,14 +394,14 @@ class _ProfilePageState extends State<ProfilePage> {
                       left: 0,
                       right: 0,
                       child: Container(
-                        padding: const EdgeInsets.fromLTRB(24, 14, 24, 28),
+                        padding: EdgeInsets.fromLTRB(24.r, 14.r, 24.r, 28.r),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.06),
-                              blurRadius: 16,
-                              offset: const Offset(0, -4),
+                              blurRadius: 16.r,
+                              offset: Offset(0, (-4).r),
                             )
                           ],
                         ),
@@ -412,31 +413,32 @@ class _ProfilePageState extends State<ProfilePage> {
                                   ? null
                                   : () => user != null ? _save(user) : null,
                               icon: _isSubmitting
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
+                                  ? SizedBox(
+                                      width: 16.r,
+                                      height: 16.r,
                                       child: CircularProgressIndicator(
-                                          strokeWidth: 2, color: Colors.white),
+                                          strokeWidth: 2.r,
+                                          color: Colors.white),
                                     )
-                                  : const Icon(Iconsax.save_2, size: 16),
+                                  : Icon(Iconsax.save_2, size: 16.r),
                               label: Text(
                                 _isSubmitting
                                     ? 'Saving...'
                                     : 'Save Profile Changes',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 13),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13.r),
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.orange.shade700,
                                 foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                padding: EdgeInsets.symmetric(vertical: 14.r),
                                 minimumSize: const Size(double.infinity, 0),
                                 shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
+                                    borderRadius: BorderRadius.circular(12.r)),
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: 8.r),
                             OutlinedButton(
                               onPressed: _isSubmitting
                                   ? null
@@ -444,19 +446,18 @@ class _ProfilePageState extends State<ProfilePage> {
                                       ? _discardChanges(user)
                                       : null,
                               style: OutlinedButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                padding: EdgeInsets.symmetric(vertical: 14.r),
                                 minimumSize: const Size(double.infinity, 0),
                                 side: BorderSide(color: Colors.grey.shade300),
                                 shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
+                                    borderRadius: BorderRadius.circular(12.r)),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Discard Changes',
                                 style: TextStyle(
                                     color: Colors.grey,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 13),
+                                    fontSize: 13.r),
                               ),
                             ),
                           ],
@@ -478,22 +479,22 @@ class _ProfilePageState extends State<ProfilePage> {
     return Row(
       children: [
         Text(title,
-            style: const TextStyle(
-                fontSize: 11,
+            style: TextStyle(
+                fontSize: 11.r,
                 fontWeight: FontWeight.bold,
                 color: Colors.grey,
-                letterSpacing: 0.3)),
+                letterSpacing: 0.3.r)),
         if (badge != null) ...[
-          const SizedBox(width: 8),
+          SizedBox(width: 8.r),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: EdgeInsets.symmetric(horizontal: 6.r, vertical: 2.r),
             decoration: BoxDecoration(
               color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(4.r),
             ),
             child: Text(badge,
                 style: TextStyle(
-                    fontSize: 9,
+                    fontSize: 9.r,
                     color: Colors.orange.shade800,
                     fontWeight: FontWeight.bold)),
           ),
@@ -504,9 +505,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildFieldLabel(String label) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 8.r),
       child: Text(label,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+          style: TextStyle(fontSize: 12.r, fontWeight: FontWeight.w500)),
     );
   }
 
@@ -520,27 +521,26 @@ class _ProfilePageState extends State<ProfilePage> {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 13),
+      style: TextStyle(fontSize: 13.r),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-        prefixIcon: Icon(icon, size: 16, color: Colors.grey),
+        hintStyle: TextStyle(fontSize: 13.r, color: Colors.grey),
+        prefixIcon: Icon(icon, size: 16.r, color: Colors.grey),
         suffixIcon: suffixWidget,
         filled: true,
         fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+        contentPadding: EdgeInsets.symmetric(vertical: 13.r, horizontal: 14.r),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: BorderSide(color: Colors.grey.shade200),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: BorderSide(color: Colors.grey.shade200),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5),
+          borderRadius: BorderRadius.circular(10.r),
+          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5.r),
         ),
       ),
     );
@@ -548,21 +548,21 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildBadge(String label, Color bg, Color fg) {
     return Padding(
-      padding: const EdgeInsets.only(right: 10),
+      padding: EdgeInsets.only(right: 10.r),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 4.r),
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.r),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Iconsax.verify, size: 10, color: fg),
-            const SizedBox(width: 4),
+            Icon(Iconsax.verify, size: 10.r, color: fg),
+            SizedBox(width: 4.r),
             Text(label,
                 style: TextStyle(
-                    fontSize: 10, color: fg, fontWeight: FontWeight.bold)),
+                    fontSize: 10.r, color: fg, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -571,39 +571,39 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildNotificationTile(IconData icon, String title, String subtitle) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 14.r, vertical: 12.r),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(8.r),
             decoration: BoxDecoration(
               color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(8.r),
             ),
-            child: Icon(icon, color: Colors.orange.shade700, size: 16),
+            child: Icon(icon, color: Colors.orange.shade700, size: 16.r),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.r),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
+                    style:
+                        TextStyle(fontSize: 12.r, fontWeight: FontWeight.w600)),
+                SizedBox(height: 2.r),
                 Text(subtitle,
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    style: TextStyle(fontSize: 10.r, color: Colors.grey),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          Icon(Iconsax.arrow_right_3, size: 14, color: Colors.grey.shade400),
+          Icon(Iconsax.arrow_right_3, size: 14.r, color: Colors.grey.shade400),
         ],
       ),
     );

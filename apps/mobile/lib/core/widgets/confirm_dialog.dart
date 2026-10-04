@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../theme/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 Future<bool> showConfirmDialog(
   BuildContext context, {
@@ -74,10 +75,10 @@ class _DailioConfirmDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      insetPadding: EdgeInsets.symmetric(horizontal: 24.r, vertical: 24.r),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+        padding: EdgeInsets.fromLTRB(18.r, 18.r, 18.r, 16.r),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,23 +87,23 @@ class _DailioConfirmDialog extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 38,
-                  height: 38,
+                  width: 38.r,
+                  height: 38.r,
                   decoration: BoxDecoration(
                     color: actionColor.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(11),
+                    borderRadius: BorderRadius.circular(11.r),
                   ),
-                  child: Icon(icon, color: actionColor, size: 19),
+                  child: Icon(icon, color: actionColor, size: 19.r),
                 ),
-                const SizedBox(width: 11),
+                SizedBox(width: 11.r),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 2),
+                    padding: EdgeInsets.only(top: 2.r),
                     child: Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.brandDark,
-                        fontSize: 16,
+                        fontSize: 16.r,
                         fontWeight: FontWeight.w800,
                         height: 1.15,
                       ),
@@ -111,16 +112,16 @@ class _DailioConfirmDialog extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 13),
+            SizedBox(height: 13.r),
             Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Color(0xFF6B6B6B),
-                fontSize: 12,
+                fontSize: 12.r,
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: 18.r),
             Row(
               children: [
                 Expanded(
@@ -129,25 +130,25 @@ class _DailioConfirmDialog extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.brandDark,
                       side: const BorderSide(color: Color(0xFFE3E3E3)),
-                      minimumSize: const Size.fromHeight(40),
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      minimumSize: Size.fromHeight(40.r),
+                      padding: EdgeInsets.symmetric(horizontal: 10.r),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10.r)),
                     ),
                     child: Text(cancelLabel),
                   ),
                 ),
-                const SizedBox(width: 9),
+                SizedBox(width: 9.r),
                 Expanded(
                   child: FilledButton(
                     onPressed: () => Navigator.of(context).pop(true),
                     style: FilledButton.styleFrom(
                       backgroundColor: actionColor,
                       foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(40),
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      minimumSize: Size.fromHeight(40.r),
+                      padding: EdgeInsets.symmetric(horizontal: 10.r),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10.r)),
                     ),
                     child: Text(confirmLabel),
                   ),
@@ -209,10 +210,10 @@ class _DailioReasonDialogState extends State<_DailioReasonDialog> {
     return Dialog(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      insetPadding: EdgeInsets.symmetric(horizontal: 24.r, vertical: 24.r),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+        padding: EdgeInsets.fromLTRB(18.r, 18.r, 18.r, 16.r),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,21 +221,21 @@ class _DailioReasonDialogState extends State<_DailioReasonDialog> {
             Row(
               children: [
                 Container(
-                  width: 38,
-                  height: 38,
+                  width: 38.r,
+                  height: 38.r,
                   decoration: BoxDecoration(
                     color: actionColor.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(11),
+                    borderRadius: BorderRadius.circular(11.r),
                   ),
-                  child: Icon(widget.icon, color: actionColor, size: 19),
+                  child: Icon(widget.icon, color: actionColor, size: 19.r),
                 ),
-                const SizedBox(width: 11),
+                SizedBox(width: 11.r),
                 Expanded(
                   child: Text(
                     widget.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.brandDark,
-                      fontSize: 16,
+                      fontSize: 16.r,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -242,12 +243,12 @@ class _DailioReasonDialogState extends State<_DailioReasonDialog> {
               ],
             ),
             if (widget.message != null) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: 12.r),
               Text(widget.message!,
-                  style: const TextStyle(
-                      color: Color(0xFF6B6B6B), fontSize: 12, height: 1.4)),
+                  style: TextStyle(
+                      color: Color(0xFF6B6B6B), fontSize: 12.r, height: 1.4)),
             ],
-            const SizedBox(height: 15),
+            SizedBox(height: 15.r),
             TextField(
               controller: _controller,
               autofocus: true,
@@ -261,19 +262,19 @@ class _DailioReasonDialogState extends State<_DailioReasonDialog> {
                 filled: true,
                 fillColor: const Color(0xFFFAFAFA),
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                    EdgeInsets.symmetric(horizontal: 12.r, vertical: 11.r),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10.r),
                     borderSide: const BorderSide(color: Color(0xFFE4E4E4))),
                 enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10.r),
                     borderSide: const BorderSide(color: Color(0xFFE4E4E4))),
                 focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: actionColor, width: 1.3)),
+                    borderRadius: BorderRadius.circular(10.r),
+                    borderSide: BorderSide(color: actionColor, width: 1.3.r)),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.r),
             Row(
               children: [
                 Expanded(
@@ -282,23 +283,23 @@ class _DailioReasonDialogState extends State<_DailioReasonDialog> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.brandDark,
                       side: const BorderSide(color: Color(0xFFE3E3E3)),
-                      minimumSize: const Size.fromHeight(40),
+                      minimumSize: Size.fromHeight(40.r),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10.r)),
                     ),
                     child: const Text('Cancel'),
                   ),
                 ),
-                const SizedBox(width: 9),
+                SizedBox(width: 9.r),
                 Expanded(
                   child: FilledButton(
                     onPressed: _submit,
                     style: FilledButton.styleFrom(
                       backgroundColor: actionColor,
                       foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(40),
+                      minimumSize: Size.fromHeight(40.r),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10.r)),
                     ),
                     child: Text(widget.confirmLabel),
                   ),

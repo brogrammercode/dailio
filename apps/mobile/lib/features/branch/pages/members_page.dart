@@ -17,6 +17,7 @@ import '../../organization/controllers/organization_repository.dart';
 import '../../organization/models/role_model.dart';
 import '../controllers/members_repository.dart';
 import '../models/member_model.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class MembersPage extends StatefulWidget {
   const MembersPage({super.key});
@@ -177,7 +178,7 @@ class _MembersPageState extends State<MembersPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildTabs(context),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.r),
                   BranchFilterTabs(
                       contentPadding: EdgeInsets.zero,
                       centered: true,
@@ -209,8 +210,8 @@ class _MembersPageState extends State<MembersPage> {
                                 : RefreshIndicator(
                                     onRefresh: _loadMembers,
                                     child: ListView.builder(
-                                      padding: const EdgeInsets.fromLTRB(
-                                          0, 0, 0, 100),
+                                      padding:
+                                          EdgeInsets.fromLTRB(0, 0, 0, 100.r),
                                       itemCount: _members.length,
                                       itemBuilder: (context, index) {
                                         return _buildMemberCard(
@@ -229,14 +230,14 @@ class _MembersPageState extends State<MembersPage> {
                 left: 0,
                 right: 0,
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                  padding: EdgeInsets.fromLTRB(24.r, 16.r, 24.r, 32.r),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
                           color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, -4))
+                          blurRadius: 10.r,
+                          offset: Offset(0, (-4).r))
                     ],
                   ),
                   child: Row(
@@ -246,31 +247,31 @@ class _MembersPageState extends State<MembersPage> {
                           onPressed: () {
                             context.push(AppRoutes.joinRequests);
                           },
-                          icon: const Icon(Iconsax.task_square, size: 16),
+                          icon: Icon(Iconsax.task_square, size: 16.r),
                           label: const Text('Review Pending',
                               style: TextStyle(fontWeight: FontWeight.bold)),
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: EdgeInsets.symmetric(vertical: 16.r),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                                borderRadius: BorderRadius.circular(12.r)),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12.r),
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
                             context.push(AppRoutes.newAdmission);
                           },
-                          icon: const Icon(Iconsax.user_add, size: 16),
+                          icon: Icon(Iconsax.user_add, size: 16.r),
                           label: const Text('+ Admission',
                               style: TextStyle(fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange.shade800,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: EdgeInsets.symmetric(vertical: 16.r),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                                borderRadius: BorderRadius.circular(12.r)),
                           ),
                         ),
                       ),
@@ -288,43 +289,43 @@ class _MembersPageState extends State<MembersPage> {
   // ignore: unused_element
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      padding: EdgeInsets.fromLTRB(24.r, 16.r, 24.r, 16.r),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8.r)),
             child: IconButton(
-              icon: const Icon(Iconsax.arrow_left, size: 20),
+              icon: Icon(Iconsax.arrow_left, size: 20.r),
               onPressed: () => context.pop(),
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              constraints: BoxConstraints(minWidth: 40.r, minHeight: 40.r),
               padding: EdgeInsets.zero,
             ),
           ),
-          const SizedBox(width: 12),
-          const Expanded(
+          SizedBox(width: 12.r),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Member Directory',
                     style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                SizedBox(height: 4),
+                        TextStyle(fontSize: 20.r, fontWeight: FontWeight.bold)),
+                SizedBox(height: 4.r),
                 Text('Search, filter, and inspect members.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    style: TextStyle(fontSize: 12.r, color: Colors.grey)),
               ],
             ),
           ),
           Container(
             decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8.r)),
             child: IconButton(
-              icon: const Icon(Iconsax.document_download, size: 20),
+              icon: Icon(Iconsax.document_download, size: 20.r),
               onPressed: () {},
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              constraints: BoxConstraints(minWidth: 40.r, minHeight: 40.r),
               padding: EdgeInsets.zero,
             ),
           ),
@@ -353,7 +354,7 @@ class _MembersPageState extends State<MembersPage> {
 
   Widget _buildSearchAndFilters() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: EdgeInsets.symmetric(vertical: 16.r),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -371,7 +372,7 @@ class _MembersPageState extends State<MembersPage> {
               centered: true,
               onChanged: _setRoleFilter,
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
           ],
           // Status Filters
           DailioTabStrip<String?>(
@@ -385,29 +386,29 @@ class _MembersPageState extends State<MembersPage> {
             centered: true,
             onChanged: _setFilter,
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14.r),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16.r),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search member by name, ID, phone...',
-                hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
-                prefixIcon: const Icon(Iconsax.search_normal_1,
-                    size: 18, color: Colors.grey),
+                hintStyle: TextStyle(fontSize: 14.r, color: Colors.grey),
+                prefixIcon: Icon(Iconsax.search_normal_1,
+                    size: 18.r, color: Colors.grey),
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                contentPadding: EdgeInsets.symmetric(vertical: 12.r),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10.r),
                     borderSide: BorderSide(color: Colors.grey.shade200)),
                 enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10.r),
                     borderSide: BorderSide(color: Colors.grey.shade200)),
                 focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide:
-                        BorderSide(color: Colors.orange.shade400, width: 1.5)),
+                    borderRadius: BorderRadius.circular(10.r),
+                    borderSide: BorderSide(
+                        color: Colors.orange.shade400, width: 1.5.r)),
               ),
             ),
           ),
@@ -422,20 +423,20 @@ class _MembersPageState extends State<MembersPage> {
     final isActive = _currentRoleId == roleId;
     return InkWell(
       onTap: () => _setRoleFilter(roleId),
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(20.r),
       child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        margin: EdgeInsets.only(right: 8.r),
+        padding: EdgeInsets.symmetric(horizontal: 14.r, vertical: 6.r),
         decoration: BoxDecoration(
           color: isActive ? Colors.black87 : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
               color: isActive ? Colors.black87 : Colors.grey.shade300),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 11.r,
             color: isActive ? Colors.white : Colors.grey.shade700,
             fontWeight: FontWeight.bold,
           ),
@@ -449,20 +450,20 @@ class _MembersPageState extends State<MembersPage> {
     final isActive = _currentStatus == status;
     return InkWell(
       onTap: () => _setFilter(status),
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(20.r),
       child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        margin: EdgeInsets.only(right: 8.r),
+        padding: EdgeInsets.symmetric(horizontal: 14.r, vertical: 6.r),
         decoration: BoxDecoration(
           color: isActive ? Colors.orange.shade800 : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
               color: isActive ? Colors.orange.shade800 : Colors.grey.shade300),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 11.r,
             color: isActive ? Colors.white : Colors.grey.shade700,
             fontWeight: FontWeight.bold,
           ),
@@ -476,11 +477,11 @@ class _MembersPageState extends State<MembersPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Iconsax.personalcard, size: 48, color: Colors.grey),
-          const SizedBox(height: 16),
-          const Text('No members found',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
+          Icon(Iconsax.personalcard, size: 48.r, color: Colors.grey),
+          SizedBox(height: 16.r),
+          Text('No members found',
+              style: TextStyle(fontSize: 18.r, fontWeight: FontWeight.bold)),
+          SizedBox(height: 8.r),
           const Text('Try adjusting your search or filters.',
               style: TextStyle(color: Colors.grey)),
         ],
@@ -498,12 +499,12 @@ class _MembersPageState extends State<MembersPage> {
     ].join(' · ');
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: EdgeInsets.only(bottom: 4.r),
       child: DailioCompactTile(
         avatar: Stack(
           children: [
             CircleAvatar(
-              radius: 22,
+              radius: 22.r,
               backgroundColor: Colors.orange.shade100,
               backgroundImage: member.avatarUrl != null
                   ? NetworkImage(member.avatarUrl!)
@@ -524,19 +525,19 @@ class _MembersPageState extends State<MembersPage> {
               bottom: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.all(2),
+                padding: EdgeInsets.all(2.r),
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
                 ),
                 child: CircleAvatar(
-                  radius: 7,
+                  radius: 7.r,
                   backgroundColor: statusColor,
                   child: Icon(
                     member.status == 'ACTIVE'
                         ? Iconsax.tick_circle
                         : Iconsax.close_circle,
-                    size: 10,
+                    size: 10.r,
                     color: Colors.white,
                   ),
                 ),

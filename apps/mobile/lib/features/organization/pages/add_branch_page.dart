@@ -12,6 +12,7 @@ import '../controllers/organization_repository.dart';
 import '../models/create_organization_models.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/network/interceptors/logging_interceptor.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AddBranchPage extends StatefulWidget {
   const AddBranchPage({super.key});
@@ -322,50 +323,50 @@ class _AddBranchPageState extends State<AddBranchPage> {
 
   Widget _buildMarkerWidget({required bool isGreen, String? label}) {
     return Transform.translate(
-      offset: const Offset(0, -16),
+      offset: Offset(0, (-16).r),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (label != null) ...[
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: EdgeInsets.symmetric(horizontal: 10.r, vertical: 6.r),
               decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
+                  borderRadius: BorderRadius.circular(20.r),
+                  boxShadow: [
                     BoxShadow(
                         color: Colors.black12,
-                        blurRadius: 6,
+                        blurRadius: 6.r,
                         offset: Offset(0, 3))
                   ]),
               child: Text(label,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: Colors.black,
-                      fontSize: 12,
+                      fontSize: 12.r,
                       fontWeight: FontWeight.bold),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6.r),
           ],
           Container(
-            width: 20,
-            height: 20,
+            width: 20.r,
+            height: 20.r,
             decoration: BoxDecoration(
                 color: isGreen ? Colors.green : Colors.black,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(color: Colors.white, width: 2.r),
                 boxShadow: [
                   BoxShadow(
                       color: (isGreen ? Colors.green : Colors.black)
                           .withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4))
+                      blurRadius: 8.r,
+                      offset: Offset(0, 4.r))
                 ]),
           ),
           Container(
-              width: 2.5,
-              height: 12,
+              width: 2.5.r,
+              height: 12.r,
               color: isGreen ? Colors.green : Colors.black),
         ],
       ),
@@ -382,13 +383,13 @@ class _AddBranchPageState extends State<AddBranchPage> {
             _buildHeader(context),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
+                padding: EdgeInsets.fromLTRB(24.r, 16.r, 24.r, 120.r),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     children: [
                       _buildBasicInfo(),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24.r),
                       _buildLocationSection(),
                     ],
                   ),
@@ -399,36 +400,36 @@ class _AddBranchPageState extends State<AddBranchPage> {
         ),
       ),
       bottomSheet: Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        padding: EdgeInsets.fromLTRB(24.r, 16.r, 24.r, 32.r),
         decoration: BoxDecoration(color: Colors.white, boxShadow: [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -4))
+              blurRadius: 10.r,
+              offset: Offset(0, (-4).r))
         ]),
         child: ElevatedButton(
           onPressed: _isLoading ? null : _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.orange.shade800,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: EdgeInsets.symmetric(vertical: 16.r),
             minimumSize: const Size(double.infinity, 0),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r)),
           ),
           child: _isLoading
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
+              ? SizedBox(
+                  width: 24.r,
+                  height: 24.r,
                   child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2))
-              : const Row(
+                      color: Colors.white, strokeWidth: 2.r))
+              : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text('Create Branch',
                         style: TextStyle(fontWeight: FontWeight.bold)),
-                    SizedBox(width: 8),
-                    Icon(Iconsax.shop_add, size: 18),
+                    SizedBox(width: 8.r),
+                    Icon(Iconsax.shop_add, size: 18.r),
                   ],
                 ),
         ),
@@ -438,31 +439,31 @@ class _AddBranchPageState extends State<AddBranchPage> {
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      padding: EdgeInsets.fromLTRB(24.r, 16.r, 24.r, 8.r),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8.r)),
             child: IconButton(
-                icon: const Icon(Iconsax.arrow_left, size: 20),
+                icon: Icon(Iconsax.arrow_left, size: 20.r),
                 onPressed: () => context.pop(),
-                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                constraints: BoxConstraints(minWidth: 40.r, minHeight: 40.r),
                 padding: EdgeInsets.zero),
           ),
-          const SizedBox(width: 16),
-          const Expanded(
+          SizedBox(width: 16.r),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Add New Branch',
                     style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                SizedBox(height: 4),
+                        TextStyle(fontSize: 20.r, fontWeight: FontWeight.bold)),
+                SizedBox(height: 4.r),
                 Text('Expand your organization to a new location.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    style: TextStyle(fontSize: 12.r, color: Colors.grey)),
               ],
             ),
           ),
@@ -479,20 +480,19 @@ class _AddBranchPageState extends State<AddBranchPage> {
         _buildTextField('Branch Name*', 'Main Branch - [City]',
             controller: _nameController,
             validator: (v) => v!.isEmpty ? 'Required' : null),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.r),
         _buildTextField('Branch Code', 'e.g. BLR-01',
             controller: _codeController,
             suffixIcon: _isCheckingCode
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
+                ? Padding(
+                    padding: EdgeInsets.all(12.r),
                     child: SizedBox(
-                        width: 16,
-                        height: 16,
+                        width: 16.r,
+                        height: 16.r,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.orange)))
+                            strokeWidth: 2.r, color: Colors.orange)))
                 : (_codeController.text.isNotEmpty && _isCodeUnique
-                    ? const Icon(Iconsax.tick_circle,
-                        color: Colors.green, size: 18)
+                    ? Icon(Iconsax.tick_circle, color: Colors.green, size: 18.r)
                     : null)),
       ],
     );
@@ -505,13 +505,13 @@ class _AddBranchPageState extends State<AddBranchPage> {
       action: TextButton.icon(
         onPressed: _isDetectingLocation ? null : _detectLocation,
         icon: _isDetectingLocation
-            ? const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2))
-            : const Icon(Icons.my_location, size: 14),
+            ? SizedBox(
+                width: 14.r,
+                height: 14.r,
+                child: CircularProgressIndicator(strokeWidth: 2.r))
+            : Icon(Icons.my_location, size: 14.r),
         label: Text(_isDetectingLocation ? 'Detecting...' : 'Auto-Detect',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.r)),
         style: TextButton.styleFrom(
             padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
       ),
@@ -520,19 +520,19 @@ class _AddBranchPageState extends State<AddBranchPage> {
             controller: _searchController,
             focusNode: _searchFocus,
             onChanged: _onSearchChanged,
-            prefixIcon: const Icon(Iconsax.search_normal_1,
-                size: 18, color: Colors.grey),
+            prefixIcon:
+                Icon(Iconsax.search_normal_1, size: 18.r, color: Colors.grey),
             suffixIcon: _isFetchingSuggestions
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
+                ? Padding(
+                    padding: EdgeInsets.all(12.r),
                     child: SizedBox(
-                        width: 16,
-                        height: 16,
+                        width: 16.r,
+                        height: 16.r,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.orange)))
+                            strokeWidth: 2.r, color: Colors.orange)))
                 : (_searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
+                        icon: Icon(Icons.clear, size: 18.r),
                         onPressed: () {
                           _searchController.clear();
                           setState(() => _suggestions = []);
@@ -540,43 +540,42 @@ class _AddBranchPageState extends State<AddBranchPage> {
                     : null)),
         if (_suggestions.isNotEmpty)
           Container(
-            constraints: const BoxConstraints(maxHeight: 200),
-            margin: const EdgeInsets.only(top: 4, bottom: 12),
+            constraints: BoxConstraints(maxHeight: 200.r),
+            margin: EdgeInsets.only(top: 4.r, bottom: 12.r),
             decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(color: Colors.grey.shade200),
                 boxShadow: [
                   BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4))
+                      blurRadius: 10.r,
+                      offset: Offset(0, 4.r))
                 ]),
             child: ListView.separated(
               shrinkWrap: true,
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(8.r),
               itemCount: _suggestions.length,
-              separatorBuilder: (c, i) => const Divider(height: 1),
+              separatorBuilder: (c, i) => Divider(height: 1.r),
               itemBuilder: (c, i) => ListTile(
-                leading:
-                    const Icon(Iconsax.location, color: Colors.grey, size: 18),
+                leading: Icon(Iconsax.location, color: Colors.grey, size: 18.r),
                 title: Text(_suggestions[i]['display_name'] ?? '',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12)),
+                    style: TextStyle(fontSize: 12.r)),
                 onTap: () => _onSuggestionSelected(_suggestions[i]),
               ),
             ),
           ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.r),
         Container(
-          height: 200,
+          height: 200.r,
           decoration: BoxDecoration(
               color: const Color(0xFFF3F4F6),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               border: Border.all(color: Colors.grey.shade200)),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(11),
+            borderRadius: BorderRadius.circular(11.r),
             child: Stack(
               children: [
                 FlutterMap(
@@ -629,25 +628,25 @@ class _AddBranchPageState extends State<AddBranchPage> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.r),
         Row(
           children: [
             Expanded(
                 child: _buildTextField('Street / Area', '',
                     controller: _streetController, readOnly: true)),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.r),
             Expanded(
                 child: _buildTextField('City', '',
                     controller: _cityController, readOnly: true)),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.r),
         Row(
           children: [
             Expanded(
                 child: _buildTextField('State', '',
                     controller: _stateController, readOnly: true)),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.r),
             Expanded(
                 child: _buildTextField('Postal Code', '',
                     controller: _postalController, readOnly: true)),
@@ -663,10 +662,10 @@ class _AddBranchPageState extends State<AddBranchPage> {
       Widget? action,
       required List<Widget> children}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: Colors.grey.shade200)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -674,20 +673,20 @@ class _AddBranchPageState extends State<AddBranchPage> {
           Row(
             children: [
               Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: EdgeInsets.all(8.r),
                   decoration: BoxDecoration(
                       color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(8)),
-                  child: Icon(icon, color: Colors.orange, size: 18)),
-              const SizedBox(width: 12),
+                      borderRadius: BorderRadius.circular(8.r)),
+                  child: Icon(icon, color: Colors.orange, size: 18.r)),
+              SizedBox(width: 12.r),
               Expanded(
                   child: Text(title,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold))),
+                      style: TextStyle(
+                          fontSize: 14.r, fontWeight: FontWeight.bold))),
               if (action != null) action,
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.r),
           ...children,
         ],
       ),
@@ -706,11 +705,11 @@ class _AddBranchPageState extends State<AddBranchPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(
-                fontSize: 12,
+            style: TextStyle(
+                fontSize: 12.r,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87)),
-        const SizedBox(height: 6),
+        SizedBox(height: 6.r),
         TextFormField(
           controller: controller,
           focusNode: focusNode,
@@ -718,21 +717,21 @@ class _AddBranchPageState extends State<AddBranchPage> {
           readOnly: readOnly,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+            hintStyle: TextStyle(fontSize: 13.r, color: Colors.grey),
             filled: true,
             fillColor: readOnly ? Colors.grey.shade50 : Colors.white,
             prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                EdgeInsets.symmetric(horizontal: 16.r, vertical: 12.r),
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
                 borderSide: BorderSide(color: Colors.grey.shade300)),
             enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
                 borderSide: BorderSide(color: Colors.grey.shade200)),
           ),
-          style: const TextStyle(fontSize: 13),
+          style: TextStyle(fontSize: 13.r),
           validator: validator,
         ),
       ],

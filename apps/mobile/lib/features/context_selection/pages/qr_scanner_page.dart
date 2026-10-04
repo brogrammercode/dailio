@@ -10,6 +10,7 @@ import '../../../core/widgets/confirm_dialog.dart';
 import 'package:iconsax/iconsax.dart';
 import '../controllers/branch_repository.dart';
 import '../../attendance/pages/gate_attendance_page.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 String? extractDailioInviteToken(BarcodeCapture? capture) {
   for (final barcode in capture?.barcodes ?? const <Barcode>[]) {
@@ -254,9 +255,9 @@ class _QrScannerPageState extends State<QrScannerPage> {
         SnackBar(
           content: Text(message),
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          margin: EdgeInsets.fromLTRB(16.r, 0, 16.r, 16.r),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(14.r),
           ),
         ),
       );
@@ -283,7 +284,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
             onPressed: _isProcessing ? null : _controller.switchCamera,
             icon: const Icon(Icons.flip_camera_ios_outlined),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: 4.r),
         ],
       ),
       body: SafeArea(
@@ -296,22 +297,23 @@ class _QrScannerPageState extends State<QrScannerPage> {
               child: const SizedBox.expand(),
             ),
             Positioned(
-              top: 20,
-              left: 20,
-              right: 20,
+              top: 20.r,
+              left: 20.r,
+              right: 20.r,
               child: Center(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.58),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(20.r),
                   ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  child: Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 14.r, vertical: 8.r),
                     child: Text(
                       'Dailio QR',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 13,
+                        fontSize: 13.r,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -320,9 +322,9 @@ class _QrScannerPageState extends State<QrScannerPage> {
               ),
             ),
             Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16,
+              left: 16.r,
+              right: 16.r,
+              bottom: 16.r,
               child: _ScannerActions(
                 isProcessing: _isProcessing,
                 onPickFromGallery: _pickFromGallery,
@@ -362,33 +364,33 @@ class _ScannerActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 13),
+      padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 13.r),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.74),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
+          Text(
             'Scan a Dailio QR code',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 15,
+              fontSize: 15.r,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6.r),
           Text(
             'Use the camera or choose a saved QR image.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.72),
-              fontSize: 13,
+              fontSize: 13.r,
             ),
           ),
-          const SizedBox(height: 11),
+          SizedBox(height: 11.r),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -399,9 +401,9 @@ class _ScannerActions extends StatelessWidget {
                 backgroundColor: const Color(0xFFCC5A00),
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: Colors.white24,
-                padding: const EdgeInsets.symmetric(vertical: 11),
+                padding: EdgeInsets.symmetric(vertical: 11.r),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
               ),
             ),
@@ -418,23 +420,23 @@ class _ScannerProgressIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+      padding: EdgeInsets.symmetric(horizontal: 22.r, vertical: 18.r),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.82),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18.r),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 20,
-            height: 20,
+            width: 20.r,
+            height: 20.r,
             child: CircularProgressIndicator(
-              strokeWidth: 2.5,
+              strokeWidth: 2.5.r,
               color: Color(0xFFFF8A00),
             ),
           ),
-          SizedBox(width: 12),
+          SizedBox(width: 12.r),
           Text(
             'Checking invite…',
             style: TextStyle(
@@ -454,11 +456,11 @@ class ScannerOverlayPainter extends CustomPainter {
     final paint = Paint()..color = Colors.black54;
     final path = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
     final area = Rect.fromCenter(
-      center: Offset(size.width / 2, size.height / 2 - 24),
-      width: 250,
-      height: 250,
+      center: Offset(size.width / 2, size.height / 2 - 24.r),
+      width: 250.r,
+      height: 250.r,
     );
-    path.addRRect(RRect.fromRectAndRadius(area, const Radius.circular(18)));
+    path.addRRect(RRect.fromRectAndRadius(area, Radius.circular(18.r)));
     path.fillType = PathFillType.evenOdd;
     canvas.drawPath(path, paint);
 
@@ -466,46 +468,46 @@ class ScannerOverlayPainter extends CustomPainter {
       ..color = const Color(0xFFFF8A00)
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 4;
-    const length = 30.0;
+      ..strokeWidth = 4.r;
+    final length = 30.0.r;
     canvas.drawLine(
       area.topLeft,
-      area.topLeft + const Offset(length, 0),
+      area.topLeft + Offset(length, 0),
       cornerPaint,
     );
     canvas.drawLine(
       area.topLeft,
-      area.topLeft + const Offset(0, length),
+      area.topLeft + Offset(0, length),
       cornerPaint,
     );
     canvas.drawLine(
       area.topRight,
-      area.topRight + const Offset(-length, 0),
+      area.topRight + Offset(-length, 0),
       cornerPaint,
     );
     canvas.drawLine(
       area.topRight,
-      area.topRight + const Offset(0, length),
+      area.topRight + Offset(0, length),
       cornerPaint,
     );
     canvas.drawLine(
       area.bottomLeft,
-      area.bottomLeft + const Offset(length, 0),
+      area.bottomLeft + Offset(length, 0),
       cornerPaint,
     );
     canvas.drawLine(
       area.bottomLeft,
-      area.bottomLeft + const Offset(0, -length),
+      area.bottomLeft + Offset(0, -length),
       cornerPaint,
     );
     canvas.drawLine(
       area.bottomRight,
-      area.bottomRight + const Offset(-length, 0),
+      area.bottomRight + Offset(-length, 0),
       cornerPaint,
     );
     canvas.drawLine(
       area.bottomRight,
-      area.bottomRight + const Offset(0, -length),
+      area.bottomRight + Offset(0, -length),
       cornerPaint,
     );
   }

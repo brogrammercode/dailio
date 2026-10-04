@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// Visual primitives for the attendance workspace.
 ///
@@ -21,7 +22,7 @@ class AttendanceUi {
   static BoxDecoration cardDecoration({Color color = Colors.white}) {
     return BoxDecoration(
       color: color,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(14.r),
       border: Border.all(color: divider),
     );
   }
@@ -30,7 +31,7 @@ class AttendanceUi {
     return FilledButton.styleFrom(
       backgroundColor: accent,
       foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
     );
   }
 
@@ -38,7 +39,7 @@ class AttendanceUi {
     return OutlinedButton.styleFrom(
       foregroundColor: text,
       side: const BorderSide(color: accent),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
     );
   }
 
@@ -52,14 +53,14 @@ class AttendanceUi {
       filled: true,
       fillColor: Colors.white,
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(10.r),
         borderSide: const BorderSide(color: divider),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: accent, width: 1.4),
+        borderRadius: BorderRadius.circular(10.r),
+        borderSide: BorderSide(color: accent, width: 1.4.r),
       ),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.r)),
     );
   }
 

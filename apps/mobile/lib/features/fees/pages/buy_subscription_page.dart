@@ -8,6 +8,7 @@ import '../../../core/storage/preferences_storage.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../organization/controllers/organization_repository.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class BuySubscriptionPage extends StatefulWidget {
   const BuySubscriptionPage({super.key});
@@ -89,7 +90,7 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
       bottomNavigationBar: showContinue ? _continueBar() : null,
       body: _loading
           ? Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 0),
               child: ShimmerLoader.planList(),
             )
           : _error != null
@@ -99,22 +100,22 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
                   onRefresh: _load,
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 30),
+                    padding: EdgeInsets.fromLTRB(16.r, 20.r, 16.r, 30.r),
                     children: [
                       Text(
                         'Select Plan',
-                        style: const TextStyle(
-                          fontSize: 22,
+                        style: TextStyle(
+                          fontSize: 22.r,
                           fontWeight: FontWeight.w800,
                           color: _ink,
                         ),
                       ),
-                      const SizedBox(height: 5),
+                      SizedBox(height: 5.r),
                       Text(
                         'Choose duration to renew or start subscription',
-                        style: const TextStyle(color: _muted, fontSize: 12),
+                        style: TextStyle(color: _muted, fontSize: 12.r),
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20.r),
                       if (_plans.isEmpty)
                         _emptyPlans()
                       else
@@ -131,9 +132,9 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
       foregroundColor: _ink,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      title: const Text(
+      title: Text(
         'Dailio',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20.r),
       ),
       actions: [
         DailioOverflowMenu<String>(
@@ -146,7 +147,7 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
           ],
           onSelected: (_) => _load(),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8.r),
       ],
     );
   }
@@ -160,13 +161,13 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
       onTap: () => setState(() => _selectedPlan = plan),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+        padding: EdgeInsets.symmetric(horizontal: 10.r, vertical: 14.r),
         decoration: BoxDecoration(
           color: selected ? const Color(0xFFFFF9F3) : Colors.white,
           border: Border(
             left: BorderSide(
               color: selected ? _orange : Colors.transparent,
-              width: 3,
+              width: 3.r,
             ),
             bottom: const BorderSide(color: Color(0xFFEDEDED)),
           ),
@@ -174,14 +175,14 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
         child: Row(
           children: [
             Container(
-              width: 9,
-              height: 9,
+              width: 9.r,
+              height: 9.r,
               decoration: BoxDecoration(
                 color: selected ? _orange : const Color(0xFFD9D9D9),
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.r),
             Expanded(
               child: Row(
                 children: [
@@ -190,30 +191,30 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
                       plan['name']?.toString() ?? 'Plan',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _ink,
-                        fontSize: 13,
+                        fontSize: 13.r,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 5),
+                  SizedBox(width: 5.r),
                   Text(
                     '· $durationText',
-                    style: const TextStyle(color: _muted, fontSize: 11),
+                    style: TextStyle(color: _muted, fontSize: 11.r),
                   ),
                 ],
               ),
             ),
             if (selected) ...[
               _selectedBadge(),
-              const SizedBox(width: 8),
+              SizedBox(width: 8.r),
             ],
             Text(
               _money(amount),
-              style: const TextStyle(
+              style: TextStyle(
                 color: _ink,
-                fontSize: 13,
+                fontSize: 13.r,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -225,16 +226,16 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
 
   Widget _selectedBadge() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 6.r, vertical: 3.r),
       decoration: BoxDecoration(
         color: const Color(0xFFFFE9D6),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
       ),
-      child: const Text(
+      child: Text(
         'SELECTED',
         style: TextStyle(
           color: _orange,
-          fontSize: 8,
+          fontSize: 8.r,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -247,9 +248,9 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+        padding: EdgeInsets.fromLTRB(16.r, 10.r, 16.r, 14.r),
         child: SizedBox(
-          height: 48,
+          height: 48.r,
           width: double.infinity,
           child: FilledButton(
             onPressed: () => _openPurchase(plan),
@@ -257,12 +258,12 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(9),
+                borderRadius: BorderRadius.circular(9.r),
               ),
             ),
             child: Text(
               'Continue with ${plan['name'] ?? 'plan'}  ·  ${_money(amount)}',
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12.r),
             ),
           ),
         ),
@@ -272,18 +273,18 @@ class _BuySubscriptionPageState extends State<BuySubscriptionPage> {
 
   Widget _emptyPlans() {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: EdgeInsets.all(22.r),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFFE7E7E7)),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Icon(Iconsax.card_remove, size: 30, color: _muted),
-          SizedBox(height: 8),
+          Icon(Iconsax.card_remove, size: 30.r, color: _muted),
+          SizedBox(height: 8.r),
           Text(
             'No active plans are available right now.',
-            style: TextStyle(color: _muted, fontSize: 12),
+            style: TextStyle(color: _muted, fontSize: 12.r),
           ),
         ],
       ),
@@ -320,18 +321,17 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24.r),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Iconsax.cloud_cross,
-                  size: 38, color: Color(0xFF777777)),
-              const SizedBox(height: 12),
+              Icon(Iconsax.cloud_cross, size: 38.r, color: Color(0xFF777777)),
+              SizedBox(height: 12.r),
               Text(message, textAlign: TextAlign.center),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.r),
               OutlinedButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Iconsax.refresh, size: 16),
+                icon: Icon(Iconsax.refresh, size: 16.r),
                 label: const Text('Retry'),
               ),
             ],

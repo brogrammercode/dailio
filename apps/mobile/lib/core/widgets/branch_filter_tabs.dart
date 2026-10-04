@@ -5,6 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../features/organization/controllers/organization_repository.dart';
 import '../storage/preferences_storage.dart';
 import 'dailio_tab_strip.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class BranchFilterTabs extends StatefulWidget {
   final String? selectedBranchId;
@@ -63,7 +64,7 @@ class _BranchFilterTabsState extends State<BranchFilterTabs> {
           baseColor: Colors.grey.shade300,
           highlightColor: Colors.grey.shade100,
           child: SizedBox(
-            height: 44,
+            height: 44.r,
             child: Align(
               // Keep the loading geometry in the same visual position as the
               // compact branch tabs once they resolve.
@@ -79,10 +80,10 @@ class _BranchFilterTabsState extends State<BranchFilterTabs> {
                   children: List.generate(
                     3,
                     (index) => Padding(
-                      padding: EdgeInsets.only(right: index == 2 ? 0 : 12),
-                      child: const SizedBox(
-                        width: 62,
-                        height: 16,
+                      padding: EdgeInsets.only(right: index == 2 ? 0 : 12.r),
+                      child: SizedBox(
+                        width: 62.r,
+                        height: 16.r,
                         child: ColoredBox(color: Colors.white),
                       ),
                     ),

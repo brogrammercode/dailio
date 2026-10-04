@@ -21,6 +21,7 @@ import '../models/attendance_models.dart';
 import '../attendance_error.dart';
 import '../attendance_ui.dart';
 import 'attendance_detail_page.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SelfAttendancePage extends StatefulWidget {
   const SelfAttendancePage({super.key});
@@ -288,7 +289,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
           if (value == 'refresh') _load();
         },
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(44),
+          preferredSize: Size.fromHeight(44.r),
           child: AnimatedBuilder(
             animation: _tabs,
             builder: (context, _) => DailioTabStrip<String>(
@@ -315,12 +316,12 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
 
   Widget _errorView() => Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24.r),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.cloud_off, size: 42, color: AttendanceUi.muted),
-            const SizedBox(height: 12),
+            Icon(Icons.cloud_off, size: 42.r, color: AttendanceUi.muted),
+            SizedBox(height: 12.r),
             Text(_error!, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             OutlinedButton(
               onPressed: _load,
               style: AttendanceUi.outlinedButton(),
@@ -337,18 +338,18 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
       onRefresh: _load,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 24.r),
         children: [
-          const SizedBox(height: 32),
+          SizedBox(height: 32.r),
           _actionCard(open: open, attendanceEnabled: attendanceEnabled),
           if (_punchStatus != null) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             _punchStatusCard(),
           ],
-          const SizedBox(height: 52),
+          SizedBox(height: 52.r),
           _policyParameters(),
           if (open) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             _ongoingTimeline(_activeSession!),
           ],
         ],
@@ -381,22 +382,22 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
       children: [
         Text(
           DateFormat('hh:mm a').format(now),
-          style: const TextStyle(
+          style: TextStyle(
             color: AttendanceUi.text,
-            fontSize: 34,
+            fontSize: 34.r,
             fontWeight: FontWeight.w400,
-            letterSpacing: 0.3,
+            letterSpacing: 0.3.r,
           ),
         ),
-        const SizedBox(height: 3),
+        SizedBox(height: 3.r),
         Text(
           DateFormat('MMM dd yyyy · EEEE').format(now),
-          style: const TextStyle(color: AttendanceUi.muted, fontSize: 11),
+          style: TextStyle(color: AttendanceUi.muted, fontSize: 11.r),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8.r),
         SizedBox(
-          width: 250,
-          height: 250,
+          width: 250.r,
+          height: 250.r,
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -405,7 +406,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
               Material(
                 color: Colors.white,
                 shape: const CircleBorder(),
-                elevation: 3,
+                elevation: 3.r,
                 shadowColor: Colors.black.withValues(alpha: 0.12),
                 child: InkWell(
                   onTap: _actionLoading || !canPunch
@@ -415,8 +416,8 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
                           : (open ? _clockOut : _clockIn),
                   customBorder: const CircleBorder(),
                   child: SizedBox(
-                    width: 108,
-                    height: 108,
+                    width: 108.r,
+                    height: 108.r,
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
                       child: Column(
@@ -424,21 +425,22 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (_actionLoading)
-                            const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                            SizedBox(
+                              width: 22.r,
+                              height: 22.r,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2.r),
                             )
                           else
                             Icon(actionIcon,
-                                color: AttendanceUi.accent, size: 24),
-                          const SizedBox(height: 7),
+                                color: AttendanceUi.accent, size: 24.r),
+                          SizedBox(height: 7.r),
                           Text(
                             actionLabel,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AttendanceUi.text,
-                              fontSize: 12,
+                              fontSize: 12.r,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -451,7 +453,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
             ],
           ),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: 2.r),
         _dailyMetrics(record),
       ],
     );
@@ -465,7 +467,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         shape: BoxShape.circle,
         border: Border.all(
           color: AttendanceUi.accent.withValues(alpha: 0.10),
-          width: 1.2,
+          width: 1.2.r,
         ),
       ),
     );
@@ -523,16 +525,16 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     return Expanded(
       child: Column(
         children: [
-          Icon(icon, color: AttendanceUi.accent, size: 22),
-          const SizedBox(height: 5),
+          Icon(icon, color: AttendanceUi.accent, size: 22.r),
+          SizedBox(height: 5.r),
           Text(value,
-              style: const TextStyle(
+              style: TextStyle(
                   color: AttendanceUi.muted,
-                  fontSize: 10,
+                  fontSize: 10.r,
                   fontWeight: FontWeight.w600)),
-          const SizedBox(height: 3),
+          SizedBox(height: 3.r),
           Text(label,
-              style: const TextStyle(color: AttendanceUi.text, fontSize: 11)),
+              style: TextStyle(color: AttendanceUi.text, fontSize: 11.r)),
         ],
       ),
     );
@@ -558,7 +560,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
               ? 'Submit your clock-out with the assigned policy.'
               : 'Use direct punch or scan the branch gate QR.',
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 14.r),
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
@@ -566,14 +568,14 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
                 ? null
                 : (open ? _clockOut : _clockIn),
             icon: _actionLoading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                ? SizedBox(
+                    width: 18.r,
+                    height: 18.r,
+                    child: CircularProgressIndicator(strokeWidth: 2.r))
                 : Icon(open ? Icons.logout : Icons.login),
             label: Text(label),
             style: AttendanceUi.primaryButton().copyWith(
-              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(48)),
+              minimumSize: WidgetStatePropertyAll(Size.fromHeight(48.r)),
             ),
           ),
         ),
@@ -591,7 +593,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
           title: 'Scan branch gate QR',
           subtitle: 'Use the permanent QR at the branch entrance.',
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 14.r),
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
@@ -600,7 +602,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
             icon: const Icon(Icons.qr_code_scanner),
             label: const Text('Scan QR code'),
             style: AttendanceUi.primaryButton().copyWith(
-              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(48)),
+              minimumSize: WidgetStatePropertyAll(Size.fromHeight(48.r)),
             ),
           ),
         ),
@@ -616,30 +618,29 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     return Row(
       children: [
         Container(
-          width: 54,
-          height: 54,
+          width: 54.r,
+          height: 54.r,
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
             border:
                 Border.all(color: AttendanceUi.accent.withValues(alpha: .3)),
           ),
-          child: Icon(icon, color: AttendanceUi.accent, size: 27),
+          child: Icon(icon, color: AttendanceUi.accent, size: 27.r),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12.r),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title,
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 3),
+                  style:
+                      TextStyle(fontSize: 15.r, fontWeight: FontWeight.w700)),
+              SizedBox(height: 3.r),
               Text(subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style:
-                      const TextStyle(color: AttendanceUi.muted, fontSize: 11)),
+                  style: TextStyle(color: AttendanceUi.muted, fontSize: 11.r)),
             ],
           ),
         ),
@@ -654,8 +655,8 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
 
   Widget _promptDot(bool active) => AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: active ? 7 : 5,
-        height: active ? 7 : 5,
+        width: active ? 7.r : 5.r,
+        height: active ? 7.r : 5.r,
         decoration: BoxDecoration(
           color: active ? AttendanceUi.accent : AttendanceUi.divider,
           shape: BoxShape.circle,
@@ -676,7 +677,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
       children: [
         const Text('Policy applied to this punch',
             style: TextStyle(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.r),
         Row(
           children: [
             _policyParameter(Icons.location_on_outlined, 'Location',
@@ -691,10 +692,10 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
           ],
         ),
         if (_policy['shift_snapshot'] is Map) ...[
-          const SizedBox(height: 10),
+          SizedBox(height: 10.r),
           Text(
             'Shift: ${(_policy['shift_snapshot'] as Map)['name'] ?? 'Scheduled'} · ${(_policy['shift_snapshot'] as Map)['start_time'] ?? '--'}–${(_policy['shift_snapshot'] as Map)['end_time'] ?? '--'}',
-            style: const TextStyle(color: AttendanceUi.muted, fontSize: 11),
+            style: TextStyle(color: AttendanceUi.muted, fontSize: 11.r),
           ),
         ],
       ],
@@ -707,20 +708,20 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
       child: Column(
         children: [
           Icon(icon,
-              size: 19,
+              size: 19.r,
               color: emphasized ? AttendanceUi.accent : AttendanceUi.muted),
-          const SizedBox(height: 5),
+          SizedBox(height: 5.r),
           Text(label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AttendanceUi.muted, fontSize: 9)),
-          const SizedBox(height: 2),
+              style: TextStyle(color: AttendanceUi.muted, fontSize: 9.r)),
+          SizedBox(height: 2.r),
           Text(value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                   color: emphasized ? AttendanceUi.accent : AttendanceUi.text,
-                  fontSize: 9,
+                  fontSize: 9.r,
                   fontWeight: FontWeight.w700)),
         ],
       ),
@@ -738,42 +739,41 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     return _card(Row(
       children: [
         Container(
-          width: 42,
-          height: 42,
+          width: 42.r,
+          height: 42.r,
           decoration: BoxDecoration(
             color: AttendanceUi.accentTint,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: AttendanceUi.accent, size: 20),
+          child: Icon(icon, color: AttendanceUi.accent, size: 20.r),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12.r),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 3),
+              SizedBox(height: 3.r),
               Text(subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style:
-                      const TextStyle(color: AttendanceUi.muted, fontSize: 11)),
+                  style: TextStyle(color: AttendanceUi.muted, fontSize: 11.r)),
             ],
           ),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8.r),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(DateFormat('hh:mm a').format(localNow),
-                style: const TextStyle(
+                style: TextStyle(
                     color: AttendanceUi.text,
-                    fontSize: 12,
+                    fontSize: 12.r,
                     fontWeight: FontWeight.w700)),
-            const SizedBox(height: 3),
+            SizedBox(height: 3.r),
             Text(
               _repository.hasServerTime ? 'Server time' : 'Syncing time',
-              style: const TextStyle(color: AttendanceUi.muted, fontSize: 9),
+              style: TextStyle(color: AttendanceUi.muted, fontSize: 9.r),
             ),
           ],
         ),
@@ -794,23 +794,23 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
                   style: TextStyle(fontWeight: FontWeight.w700)),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 7.r, vertical: 4.r),
               decoration: BoxDecoration(
                 color: AttendanceUi.accentTint,
-                borderRadius: BorderRadius.circular(5),
+                borderRadius: BorderRadius.circular(5.r),
               ),
-              child: const Text(
+              child: Text(
                 'ONGOING',
                 style: TextStyle(
                   color: AttendanceUi.accent,
-                  fontSize: 9,
+                  fontSize: 9.r,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.r),
         _timelinePoint(
           icon: Iconsax.login,
           title: 'Clocked in',
@@ -818,9 +818,9 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
           color: AttendanceUi.accent,
         ),
         Container(
-          margin: const EdgeInsets.only(left: 11),
-          height: 18,
-          width: 1,
+          margin: EdgeInsets.only(left: 11.r),
+          height: 18.r,
+          width: 1.r,
           color: AttendanceUi.divider,
         ),
         _timelinePoint(
@@ -842,22 +842,21 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     return Row(
       children: [
         Container(
-          width: 24,
-          height: 24,
+          width: 24.r,
+          height: 24.r,
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.10),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 13, color: color),
+          child: Icon(icon, size: 13.r, color: color),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: 10.r),
         Expanded(
           child: Text(title,
-              style:
-                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              style: TextStyle(fontSize: 12.r, fontWeight: FontWeight.w700)),
         ),
         Text(subtitle,
-            style: const TextStyle(color: AttendanceUi.muted, fontSize: 11)),
+            style: TextStyle(color: AttendanceUi.muted, fontSize: 11.r)),
       ],
     );
   }
@@ -878,15 +877,15 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
             DateFormat('EEEE, dd MMM yyyy')
                 .format(BranchTime.toBranch(_clock, _branchTimezone)),
             style: const TextStyle(color: AttendanceUi.muted)),
-        const SizedBox(height: 8),
+        SizedBox(height: 8.r),
         Text(
             DateFormat('hh:mm:ss a')
                 .format(BranchTime.toBranch(_clock, _branchTimezone)),
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
+            style: TextStyle(fontSize: 28.r, fontWeight: FontWeight.bold)),
+        SizedBox(height: 4.r),
         Text(
             '${_repository.hasServerTime ? 'Server-synchronized clock' : 'Device clock until server sync'} • server confirms every punch',
-            style: const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
+            style: TextStyle(color: AttendanceUi.muted, fontSize: 12.r)),
       ]));
 
   // ignore: unused_element
@@ -908,31 +907,31 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('Effective attendance policy',
           style: TextStyle(fontWeight: FontWeight.bold)),
-      const SizedBox(height: 10),
+      SizedBox(height: 10.r),
       Text(requirements.isEmpty
           ? 'No additional evidence required.'
           : requirements.join(' • ')),
       if (_policy['punch_required'] == false) ...[
-        const SizedBox(height: 8),
+        SizedBox(height: 8.r),
         const Text(
           'Attendance punching is disabled for this policy.',
           style: TextStyle(
               fontWeight: FontWeight.w600, color: AttendanceUi.accent),
         ),
       ],
-      const SizedBox(height: 6),
+      SizedBox(height: 6.r),
       Text('Late grace: ${_policy['late_grace_minutes'] ?? 15} minutes',
-          style: const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
+          style: TextStyle(color: AttendanceUi.muted, fontSize: 12.r)),
       if (_policy['shift_snapshot'] is Map) ...[
-        const SizedBox(height: 6),
+        SizedBox(height: 6.r),
         Text(
             'Shift: ${(_policy['shift_snapshot'] as Map)['name'] ?? 'Scheduled'} (${(_policy['shift_snapshot'] as Map)['start_time'] ?? '--'}–${(_policy['shift_snapshot'] as Map)['end_time'] ?? '--'})',
-            style: const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
+            style: TextStyle(color: AttendanceUi.muted, fontSize: 12.r)),
       ],
-      const SizedBox(height: 4),
+      SizedBox(height: 4.r),
       Text(
           'Policy ${_policy['version'] ?? '-'} • ${_policy['source_scope'] ?? 'BRANCH_DEFAULT'}',
-          style: const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
+          style: TextStyle(color: AttendanceUi.muted, fontSize: 12.r)),
     ]));
   }
 
@@ -941,20 +940,20 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
       {required bool open}) {
     if (session == null) {
       return _card(
-        const Row(
+        Row(
           children: [
-            Icon(Icons.event_available, color: AttendanceUi.accent, size: 20),
-            SizedBox(width: 10),
+            Icon(Icons.event_available, color: AttendanceUi.accent, size: 20.r),
+            SizedBox(width: 10.r),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('No open attendance session',
                       style: TextStyle(fontWeight: FontWeight.w700)),
-                  SizedBox(height: 3),
+                  SizedBox(height: 3.r),
                   Text('Clock in when you begin your session.',
                       style:
-                          TextStyle(color: AttendanceUi.muted, fontSize: 11)),
+                          TextStyle(color: AttendanceUi.muted, fontSize: 11.r)),
                 ],
               ),
             ),
@@ -1003,7 +1002,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
                       ? Icons.info_outline
                       : Icons.error_outline,
           color: color),
-      const SizedBox(width: 10),
+      SizedBox(width: 10.r),
       Expanded(
         child: Text(
           submitting
@@ -1032,21 +1031,20 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     if (_history.isEmpty) {
       return RefreshIndicator(
         onRefresh: _load,
-        child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: const [
-              SizedBox(height: 180),
-              Center(child: Text('No attendance records for this period.')),
-            ]),
+        child:
+            ListView(physics: const AlwaysScrollableScrollPhysics(), children: [
+          SizedBox(height: 180.r),
+          Center(child: Text('No attendance records for this period.')),
+        ]),
       );
     }
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: 12, bottom: 96),
+        padding: EdgeInsets.only(top: 12.r, bottom: 96.r),
         itemCount: _history.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        separatorBuilder: (_, __) => SizedBox(height: 8.r),
         itemBuilder: (_, index) {
           final session = _history[index];
           return _compactHistoryTile(session);
@@ -1143,7 +1141,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
       clipBehavior: Clip.none,
       children: [
         CircleAvatar(
-          radius: 24,
+          radius: 24.r,
           backgroundColor: AttendanceUi.accentTint,
           backgroundImage:
               image == null || image.isEmpty ? null : NetworkImage(image),
@@ -1158,17 +1156,17 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
               : null,
         ),
         Positioned(
-          right: -2,
-          bottom: -2,
+          right: (-2).r,
+          bottom: (-2).r,
           child: Container(
-            width: 18,
-            height: 18,
+            width: 18.r,
+            height: 18.r,
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(color: Colors.white, width: 2.r),
             ),
-            child: Icon(icon, size: 9, color: Colors.white),
+            child: Icon(icon, size: 9.r, color: Colors.white),
           ),
         ),
       ],
@@ -1195,17 +1193,17 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _openDetail(session),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14.r),
         child: Ink(
           decoration: AttendanceUi.cardDecoration(),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
+            padding: EdgeInsets.fromLTRB(12.r, 12.r, 6.r, 12.r),
             child: Row(children: [
               Stack(
                 clipBehavior: Clip.none,
                 children: [
                   CircleAvatar(
-                    radius: 24,
+                    radius: 24.r,
                     backgroundColor: AttendanceUi.accentTint,
                     backgroundImage: avatar == null || avatar.isEmpty
                         ? null
@@ -1218,46 +1216,46 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
                         : null,
                   ),
                   Positioned(
-                    right: -2,
-                    bottom: -2,
+                    right: (-2).r,
+                    bottom: (-2).r,
                     child: Container(
-                      width: 18,
-                      height: 18,
+                      width: 18.r,
+                      height: 18.r,
                       decoration: BoxDecoration(
                           color: statusColor,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2)),
-                      child: Icon(statusIcon, size: 9, color: Colors.white),
+                          border: Border.all(color: Colors.white, width: 2.r)),
+                      child: Icon(statusIcon, size: 9.r, color: Colors.white),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.r),
               Expanded(
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(DateFormat('EEE, dd MMM yyyy').format(clockIn),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 14)),
-                      const SizedBox(height: 5),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 14.r)),
+                      SizedBox(height: 5.r),
                       Text(
                           '${open ? 'Clocked in at' : 'Clocked out at'} ${DateFormat('hh:mm a').format(eventTime)}',
                           style: TextStyle(
                               color: statusColor,
-                              fontSize: 12,
+                              fontSize: 12.r,
                               fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 3),
+                      SizedBox(height: 3.r),
                       Text(
                           '${session.durationLabel}  •  ${open ? 'In progress' : 'Completed'}',
-                          style: const TextStyle(
-                              color: AttendanceUi.muted, fontSize: 11)),
+                          style: TextStyle(
+                              color: AttendanceUi.muted, fontSize: 11.r)),
                     ]),
               ),
               PopupMenuButton<String>(
                 padding: EdgeInsets.zero,
-                icon: const Icon(Icons.more_vert,
-                    size: 20, color: AttendanceUi.muted),
+                icon: Icon(Icons.more_vert,
+                    size: 20.r, color: AttendanceUi.muted),
                 onSelected: (_) => _openDetail(session),
                 itemBuilder: (_) => const [
                   PopupMenuItem(value: 'details', child: Text('View details')),
@@ -1295,10 +1293,10 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
   }
 
   Widget _card(Widget child) => Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12.r),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: AttendanceUi.divider),
         ),
         child: child,

@@ -11,6 +11,7 @@ import '../controllers/organization_repository.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_picker_field.dart';
 import '../../../core/widgets/confirm_dialog.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 String attendancePolicyErrorMessage(Object error) {
   if (error is DioException) {
@@ -283,9 +284,9 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
       String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
     return SwitchListTile(
       title: Text(title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-      subtitle: Text(subtitle,
-          style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.r)),
+      subtitle:
+          Text(subtitle, style: TextStyle(fontSize: 12.r, color: Colors.grey)),
       value: value,
       onChanged: onChanged,
       activeThumbColor: Colors.orange,
@@ -296,15 +297,14 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
   Widget _buildNumberField(
       String label, int value, ValueChanged<int> onChanged) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: EdgeInsets.symmetric(vertical: 8.0.r),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style:
-                  const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14.r)),
           SizedBox(
-            width: 80,
+            width: 80.r,
             child: TextFormField(
               key: ValueKey(
                   'attendance-policy-number-$_scope-${_selectedRoleId ?? _selectedMemberId ?? 'branch'}-$label'),
@@ -317,10 +317,10 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
               },
               decoration: InputDecoration(
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    EdgeInsets.symmetric(horizontal: 8.r, vertical: 8.r),
                 isDense: true,
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r)),
               ),
             ),
           )
@@ -339,22 +339,22 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
     final count = (policy['affected_member_count'] as num?)?.toInt();
     if (count == null) return const SizedBox.shrink();
     return Container(
-      margin: const EdgeInsets.only(top: 12),
-      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.only(top: 12.r),
+      padding: EdgeInsets.all(12.r),
       decoration: BoxDecoration(
         color: AttendanceUi.accentTint,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(10.r),
       ),
       child: Row(
         children: [
-          Icon(Iconsax.people, size: 18, color: AttendanceUi.accent),
-          const SizedBox(width: 8),
+          Icon(Iconsax.people, size: 18.r, color: AttendanceUi.accent),
+          SizedBox(width: 8.r),
           Expanded(
             child: Text(
               'Currently affects $count active ${count == 1 ? 'member' : 'members'}. Future punches use the next saved version.',
               style: TextStyle(
                 color: AttendanceUi.text,
-                fontSize: 12,
+                fontSize: 12.r,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -369,9 +369,9 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Dailio',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 20.r, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
         foregroundColor: AttendanceUi.text,
@@ -384,13 +384,13 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
         ),
         actions: [
           if (_isSaving)
-            const Center(
+            Center(
                 child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: EdgeInsets.symmetric(horizontal: 16.0.r),
                     child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2))))
+                        width: 20.r,
+                        height: 20.r,
+                        child: CircularProgressIndicator(strokeWidth: 2.r))))
           else ...[
             TextButton(
               onPressed: _savePolicy,
@@ -410,7 +410,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                 if (value == 'refresh') _loadPolicy();
               },
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8.r),
           ]
         ],
       ),
@@ -419,17 +419,17 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
           : _loadError != null
               ? Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(24.r),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Iconsax.warning_2, size: 40),
-                        const SizedBox(height: 12),
+                        Icon(Iconsax.warning_2, size: 40.r),
+                        SizedBox(height: 12.r),
                         const Text('Attendance policy could not be loaded',
                             textAlign: TextAlign.center),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8.r),
                         Text(_loadError!, textAlign: TextAlign.center),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16.r),
                         FilledButton.icon(
                           onPressed: _loadPolicy,
                           icon: const Icon(Iconsax.refresh),
@@ -440,7 +440,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                   ),
                 )
               : ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16.r),
                   children: [
                     _buildCard(
                       title: 'Policy assignment',
@@ -503,7 +503,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                         _buildAffectedPreview(),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.r),
                     _buildCard(
                       title: 'Version history',
                       icon: Iconsax.timer,
@@ -526,7 +526,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                                   )),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.r),
                     _buildCard(
                       title: 'Clock In/Out Requirements',
                       icon: Iconsax.clock,
@@ -563,7 +563,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                             (val) => setState(() => _selfieOnClockOut = val)),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.r),
                     _buildCard(
                       title: 'Location & Geofencing',
                       icon: Iconsax.location,
@@ -595,7 +595,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                                 () => _geofenceAccuracyThreshold = val)),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.r),
                     _buildCard(
                       title: 'Shift Rules & Timings',
                       icon: Iconsax.calendar_tick,
@@ -606,7 +606,7 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
                             _shiftEnforcementEnabled,
                             (val) =>
                                 setState(() => _shiftEnforcementEnabled = val)),
-                        const Divider(height: 24),
+                        Divider(height: 24.r),
                         _buildNumberField(
                             'Early Arrival Allowance (mins)',
                             _earlyArrivalMinutes,
@@ -639,23 +639,23 @@ class _AttendancePolicyPageState extends State<AttendancePolicyPage> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: Colors.grey.shade200),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: AttendanceUi.accent),
-              const SizedBox(width: 8),
+              Icon(icon, size: 20.r, color: AttendanceUi.accent),
+              SizedBox(width: 8.r),
               Text(title,
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold)),
+                  style:
+                      TextStyle(fontSize: 16.r, fontWeight: FontWeight.bold)),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.r),
           ...children,
         ],
       ),

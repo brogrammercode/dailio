@@ -10,6 +10,7 @@ import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/branch_repository.dart';
 import '../models/branch_discovery_model.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class OrganizationDiscoveryPage extends StatefulWidget {
   const OrganizationDiscoveryPage({super.key});
@@ -76,7 +77,7 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 10.r),
               child: TextField(
                 controller: _searchController,
                 textInputAction: TextInputAction.search,
@@ -86,18 +87,18 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
                   Iconsax.search_normal_1,
                   suffixIcon: IconButton(
                     onPressed: _search,
-                    icon: const Icon(Iconsax.arrow_right_1, size: 17),
+                    icon: Icon(Iconsax.arrow_right_1, size: 17.r),
                   ),
                 ),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.r, 0, 16.r, 10.r),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text('Organizations near you',
                     style:
-                        TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                        TextStyle(fontSize: 12.r, fontWeight: FontWeight.w800)),
               ),
             ),
             Expanded(
@@ -139,9 +140,9 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
   Widget _buildResults(Map<String, List<BranchDiscoveryModel>> grouped) {
     final entries = grouped.entries.toList();
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+      padding: EdgeInsets.fromLTRB(16.r, 0, 16.r, 32.r),
       itemCount: entries.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, indent: 52),
+      separatorBuilder: (_, __) => Divider(height: 1.r, indent: 52.r),
       itemBuilder: (context, index) {
         final locations = entries[index].value;
         final organization = locations.first.organization;
@@ -150,8 +151,8 @@ class _OrganizationDiscoveryPageState extends State<OrganizationDiscoveryPage> {
           title: organization.name,
           subtitle:
               '${locations.length} branch${locations.length == 1 ? '' : 'es'} · Tap to view details',
-          trailing: const Icon(Iconsax.arrow_right_3,
-              size: 17, color: Color(0xFF9A9A9A)),
+          trailing:
+              Icon(Iconsax.arrow_right_3, size: 17.r, color: Color(0xFF9A9A9A)),
           onTap: () => context.push(
               AppRoutes.orgDetail.replaceFirst(':orgId', entries[index].key),
               extra: locations),

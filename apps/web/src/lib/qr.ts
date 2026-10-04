@@ -19,6 +19,10 @@ export function rememberQrIntent(token: string) {
   sessionStorage.setItem("dailio_web_qr_intent", token);
 }
 
+export function hasQrIntent() {
+  return Boolean(sessionStorage.getItem("dailio_web_qr_intent"));
+}
+
 export function takeQrIntent() {
   const token = sessionStorage.getItem("dailio_web_qr_intent");
   sessionStorage.removeItem("dailio_web_qr_intent");

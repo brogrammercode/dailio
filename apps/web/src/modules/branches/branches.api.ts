@@ -14,6 +14,41 @@ export function contextFromInvite(invite: {
   };
 }
 
+type MemberContext = {
+  organization_id: string;
+  branch_id: string;
+  status: string;
+  organization: { id: string; name: string; status: string };
+  branch: {
+    id: string;
+    organization_id: string;
+    name: string;
+    timezone: string;
+    status: string;
+  } | null;
+};
+
+export async function getMemberContexts(): Promise<TenantContext[]> {
+  const body = await apiRequest<{ contexts: MemberContext[] }>("/me/contexts");
+  return body.contexts
+    .filter(
+      (member) =>
+        member.status === "ACTIVE" &&
+        member.organization?.status === "ACTIVE" &&
+        member.branch?.status === "ACTIVE" &&
+        member.organization.id === member.organization_id &&
+        member.branch.organization_id === member.organization_id &&
+        member.branch.id === member.branch_id,
+    )
+    .map((member) => ({
+      organizationId: member.organization_id,
+      organizationName: member.organization.name,
+      branchId: member.branch_id,
+      branchName: member.branch!.name,
+      timezone: member.branch!.timezone,
+    }));
+}
+
 export async function discoverBranches(query?: string) {
   const body = await apiRequest<{ data: unknown[] }>(
     `/branches/discover${query ? `?query=${encodeURIComponent(query)}` : ""}`,

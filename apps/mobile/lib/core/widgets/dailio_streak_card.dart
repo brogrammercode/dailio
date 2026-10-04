@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../theme/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 const dailioStreakFireUrl =
     'https://cdn-icons-png.flaticon.com/128/8835/8835848.png';
@@ -46,8 +47,8 @@ class DailioStreakCard extends StatelessWidget {
     final foreground = dark ? Colors.white : AppColors.brandDark;
     final muted = dark ? const Color(0xFFA7ADB5) : const Color(0xFF777777);
     return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.fromLTRB(4, 10, 4, 12),
+      margin: EdgeInsets.only(top: 8.r),
+      padding: EdgeInsets.fromLTRB(4.r, 10.r, 4.r, 12.r),
       decoration: BoxDecoration(
         color: dark ? const Color(0xFF171B20) : Colors.white,
         border: Border(
@@ -59,17 +60,17 @@ class DailioStreakCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
-            padding: const EdgeInsets.all(7),
+            width: 40.r,
+            height: 40.r,
+            padding: EdgeInsets.all(7.r),
             decoration: BoxDecoration(
                 color: const Color(0xFFFFF0F2), shape: BoxShape.circle),
             child: Image.network(dailioStreakFireUrl,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Icon(Iconsax.flash_1,
-                    color: Colors.redAccent, size: 24)),
+                errorBuilder: (_, __, ___) =>
+                    Icon(Iconsax.flash_1, color: Colors.redAccent, size: 24.r)),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.r),
           Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,23 +78,23 @@ class DailioStreakCard extends StatelessWidget {
                 Text('Attendance streak',
                     style: TextStyle(
                         color: foreground,
-                        fontSize: 13,
+                        fontSize: 13.r,
                         fontWeight: FontWeight.w800)),
-                const SizedBox(height: 3),
+                SizedBox(height: 3.r),
                 Text(
                     subtitle ??
                         (loading
                             ? 'Checking attendance'
                             : 'Keep showing up consistently'),
-                    style: TextStyle(color: muted, fontSize: 11)),
+                    style: TextStyle(color: muted, fontSize: 11.r)),
               ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text('$current days',
                 style: TextStyle(
                     color: foreground,
-                    fontSize: 15,
+                    fontSize: 15.r,
                     fontWeight: FontWeight.w800)),
-            Text('best $best', style: TextStyle(color: muted, fontSize: 10)),
+            Text('best $best', style: TextStyle(color: muted, fontSize: 10.r)),
           ]),
         ],
       ),

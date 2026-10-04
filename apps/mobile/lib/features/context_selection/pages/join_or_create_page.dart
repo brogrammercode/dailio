@@ -10,6 +10,7 @@ import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../auth/controllers/auth_cubit.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class JoinOrCreatePage extends StatelessWidget {
   const JoinOrCreatePage({super.key});
@@ -46,16 +47,16 @@ class JoinOrCreatePage extends StatelessWidget {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
+          padding: EdgeInsets.fromLTRB(16.r, 18.r, 16.r, 32.r),
           children: [
-            const Text('Start with Dailio',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 5),
-            const Text(
+            Text('Start with Dailio',
+                style: TextStyle(fontSize: 22.r, fontWeight: FontWeight.w800)),
+            SizedBox(height: 5.r),
+            Text(
               'Choose how you want to enter your first workspace.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF858585)),
+              style: TextStyle(fontSize: 13.r, color: Color(0xFF858585)),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22.r),
             const DailioOnboardingSectionLabel('GET STARTED'),
             DailioOnboardingChoiceRow(
               title: 'Create an organization',
@@ -63,25 +64,25 @@ class JoinOrCreatePage extends StatelessWidget {
               icon: Iconsax.building_4,
               onTap: () => context.push(AppRoutes.createOrganization),
             ),
-            const Divider(height: 1),
+            Divider(height: 1.r),
             DailioOnboardingChoiceRow(
               title: 'Join an organization',
               subtitle: 'Find your organization and request branch access.',
               icon: Iconsax.search_normal_1,
               onTap: () => context.push(AppRoutes.organizationDiscovery),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20.r),
             DailioOnboardingButton(
               label: 'Scan and fast join',
               icon: Iconsax.scan_barcode,
               outlined: true,
               onPressed: () => context.push(AppRoutes.qrScanner),
             ),
-            const SizedBox(height: 20),
-            const Text(
+            SizedBox(height: 20.r),
+            Text(
               'Joining an organization sends a request to the branch owner. You will get access after approval.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, color: Color(0xFF929292)),
+              style: TextStyle(fontSize: 11.r, color: Color(0xFF929292)),
             ),
           ],
         ),

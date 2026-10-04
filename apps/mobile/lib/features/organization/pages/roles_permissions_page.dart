@@ -14,6 +14,7 @@ import '../../../core/widgets/shimmer_loader.dart';
 
 import '../controllers/organization_repository.dart';
 import '../models/role_model.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 const List<Map<String, dynamic>> availablePermissions = [
   {
@@ -187,8 +188,8 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
       builder: (context) => _AddRoleSheet(
         orgId: _orgId,
         defaultBranchId: _selectedFilterBranchId,
@@ -283,7 +284,7 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
 
   Widget _buildLoadedContent() {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(0, 12, 0, 120),
+      padding: EdgeInsets.fromLTRB(0, 12.r, 0, 120.r),
       children: [
         BranchFilterTabs(
           contentPadding: EdgeInsets.zero,
@@ -297,26 +298,26 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
             _loadRoles();
           },
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10.r),
         _buildRolesList(),
         if (_selectedRole == null)
-          const Padding(
-            padding: EdgeInsets.only(top: 40),
+          Padding(
+            padding: EdgeInsets.only(top: 40.r),
             child: Center(
               child: Text('No roles found.',
-                  style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  style: TextStyle(color: Colors.grey, fontSize: 12.r)),
             ),
           )
         else ...[
-          const SizedBox(height: 14),
+          SizedBox(height: 14.r),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16.r),
             child: _buildRoleConfigCard(),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14.r),
           ...availablePermissions.map(
             (group) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: 16.r),
               child: _buildPermissionGroupWidget(group),
             ),
           ),
@@ -334,40 +335,41 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
         Container(
           decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8)),
+              borderRadius: BorderRadius.circular(8.r)),
           child: IconButton(
-            icon: const Icon(Iconsax.arrow_left, size: 20),
+            icon: Icon(Iconsax.arrow_left, size: 20.r),
             onPressed: () => context.pop(),
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            constraints: BoxConstraints(minWidth: 40.r, minHeight: 40.r),
             padding: EdgeInsets.zero,
           ),
         ),
-        const SizedBox(width: 12),
-        const Expanded(
+        SizedBox(width: 12.r),
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Roles & Permissions',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
+                  style:
+                      TextStyle(fontSize: 20.r, fontWeight: FontWeight.bold)),
+              SizedBox(height: 4.r),
               Text('Granular RBAC matrix per atomic catalog',
-                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  style: TextStyle(fontSize: 12.r, color: Colors.grey)),
             ],
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 4.r),
           decoration: BoxDecoration(
               color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               border: Border.all(color: Colors.green.shade200)),
           child: Row(
             children: [
-              const CircleAvatar(radius: 3, backgroundColor: Colors.green),
-              const SizedBox(width: 4),
+              CircleAvatar(radius: 3.r, backgroundColor: Colors.green),
+              SizedBox(width: 4.r),
               Text('Live Sync',
                   style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 10.r,
                       color: Colors.green.shade700,
                       fontWeight: FontWeight.bold)),
             ],
@@ -379,7 +381,7 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
 
   Widget _buildRolesList() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: 16.r),
       child: Row(
         children: [
           Expanded(
@@ -398,13 +400,13 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
               },
             ),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: 4.r),
           IconButton(
             tooltip: 'Add role',
             onPressed: _createRole,
             icon: const Icon(Iconsax.add_circle, color: Colors.orange),
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            constraints: BoxConstraints(minWidth: 32.r, minHeight: 32.r),
           ),
         ],
       ),
@@ -417,8 +419,8 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
       builder: (context) => _EditRoleConfigSheet(
         orgId: _orgId,
         role: _selectedRole!,
@@ -432,7 +434,7 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
       return const SizedBox.shrink();
     }
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 8.r),
       decoration: BoxDecoration(
           color: Colors.white,
           border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
@@ -442,13 +444,14 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Role Configuration',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text('Role Configuration',
+                  style:
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 13.r)),
               TextButton.icon(
                 onPressed: _editRoleConfig,
-                icon: const Icon(Iconsax.edit, size: 14, color: Colors.blue),
-                label: const Text('Edit',
-                    style: TextStyle(fontSize: 12, color: Colors.blue)),
+                icon: Icon(Iconsax.edit, size: 14.r, color: Colors.blue),
+                label: Text('Edit',
+                    style: TextStyle(fontSize: 12.r, color: Colors.blue)),
                 style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: const Size(0, 0),
@@ -456,16 +459,16 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
               )
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.r),
           Row(
             children: [
-              const Icon(Iconsax.building, size: 14, color: Colors.grey),
-              const SizedBox(width: 8),
+              Icon(Iconsax.building, size: 14.r, color: Colors.grey),
+              SizedBox(width: 8.r),
               Text(
                   _selectedRole!.branchId != null
                       ? 'Assigned to a specific branch'
                       : 'No Branch (HQ)',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  style: TextStyle(fontSize: 11.r, color: Colors.grey)),
             ],
           )
         ],
@@ -480,8 +483,8 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
         .length;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.only(bottom: 8),
+      margin: EdgeInsets.only(bottom: 10.r),
+      padding: EdgeInsets.only(bottom: 8.r),
       decoration: BoxDecoration(
           color: Colors.white,
           border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
@@ -492,45 +495,44 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(7),
+                padding: EdgeInsets.all(7.r),
                 decoration: BoxDecoration(
                     color: (group['color'] as Color).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(9)),
+                    borderRadius: BorderRadius.circular(9.r)),
                 child: Icon(group['icon'] as IconData,
-                    color: group['color'] as Color, size: 17),
+                    color: group['color'] as Color, size: 17.r),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.r),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(group['group'],
-                        style: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 1),
+                        style: TextStyle(
+                            fontSize: 13.r, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 1.r),
                     Text(group['subtitle'],
-                        style:
-                            const TextStyle(fontSize: 9, color: Colors.grey)),
+                        style: TextStyle(fontSize: 9.r, color: Colors.grey)),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                padding: EdgeInsets.symmetric(horizontal: 7.r, vertical: 3.r),
                 decoration: BoxDecoration(
                     color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(16.r),
                     border: Border.all(color: Colors.orange.shade100)),
                 child: Text('$enabledCount/${perms.length} Enabled',
                     style: TextStyle(
-                        fontSize: 9,
+                        fontSize: 9.r,
                         color: Colors.orange.shade800,
                         fontWeight: FontWeight.bold)),
               )
             ],
           ),
-          const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10),
-              child: Divider(height: 1)),
+          Padding(
+              padding: EdgeInsets.symmetric(vertical: 10.r),
+              child: Divider(height: 1.r)),
           ...perms.map((p) => _buildToggleRow(p)),
         ],
       ),
@@ -542,7 +544,7 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
     final value = _isOwner ? true : _editedPermissions.contains(perm['key']);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: EdgeInsets.only(bottom: 9.r),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -554,63 +556,63 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
                   children: [
                     Text(perm['key'],
                         style: TextStyle(
-                            fontSize: 9,
+                            fontSize: 9.r,
                             fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
+                            letterSpacing: 0.5.r,
                             color: isRestricted
                                 ? Colors.grey.shade400
                                 : Colors.black)),
                     if (perm['info'] == true) ...[
-                      const SizedBox(width: 4),
-                      const Icon(Iconsax.info_circle,
-                          size: 12, color: Colors.grey),
+                      SizedBox(width: 4.r),
+                      Icon(Iconsax.info_circle, size: 12.r, color: Colors.grey),
                     ],
                     if (isRestricted) ...[
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8.r),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 2),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 4.r, vertical: 2.r),
                         decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(4.r),
                             border: Border.all(color: Colors.grey.shade200)),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Iconsax.lock, size: 10, color: Colors.orange),
-                            SizedBox(width: 4),
+                            Icon(Iconsax.lock,
+                                size: 10.r, color: Colors.orange),
+                            SizedBox(width: 4.r),
                             Text('Restricted to Owner',
                                 style: TextStyle(
-                                    fontSize: 8,
+                                    fontSize: 8.r,
                                     color: Colors.grey,
                                     fontWeight: FontWeight.bold)),
                           ],
                         ),
                       )
                     ] else if (perm['tag'] != null) ...[
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8.r),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 2),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 4.r, vertical: 2.r),
                         decoration: BoxDecoration(
                             color: (perm['tagColor'] ?? Colors.grey)
                                 .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(4.r),
                             border: Border.all(
                                 color: (perm['tagColor'] ?? Colors.grey)
                                     .withValues(alpha: 0.3))),
                         child: Text(perm['tag'],
                             style: TextStyle(
-                                fontSize: 8,
+                                fontSize: 8.r,
                                 color: perm['tagColor'] ?? Colors.grey.shade700,
                                 fontWeight: FontWeight.bold)),
                       )
                     ]
                   ],
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2.r),
                 Text(perm['title'],
                     style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 10.r,
                         color:
                             isRestricted ? Colors.grey.shade400 : Colors.grey)),
               ],
@@ -641,14 +643,14 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
 
   Widget _buildBottomBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      padding: EdgeInsets.fromLTRB(24.r, 16.r, 24.r, 32.r),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -4))
+              blurRadius: 10.r,
+              offset: Offset(0, (-4).r))
         ],
       ),
       child: Column(
@@ -656,20 +658,21 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
           Row(
             children: [
               Icon(_isDirty ? Iconsax.warning_2 : Iconsax.verify,
-                  size: 14, color: _isDirty ? Colors.orange : Colors.green),
-              const SizedBox(width: 4),
-              const Text('Policy Baseline: ', style: TextStyle(fontSize: 11)),
+                  size: 14.r, color: _isDirty ? Colors.orange : Colors.green),
+              SizedBox(width: 4.r),
+              Text('Policy Baseline: ', style: TextStyle(fontSize: 11.r)),
               Text(_isDirty ? 'Unsaved Changes' : 'Synced',
                   style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 11.r,
                       fontWeight: FontWeight.bold,
                       color: _isDirty ? Colors.orange : Colors.black)),
               const Spacer(),
               Text(_isDirty ? 'Review before saving' : 'Up to date',
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+                  style:
+                      TextStyle(fontSize: 10.r, color: Colors.grey.shade400)),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.r),
           if (_isDirty)
             Row(
               children: [
@@ -678,38 +681,38 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
                   child: ElevatedButton.icon(
                     onPressed: _isSubmitting ? null : _saveRole,
                     icon: _isSubmitting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
+                        ? SizedBox(
+                            width: 16.r,
+                            height: 16.r,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : const Icon(Iconsax.save_2, size: 16),
+                                strokeWidth: 2.r, color: Colors.white))
+                        : Icon(Iconsax.save_2, size: 16.r),
                     label: const Text('Save Role Permissions',
                         style: TextStyle(fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange.shade700,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: EdgeInsets.symmetric(vertical: 16.r),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12.r)),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12.r),
                 Expanded(
                   flex: 1,
                   child: OutlinedButton.icon(
                     onPressed: _isSubmitting
                         ? null
                         : () => _selectRole(_selectedRole!), // Reset
-                    icon: const Icon(Iconsax.refresh, size: 16),
+                    icon: Icon(Iconsax.refresh, size: 16.r),
                     label: const Text('Discard',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, color: Colors.black)),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: EdgeInsets.symmetric(vertical: 16.r),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12.r)),
                     ),
                   ),
                 ),
@@ -736,12 +739,12 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
                 baseColor: Colors.grey.shade300,
                 highlightColor: Colors.grey.shade100,
                 child: Container(
-                    width: 40,
-                    height: 40,
+                    width: 40.r,
+                    height: 40.r,
                     decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(8)))),
-            const SizedBox(width: 12),
+                        borderRadius: BorderRadius.circular(8.r)))),
+            SizedBox(width: 12.r),
             Expanded(
                 child: Shimmer.fromColors(
                     baseColor: Colors.grey.shade300,
@@ -750,22 +753,23 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                              width: 150, height: 20, color: Colors.white),
-                          const SizedBox(height: 4),
-                          Container(width: 200, height: 12, color: Colors.white)
+                              width: 150.r, height: 20.r, color: Colors.white),
+                          SizedBox(height: 4.r),
+                          Container(
+                              width: 200.r, height: 12.r, color: Colors.white)
                         ]))),
             Shimmer.fromColors(
                 baseColor: Colors.grey.shade300,
                 highlightColor: Colors.grey.shade100,
                 child: Container(
-                    width: 60,
-                    height: 24,
+                    width: 60.r,
+                    height: 24.r,
                     decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12))))
+                        borderRadius: BorderRadius.circular(12.r))))
           ],
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24.r),
         // Tabs mimic
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -773,31 +777,31 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
             children: List.generate(
                 3,
                 (index) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
+                      padding: EdgeInsets.only(right: 8.r),
                       child: Shimmer.fromColors(
                           baseColor: Colors.grey.shade300,
                           highlightColor: Colors.grey.shade100,
                           child: Container(
-                              width: 100,
-                              height: 40,
+                              width: 100.r,
+                              height: 40.r,
                               decoration: BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20)))),
+                                  borderRadius: BorderRadius.circular(20.r)))),
                     )),
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24.r),
         // Card mimic
         Shimmer.fromColors(
             baseColor: Colors.grey.shade300,
             highlightColor: Colors.grey.shade100,
             child: Container(
                 width: double.infinity,
-                height: 120,
+                height: 120.r,
                 decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16)))),
-        const SizedBox(height: 16),
+                    borderRadius: BorderRadius.circular(16.r)))),
+        SizedBox(height: 16.r),
         // Permission Groups mimic
         ...List.generate(
             2,
@@ -805,12 +809,12 @@ class _RolesPermissionsPageState extends State<RolesPermissionsPage> {
                 baseColor: Colors.grey.shade300,
                 highlightColor: Colors.grey.shade100,
                 child: Container(
-                    margin: const EdgeInsets.only(bottom: 16),
+                    margin: EdgeInsets.only(bottom: 16.r),
                     width: double.infinity,
-                    height: 250,
+                    height: 250.r,
                     decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16))))),
+                        borderRadius: BorderRadius.circular(16.r))))),
       ],
     );
   }
@@ -889,21 +893,21 @@ class _AddRoleSheetState extends State<_AddRoleSheet> {
     return Padding(
       padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 16,
-          right: 16,
-          top: 16),
+          left: 16.r,
+          right: 16.r,
+          top: 16.r),
       child: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('New Custom Role',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 18),
+            Text('New Custom Role',
+                style: TextStyle(fontSize: 18.r, fontWeight: FontWeight.bold)),
+            SizedBox(height: 18.r),
             if (!_isLoadingBranches) ...[
               _sheetFieldLabel('Branch'),
-              const SizedBox(height: 6),
+              SizedBox(height: 6.r),
               DailioPickerField<String>(
                 initialValue: _selectedBranchId,
                 decoration: _sheetInputDecoration(),
@@ -916,38 +920,38 @@ class _AddRoleSheetState extends State<_AddRoleSheet> {
                 onChanged: (val) => setState(() => _selectedBranchId = val),
               ),
             ],
-            const SizedBox(height: 16),
+            SizedBox(height: 16.r),
             _sheetFieldLabel('Role name'),
-            const SizedBox(height: 6),
+            SizedBox(height: 6.r),
             TextFormField(
               autofocus: true,
               decoration: _sheetInputDecoration(hintText: 'e.g. Receptionist'),
-              style: const TextStyle(fontSize: 13),
+              style: TextStyle(fontSize: 13.r),
               onSaved: (val) => _name = val ?? '',
               validator: (val) =>
                   (val == null || val.isEmpty) ? 'Required' : null,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.r),
             ElevatedButton(
               onPressed: _isSaving ? null : _submit,
               style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 46),
+                  minimumSize: Size(double.infinity, 46.r),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10.r)),
                   elevation: 0),
               child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
+                  ? SizedBox(
+                      width: 20.r,
+                      height: 20.r,
                       child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2))
-                  : const Text('Create Role',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          color: Colors.white, strokeWidth: 2.r))
+                  : Text('Create Role',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13.r)),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.r),
           ],
         ),
       ),
@@ -956,27 +960,26 @@ class _AddRoleSheetState extends State<_AddRoleSheet> {
 
   Widget _sheetFieldLabel(String label) => Text(
         label,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        style: TextStyle(fontSize: 12.r, fontWeight: FontWeight.w500),
       );
 
   InputDecoration _sheetInputDecoration({String? hintText}) => InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+        hintStyle: TextStyle(fontSize: 13.r, color: Colors.grey),
         filled: true,
         fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+        contentPadding: EdgeInsets.symmetric(vertical: 13.r, horizontal: 14.r),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: BorderSide(color: Colors.grey.shade200),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: BorderSide(color: Colors.grey.shade200),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5),
+          borderRadius: BorderRadius.circular(10.r),
+          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5.r),
         ),
       );
 }
@@ -1058,21 +1061,21 @@ class _EditRoleConfigSheetState extends State<_EditRoleConfigSheet> {
     return Padding(
       padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 16,
-          right: 16,
-          top: 16),
+          left: 16.r,
+          right: 16.r,
+          top: 16.r),
       child: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Edit Role',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 18),
+            Text('Edit Role',
+                style: TextStyle(fontSize: 18.r, fontWeight: FontWeight.bold)),
+            SizedBox(height: 18.r),
             if (!_isLoadingBranches) ...[
               _sheetFieldLabel('Branch'),
-              const SizedBox(height: 6),
+              SizedBox(height: 6.r),
               DailioPickerField<String>(
                 initialValue: _selectedBranchId,
                 decoration: _sheetInputDecoration(),
@@ -1085,38 +1088,38 @@ class _EditRoleConfigSheetState extends State<_EditRoleConfigSheet> {
                 onChanged: (val) => setState(() => _selectedBranchId = val),
               ),
             ],
-            const SizedBox(height: 16),
+            SizedBox(height: 16.r),
             _sheetFieldLabel('Role name'),
-            const SizedBox(height: 6),
+            SizedBox(height: 6.r),
             TextFormField(
               initialValue: _name,
               decoration: _sheetInputDecoration(hintText: 'e.g. Receptionist'),
-              style: const TextStyle(fontSize: 13),
+              style: TextStyle(fontSize: 13.r),
               onSaved: (val) => _name = val ?? '',
               validator: (val) =>
                   (val == null || val.isEmpty) ? 'Required' : null,
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: 18.r),
             ElevatedButton(
               onPressed: _isSaving ? null : _submit,
               style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 46),
+                  minimumSize: Size(double.infinity, 46.r),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10.r)),
                   elevation: 0),
               child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
+                  ? SizedBox(
+                      width: 20.r,
+                      height: 20.r,
                       child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2))
-                  : const Text('Save Changes',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          color: Colors.white, strokeWidth: 2.r))
+                  : Text('Save Changes',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13.r)),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.r),
           ],
         ),
       ),
@@ -1125,27 +1128,26 @@ class _EditRoleConfigSheetState extends State<_EditRoleConfigSheet> {
 
   Widget _sheetFieldLabel(String label) => Text(
         label,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        style: TextStyle(fontSize: 12.r, fontWeight: FontWeight.w500),
       );
 
   InputDecoration _sheetInputDecoration({String? hintText}) => InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+        hintStyle: TextStyle(fontSize: 13.r, color: Colors.grey),
         filled: true,
         fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+        contentPadding: EdgeInsets.symmetric(vertical: 13.r, horizontal: 14.r),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: BorderSide(color: Colors.grey.shade200),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: BorderSide(color: Colors.grey.shade200),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5),
+          borderRadius: BorderRadius.circular(10.r),
+          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5.r),
         ),
       );
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -130,12 +131,17 @@ class _MainAppState extends State<MainApp> {
               _router.go(AppRoutes.onboarding);
             }
           },
-          child: MaterialApp.router(
-            title: 'Dailio',
-            theme: AppTheme.light(),
-            themeMode: ThemeMode.light,
-            routerConfig: _router,
-            debugShowCheckedModeBanner: false,
+          child: ScreenUtilInit(
+            designSize: const Size(411.42857142857144, 843.4285714285714),
+            minTextAdapt: true,
+            splitScreenMode: true,
+            builder: (context, child) => MaterialApp.router(
+              title: 'Dailio',
+              theme: AppTheme.light(),
+              themeMode: ThemeMode.light,
+              routerConfig: _router,
+              debugShowCheckedModeBanner: false,
+            ),
           ),
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// A compact, scrollable text tab strip used by list screens.
 class DailioTabItem<T> {
@@ -13,18 +14,18 @@ class DailioTabItem<T> {
 class DailioTabStyles {
   DailioTabStyles._();
 
-  static const selectedText = TextStyle(
+  static final selectedText = TextStyle(
     color: AppColors.brandAccent,
-    fontSize: 12,
+    fontSize: 12.r,
     fontWeight: FontWeight.w700,
   );
-  static const unselectedText = TextStyle(
+  static final unselectedText = TextStyle(
     color: Color(0xFF6B6B6B),
-    fontSize: 12,
+    fontSize: 12.r,
     fontWeight: FontWeight.w500,
   );
-  static const horizontalPadding = EdgeInsets.symmetric(horizontal: 12);
-  static const tabPadding = EdgeInsets.symmetric(horizontal: 8);
+  static final horizontalPadding = EdgeInsets.symmetric(horizontal: 12.r);
+  static final tabPadding = EdgeInsets.symmetric(horizontal: 8.r);
 }
 
 class DailioTabStrip<T> extends StatelessWidget {
@@ -56,17 +57,17 @@ class DailioTabStrip<T> extends StatelessWidget {
         return InkWell(
           onTap: () => onChanged(tab.value),
           child: Container(
-            height: 44,
+            height: 44.r,
             margin: EdgeInsets.only(
-              left: index == 0 ? 0 : 4,
-              right: 4,
+              left: index == 0 ? 0 : 4.r,
+              right: 4.r,
             ),
             padding: DailioTabStyles.tabPadding,
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
                   color: active ? AppColors.brandAccent : Colors.transparent,
-                  width: 2,
+                  width: 2.r,
                 ),
               ),
             ),
@@ -84,7 +85,7 @@ class DailioTabStrip<T> extends StatelessWidget {
 
     if (centered) {
       return SizedBox(
-        height: 44,
+        height: 44.r,
         child: ColoredBox(
           color: Colors.white,
           child: Center(
@@ -107,7 +108,7 @@ class DailioTabStrip<T> extends StatelessWidget {
         border: Border(bottom: BorderSide(color: Color(0xFFE9E9E9))),
       ),
       child: SizedBox(
-        height: 44,
+        height: 44.r,
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: DailioTabStyles.horizontalPadding,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../theme/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 InputDecoration dailioOnboardingInput(
   String hint,
@@ -9,22 +10,22 @@ InputDecoration dailioOnboardingInput(
   Widget? suffixIcon,
 }) {
   final border = OutlineInputBorder(
-    borderRadius: BorderRadius.circular(10),
+    borderRadius: BorderRadius.circular(10.r),
     borderSide: const BorderSide(color: Color(0xFFE4E4E4)),
   );
   return InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF929292)),
-    prefixIcon: Icon(icon, size: 17, color: const Color(0xFF929292)),
+    hintStyle: TextStyle(fontSize: 13.r, color: Color(0xFF929292)),
+    prefixIcon: Icon(icon, size: 17.r, color: const Color(0xFF929292)),
     suffixIcon: suffixIcon,
     filled: true,
     fillColor: Colors.white,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+    contentPadding: EdgeInsets.symmetric(horizontal: 14.r, vertical: 13.r),
     border: border,
     enabledBorder: border,
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: AppColors.brandAccent, width: 1.4),
+      borderRadius: BorderRadius.circular(10.r),
+      borderSide: BorderSide(color: AppColors.brandAccent, width: 1.4.r),
     ),
   );
 }
@@ -37,14 +38,14 @@ class DailioOnboardingSectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 8.r),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.brandDark,
-          fontSize: 12,
+          fontSize: 12.r,
           fontWeight: FontWeight.w800,
-          letterSpacing: .2,
+          letterSpacing: .2.r,
         ),
       ),
     );
@@ -70,17 +71,17 @@ class DailioOnboardingButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final child = loading
-        ? const SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
+        ? SizedBox(
+            width: 18.r,
+            height: 18.r,
+            child: CircularProgressIndicator(strokeWidth: 2.r),
           )
         : Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 17),
-                const SizedBox(width: 8),
+                Icon(icon, size: 17.r),
+                SizedBox(width: 8.r),
               ],
               Text(label),
             ],
@@ -88,7 +89,7 @@ class DailioOnboardingButton extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      height: 46,
+      height: 46.r,
       child: outlined
           ? OutlinedButton(
               onPressed: loading ? null : onPressed,
@@ -96,7 +97,7 @@ class DailioOnboardingButton extends StatelessWidget {
                 foregroundColor: AppColors.brandDark,
                 side: const BorderSide(color: Color(0xFFE0E0E0)),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10.r)),
               ),
               child: child,
             )
@@ -106,7 +107,7 @@ class DailioOnboardingButton extends StatelessWidget {
                 backgroundColor: AppColors.brandAccent,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10.r)),
               ),
               child: child,
             ),
@@ -135,37 +136,36 @@ class DailioOnboardingChoiceRow extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 13),
+          padding: EdgeInsets.symmetric(vertical: 13.r),
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 40.r,
+                height: 40.r,
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF1E6),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
-                child: Icon(icon, size: 20, color: AppColors.brandAccent),
+                child: Icon(icon, size: 20.r, color: AppColors.brandAccent),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.r),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title,
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 3),
+                        style: TextStyle(
+                            fontSize: 14.r, fontWeight: FontWeight.w700)),
+                    SizedBox(height: 3.r),
                     Text(subtitle,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 11, color: Color(0xFF858585))),
+                        style: TextStyle(
+                            fontSize: 11.r, color: Color(0xFF858585))),
                   ],
                 ),
               ),
-              const Icon(Iconsax.arrow_right_3,
-                  size: 17, color: Color(0xFF9A9A9A)),
+              Icon(Iconsax.arrow_right_3, size: 17.r, color: Color(0xFF9A9A9A)),
             ],
           ),
         ),
@@ -197,15 +197,15 @@ class DailioOnboardingInfoRow extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 11),
+          padding: EdgeInsets.symmetric(vertical: 11.r),
           child: Row(
             children: [
               CircleAvatar(
-                radius: 20,
+                radius: 20.r,
                 backgroundColor: const Color(0xFFFFF1E6),
-                child: Icon(icon, size: 19, color: AppColors.brandAccent),
+                child: Icon(icon, size: 19.r, color: AppColors.brandAccent),
               ),
-              const SizedBox(width: 11),
+              SizedBox(width: 11.r),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,14 +213,14 @@ class DailioOnboardingInfoRow extends StatelessWidget {
                     Text(title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 3),
+                        style: TextStyle(
+                            fontSize: 14.r, fontWeight: FontWeight.w700)),
+                    SizedBox(height: 3.r),
                     Text(subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 11, color: Color(0xFF858585))),
+                        style: TextStyle(
+                            fontSize: 11.r, color: Color(0xFF858585))),
                   ],
                 ),
               ),
@@ -251,21 +251,20 @@ class DailioOnboardingEmpty extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 34, color: const Color(0xFFB0B0B0)),
-            const SizedBox(height: 10),
+            Icon(icon, size: 34.r, color: const Color(0xFFB0B0B0)),
+            SizedBox(height: 10.r),
             Text(title,
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
+                style: TextStyle(fontSize: 15.r, fontWeight: FontWeight.w800)),
+            SizedBox(height: 4.r),
             Text(subtitle,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF858585))),
-            if (action != null) ...[const SizedBox(height: 16), action!],
+                style: TextStyle(fontSize: 12.r, color: Color(0xFF858585))),
+            if (action != null) ...[SizedBox(height: 16.r), action!],
           ],
         ),
       ),

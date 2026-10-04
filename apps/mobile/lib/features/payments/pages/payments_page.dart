@@ -16,6 +16,7 @@ import '../../../core/widgets/shimmer_loader.dart';
 import '../../fees/controllers/fees_repository.dart';
 import '../../fees/models/fee_models.dart';
 import 'payment_detail_page.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class PaymentsPage extends StatefulWidget {
   const PaymentsPage({super.key});
@@ -147,7 +148,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                         onRefresh: _load,
                         child: _visibleRequests.isEmpty
                             ? ListView(
-                                padding: const EdgeInsets.only(top: 140),
+                                padding: EdgeInsets.only(top: 140.r),
                                 children: const [
                                   Center(
                                       child: Text(
@@ -156,10 +157,10 @@ class _PaymentsPageState extends State<PaymentsPage> {
                               )
                             : ListView.separated(
                                 padding:
-                                    const EdgeInsets.only(top: 12, bottom: 96),
+                                    EdgeInsets.only(top: 12.r, bottom: 96.r),
                                 itemCount: _visibleRequests.length,
                                 separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 8),
+                                    SizedBox(height: 8.r),
                                 itemBuilder: (_, index) =>
                                     _requestCard(_visibleRequests[index]),
                               ),
@@ -309,21 +310,21 @@ class _PaymentsPageState extends State<PaymentsPage> {
     final date = request.payment?.postedAt ?? request.createdAt;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(14.r),
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => PaymentDetailPage(requestId: request.id))),
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(14.r),
             side: BorderSide(color: Colors.grey.shade200)),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16.r),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               CircleAvatar(
-                radius: 24,
+                radius: 24.r,
                 backgroundColor: Colors.indigo.shade100,
                 backgroundImage: avatarUrl == null || avatarUrl.isEmpty
                     ? null
@@ -336,37 +337,37 @@ class _PaymentsPageState extends State<PaymentsPage> {
                             fontWeight: FontWeight.bold))
                     : null,
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.r),
               Expanded(
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(memberName,
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
+                          style: TextStyle(
+                              fontSize: 16.r, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 4.r),
                       Text(request.planName ?? 'Subscription payment',
                           style: TextStyle(color: Colors.grey.shade700)),
                       if (date != null) ...[
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4.r),
                         Text(
                             DateFormat('dd MMM yyyy, hh:mm a')
                                 .format(date.toLocal()),
                             style: TextStyle(
-                                color: Colors.grey.shade600, fontSize: 12)),
+                                color: Colors.grey.shade600, fontSize: 12.r)),
                       ],
                     ]),
               ),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Text(_money(request.signedAmountMinorUnit),
-                    style: const TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
+                    style:
+                        TextStyle(fontSize: 17.r, fontWeight: FontWeight.bold)),
+                SizedBox(height: 6.r),
                 _statusBadge(request.status, color),
               ]),
             ]),
-            const SizedBox(height: 14),
-            Wrap(spacing: 8, runSpacing: 8, children: [
+            SizedBox(height: 14.r),
+            Wrap(spacing: 8.r, runSpacing: 8.r, children: [
               _infoChip(Iconsax.wallet, request.method),
               _infoChip(
                   Iconsax.attach_circle, '${request.evidence.length} evidence'),
@@ -377,16 +378,16 @@ class _PaymentsPageState extends State<PaymentsPage> {
                     request.payment!.receipt!.receiptNumber),
             ]),
             if (request.reason != null && request.reason!.isNotEmpty) ...[
-              const SizedBox(height: 10),
+              SizedBox(height: 10.r),
               Text(request.reason!,
                   style:
-                      TextStyle(color: Colors.orange.shade900, fontSize: 12)),
+                      TextStyle(color: Colors.orange.shade900, fontSize: 12.r)),
             ],
             if (canAct) ...[
-              const Divider(height: 22),
+              Divider(height: 22.r),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: 8.r,
+                runSpacing: 8.r,
                 children: [
                   OutlinedButton(
                     onPressed: () => _review(request.id, 'approve'),
@@ -417,7 +418,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
       clipBehavior: Clip.none,
       children: [
         CircleAvatar(
-          radius: 21,
+          radius: 21.r,
           backgroundColor: AppColors.brandAccent.withValues(alpha: 0.12),
           backgroundImage:
               image == null || image.isEmpty ? null : NetworkImage(image),
@@ -432,17 +433,17 @@ class _PaymentsPageState extends State<PaymentsPage> {
               : null,
         ),
         Positioned(
-          right: -2,
-          bottom: -2,
+          right: (-2).r,
+          bottom: (-2).r,
           child: Container(
-            width: 16,
-            height: 16,
+            width: 16.r,
+            height: 16.r,
             decoration: BoxDecoration(
               color: statusColor,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(color: Colors.white, width: 2.r),
             ),
-            child: Icon(statusIcon, size: 10, color: Colors.white),
+            child: Icon(statusIcon, size: 10.r, color: Colors.white),
           ),
         ),
       ],
@@ -450,28 +451,28 @@ class _PaymentsPageState extends State<PaymentsPage> {
   }
 
   Widget _statusBadge(String status, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        padding: EdgeInsets.symmetric(horizontal: 9.r, vertical: 5.r),
         decoration: BoxDecoration(
             color: color.withValues(alpha: .1),
-            borderRadius: BorderRadius.circular(20)),
+            borderRadius: BorderRadius.circular(20.r)),
         child: Text(status.replaceAll('_', ' '),
             style: TextStyle(
-                fontSize: 10, color: color, fontWeight: FontWeight.bold)),
+                fontSize: 10.r, color: color, fontWeight: FontWeight.bold)),
       );
 
   Widget _infoChip(IconData icon, String label) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        padding: EdgeInsets.symmetric(horizontal: 9.r, vertical: 6.r),
         decoration: BoxDecoration(
             color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8)),
+            borderRadius: BorderRadius.circular(8.r)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: Colors.grey.shade700),
-          const SizedBox(width: 5),
+          Icon(icon, size: 14.r, color: Colors.grey.shade700),
+          SizedBox(width: 5.r),
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 170),
+            constraints: BoxConstraints(maxWidth: 170.r),
             child: Text(label,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade800)),
+                style: TextStyle(fontSize: 11.r, color: Colors.grey.shade800)),
           ),
         ]),
       );
@@ -541,10 +542,10 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
           child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(message, textAlign: TextAlign.center),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.r),
           ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
         ]),
       ));

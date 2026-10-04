@@ -12,6 +12,8 @@ import 'package:dailio/core/storage/secure_storage.dart';
 import 'package:dailio/features/organization/controllers/organization_repository.dart';
 import 'package:dailio/features/organization/pages/roles_permissions_page.dart';
 
+import '../../support/screenutil_test_app.dart';
+
 class _FakeOrganizationRepository extends OrganizationRepository {
   _FakeOrganizationRepository(ApiClient apiClient)
       : super(apiClient: apiClient);
@@ -66,7 +68,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MultiProvider(
+      screenUtilTestApp(MultiProvider(
         providers: [
           ChangeNotifierProvider.value(value: preferences),
           Provider<OrganizationRepository>(
@@ -74,7 +76,7 @@ void main() {
           ),
         ],
         child: const MaterialApp(home: RolesPermissionsPage()),
-      ),
+      )),
     );
     await tester.pumpAndSettle();
 

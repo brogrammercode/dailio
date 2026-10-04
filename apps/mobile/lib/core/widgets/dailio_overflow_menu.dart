@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// A compact, consistent overflow menu for Dailio screens.
 ///
@@ -39,15 +40,15 @@ class DailioOverflowMenu<T> extends StatelessWidget {
     return PopupMenuButton<T>(
       tooltip: tooltip,
       padding: EdgeInsets.zero,
-      splashRadius: 22,
+      splashRadius: 22.r,
       icon: const Icon(Icons.more_horiz, color: AppColors.brandDark),
       color: Colors.white,
       surfaceTintColor: Colors.transparent,
-      elevation: 8,
-      constraints: const BoxConstraints(minWidth: 188, maxWidth: 248),
-      offset: const Offset(0, 8),
+      elevation: 8.r,
+      constraints: BoxConstraints(minWidth: 188.r, maxWidth: 248.r),
+      offset: Offset(0, 8.r),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14.r),
         side: const BorderSide(color: Color(0xFFE8E8E8)),
       ),
       onSelected: onSelected,
@@ -56,25 +57,25 @@ class DailioOverflowMenu<T> extends StatelessWidget {
             (item) => PopupMenuItem<T>(
               value: item.value,
               enabled: item.enabled,
-              height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              height: 44.r,
+              padding: EdgeInsets.symmetric(horizontal: 14.r),
               child: Row(
                 children: [
                   Icon(
                     item.icon,
-                    size: 18,
+                    size: 18.r,
                     color: item.destructive
                         ? AppColors.error
                         : AppColors.brandDark,
                   ),
-                  const SizedBox(width: 11),
+                  SizedBox(width: 11.r),
                   Text(
                     item.label,
                     style: TextStyle(
                       color: item.destructive
                           ? AppColors.error
                           : AppColors.brandDark,
-                      fontSize: 13,
+                      fontSize: 13.r,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

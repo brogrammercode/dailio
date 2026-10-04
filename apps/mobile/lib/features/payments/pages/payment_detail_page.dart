@@ -22,6 +22,7 @@ import '../../fees/controllers/fees_repository.dart';
 import '../../fees/models/fee_models.dart';
 import '../../fees/models/financial_models.dart';
 import '../../fees/pages/member_subscription_detail_page.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class PaymentDetailPage extends StatefulWidget {
   final String requestId;
@@ -94,7 +95,7 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
       ),
       body: _loading
           ? Padding(
-              padding: EdgeInsets.fromLTRB(16, 14, 16, 0),
+              padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 0),
               child: ShimmerLoader.detailPage(),
             )
           : _error != null
@@ -104,7 +105,7 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
                   onRefresh: _load,
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                    padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 32.r),
                     children: [_content(_request!)],
                   ),
                 ),
@@ -114,27 +115,26 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
   Widget _errorView() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(28),
+        padding: EdgeInsets.all(28.r),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Iconsax.cloud_cross,
-                size: 34, color: AppColors.brandAccent),
-            const SizedBox(height: 12),
-            const Text(
+            Icon(Iconsax.cloud_cross, size: 34.r, color: AppColors.brandAccent),
+            SizedBox(height: 12.r),
+            Text(
               'Could not load this payment',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.r),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6.r),
             Text(
               _error ?? 'Please try again.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFF777777), fontSize: 12),
+              style: TextStyle(color: Color(0xFF777777), fontSize: 12.r),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.r),
             OutlinedButton.icon(
               onPressed: _load,
-              icon: const Icon(Iconsax.refresh, size: 17),
+              icon: Icon(Iconsax.refresh, size: 17.r),
               label: const Text('Try again'),
             ),
           ],
@@ -157,7 +157,7 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
         Row(
           children: [
             _avatar(request),
-            const SizedBox(width: 10),
+            SizedBox(width: 10.r),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,14 +166,13 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
                     name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.w800),
+                    style:
+                        TextStyle(fontSize: 17.r, fontWeight: FontWeight.w800),
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3.r),
                   Text(
                     request.memberRoleName ?? request.planName ?? 'Member',
-                    style:
-                        const TextStyle(color: Color(0xFF777777), fontSize: 12),
+                    style: TextStyle(color: Color(0xFF777777), fontSize: 12.r),
                   ),
                 ],
               ),
@@ -181,7 +180,7 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
             _badge(_pretty(request.status), _statusColor(request.status)),
           ],
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24.r),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -189,25 +188,24 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('PAYMENT',
+                  Text('PAYMENT',
                       style: TextStyle(
                           color: Color(0xFF969696),
-                          fontSize: 10,
+                          fontSize: 10.r,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: .8)),
-                  const SizedBox(height: 5),
+                          letterSpacing: .8.r)),
+                  SizedBox(height: 5.r),
                   Text(
                     isDeduct ? 'Deduct' : 'Credit',
                     style: TextStyle(
                         color: amountColor,
-                        fontSize: 18,
+                        fontSize: 18.r,
                         fontWeight: FontWeight.w800),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4.r),
                   Text(
                     '${request.method} · ${_dateTime(request.createdAt)}',
-                    style:
-                        const TextStyle(color: Color(0xFF777777), fontSize: 11),
+                    style: TextStyle(color: Color(0xFF777777), fontSize: 11.r),
                   ),
                 ],
               ),
@@ -216,17 +214,17 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
               '${isDeduct ? '-' : '+'}${_money(amount, request.currency)}',
               style: TextStyle(
                   color: amountColor,
-                  fontSize: 20,
+                  fontSize: 20.r,
                   fontWeight: FontWeight.w900),
             ),
           ],
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 17),
-          child: Divider(height: 1),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 17.r),
+          child: Divider(height: 1.r),
         ),
         _sectionTitle('Payment information'),
-        const SizedBox(height: 8),
+        SizedBox(height: 8.r),
         _section([
           _detail('Status', _pretty(request.status)),
           _detail('Method', request.method),
@@ -238,31 +236,31 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
           if (request.reason != null && request.reason!.isNotEmpty)
             _detail('Reviewer note', request.reason!),
         ]),
-        const SizedBox(height: 22),
+        SizedBox(height: 22.r),
         _sectionTitle('Receipt'),
-        const SizedBox(height: 8),
+        SizedBox(height: 8.r),
         _receiptRow(request, receipt),
-        const SizedBox(height: 22),
+        SizedBox(height: 22.r),
         _sectionTitle('Evidence'),
-        const SizedBox(height: 8),
+        SizedBox(height: 8.r),
         _evidenceSection(request),
         if (_canReview(request)) ...[
-          const SizedBox(height: 22),
+          SizedBox(height: 22.r),
           _reviewSection(request),
         ],
         if (_canEdit(request)) ...[
-          const SizedBox(height: 22),
+          SizedBox(height: 22.r),
           _editSection(request),
         ],
         if (request.planName != null) ...[
-          const SizedBox(height: 22),
+          SizedBox(height: 22.r),
           _sectionTitle('Subscription'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.r),
           _section([
             _detail('Plan', request.planName!),
-            const Text(
+            Text(
               'This payment is linked to the subscription plan shown above.',
-              style: TextStyle(color: Color(0xFF777777), fontSize: 12),
+              style: TextStyle(color: Color(0xFF777777), fontSize: 12.r),
             ),
           ]),
         ],
@@ -273,14 +271,14 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
   Widget _receiptRow(PaymentRequestModel request, ReceiptModel? receipt) {
     if (receipt == null) {
       return _section([
-        const Row(
+        Row(
           children: [
-            Icon(Iconsax.receipt_minus, color: Color(0xFF999999), size: 20),
-            SizedBox(width: 10),
+            Icon(Iconsax.receipt_minus, color: Color(0xFF999999), size: 20.r),
+            SizedBox(width: 10.r),
             Expanded(
               child: Text(
                 'Receipt will appear after this payment is approved.',
-                style: TextStyle(color: Color(0xFF777777), fontSize: 12),
+                style: TextStyle(color: Color(0xFF777777), fontSize: 12.r),
               ),
             ),
           ],
@@ -290,20 +288,18 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
     return _section([
       Row(
         children: [
-          const Icon(Iconsax.receipt_text,
-              color: AppColors.brandAccent, size: 21),
-          const SizedBox(width: 10),
+          Icon(Iconsax.receipt_text, color: AppColors.brandAccent, size: 21.r),
+          SizedBox(width: 10.r),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(receipt.receiptNumber,
                     style: const TextStyle(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 3),
+                SizedBox(height: 3.r),
                 Text(
                   'Issued ${_dateTime(receipt.issuedAt)} · ${request.payment?.status ?? 'PAID'}',
-                  style:
-                      const TextStyle(color: Color(0xFF777777), fontSize: 11),
+                  style: TextStyle(color: Color(0xFF777777), fontSize: 11.r),
                 ),
               ],
             ),
@@ -311,7 +307,7 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
           IconButton(
             tooltip: 'View receipt',
             onPressed: () => _showReceipt(request),
-            icon: const Icon(Iconsax.arrow_right_3, size: 19),
+            icon: Icon(Iconsax.arrow_right_3, size: 19.r),
             color: AppColors.brandAccent,
           ),
         ],
@@ -325,12 +321,12 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
     }
     if (request.evidence.isEmpty) {
       return _section([
-        const Row(
+        Row(
           children: [
-            Icon(Iconsax.document_text, color: Color(0xFF999999), size: 20),
-            SizedBox(width: 10),
+            Icon(Iconsax.document_text, color: Color(0xFF999999), size: 20.r),
+            SizedBox(width: 10.r),
             Text('No evidence attached.',
-                style: TextStyle(color: Color(0xFF777777), fontSize: 12)),
+                style: TextStyle(color: Color(0xFF777777), fontSize: 12.r)),
           ],
         ),
       ]);
@@ -338,23 +334,23 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
     return _section([
       ...request.evidence.map(
         (item) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
+          padding: EdgeInsets.only(bottom: 10.r),
           child: Row(
             children: [
-              const Icon(Iconsax.document_download,
-                  color: AppColors.brandAccent, size: 19),
-              const SizedBox(width: 10),
+              Icon(Iconsax.document_download,
+                  color: AppColors.brandAccent, size: 19.r),
+              SizedBox(width: 10.r),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(item.contentType,
                         style: const TextStyle(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 3),
+                    SizedBox(height: 3.r),
                     Text(
                       '${item.sizeBytes == null ? '' : '${(item.sizeBytes! / 1024).ceil()} KB · '}${_dateTime(item.createdAt)}',
-                      style: const TextStyle(
-                          color: Color(0xFF777777), fontSize: 11),
+                      style:
+                          TextStyle(color: Color(0xFF777777), fontSize: 11.r),
                     ),
                   ],
                 ),
@@ -385,17 +381,17 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
     final isPdf = item.contentType.toLowerCase().contains('pdf');
     return InkWell(
       onTap: () => _openEvidence(request, item),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(8.r),
       child: Padding(
-        padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+        padding: EdgeInsets.only(bottom: isLast ? 0 : 12.r),
         child: Row(
           children: [
             Icon(
               isPdf ? Iconsax.document_text : Iconsax.gallery,
               color: AppColors.brandAccent,
-              size: 20,
+              size: 20.r,
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10.r),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -404,26 +400,26 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
                     isPdf
                         ? 'Payment receipt document'
                         : 'Payment evidence image',
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: TextStyle(
+                      fontSize: 12.r,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3.r),
                   Text(
                     '${item.sizeBytes == null ? '' : '${(item.sizeBytes! / 1024).ceil()} KB · '}Tap to ${isPdf ? 'open' : 'preview'} · ${_dateTime(item.createdAt)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF777777),
-                      fontSize: 10,
+                      fontSize: 10.r,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Iconsax.arrow_right_3,
               color: Color(0xFF999999),
-              size: 16,
+              size: 16.r,
             ),
           ],
         ),
@@ -461,7 +457,7 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
         context: context,
         builder: (_) => Dialog(
           backgroundColor: Colors.black,
-          insetPadding: const EdgeInsets.all(16),
+          insetPadding: EdgeInsets.all(16.r),
           child: SafeArea(
             child: Stack(
               alignment: Alignment.topRight,
@@ -474,8 +470,8 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
                     fit: BoxFit.contain,
                     loadingBuilder: (context, child, progress) {
                       if (progress == null) return child;
-                      return const SizedBox(
-                        height: 320,
+                      return SizedBox(
+                        height: 320.r,
                         child: Center(
                           child: CircularProgressIndicator(
                             color: AppColors.brandAccent,
@@ -483,9 +479,8 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
                         ),
                       );
                     },
-                    errorBuilder: (context, error, stackTrace) =>
-                        const SizedBox(
-                      height: 320,
+                    errorBuilder: (context, error, stackTrace) => SizedBox(
+                      height: 320.r,
                       child: Center(
                         child: Text(
                           'Evidence preview unavailable',
@@ -531,12 +526,12 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
   Widget _editSection(PaymentRequestModel request) {
     return _section([
       _sectionTitle('Your submission'),
-      const SizedBox(height: 5),
-      const Text(
+      SizedBox(height: 5.r),
+      Text(
         'Only the member who submitted this request can update its details or evidence.',
-        style: TextStyle(color: Color(0xFF777777), fontSize: 11),
+        style: TextStyle(color: Color(0xFF777777), fontSize: 11.r),
       ),
-      const SizedBox(height: 12),
+      SizedBox(height: 12.r),
       SizedBox(
         width: double.infinity,
         child: OutlinedButton.icon(
@@ -550,7 +545,7 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
               ),
             );
           },
-          icon: const Icon(Iconsax.edit_2, size: 17),
+          icon: Icon(Iconsax.edit_2, size: 17.r),
           label: const Text('Edit submission'),
         ),
       ),
@@ -560,29 +555,29 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
   Widget _reviewSection(PaymentRequestModel request) {
     return _section([
       _sectionTitle('Review payment'),
-      const SizedBox(height: 5),
-      const Text(
+      SizedBox(height: 5.r),
+      Text(
         'Review the member-submitted payment evidence and choose the next state.',
-        style: TextStyle(color: Color(0xFF777777), fontSize: 11),
+        style: TextStyle(color: Color(0xFF777777), fontSize: 11.r),
       ),
-      const SizedBox(height: 12),
+      SizedBox(height: 12.r),
       Wrap(
-        spacing: 8,
-        runSpacing: 8,
+        spacing: 8.r,
+        runSpacing: 8.r,
         children: [
           OutlinedButton.icon(
             onPressed: () => _review(request.id, 'approve'),
-            icon: const Icon(Iconsax.tick_circle, size: 16),
+            icon: Icon(Iconsax.tick_circle, size: 16.r),
             label: const Text('Approve'),
           ),
           OutlinedButton.icon(
             onPressed: () => _review(request.id, 'needs_information'),
-            icon: const Icon(Iconsax.info_circle, size: 16),
+            icon: Icon(Iconsax.info_circle, size: 16.r),
             label: const Text('Need info'),
           ),
           TextButton.icon(
             onPressed: () => _review(request.id, 'reject'),
-            icon: const Icon(Iconsax.close_circle, size: 16),
+            icon: Icon(Iconsax.close_circle, size: 16.r),
             label: const Text('Reject'),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
           ),
@@ -645,10 +640,10 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
   Widget _section(List<Widget> children) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(13),
+      padding: EdgeInsets.all(13.r),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFFEAEAEA)),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
       ),
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: children),
@@ -657,24 +652,23 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
 
   Widget _sectionTitle(String title) => Text(
         title,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+        style: TextStyle(fontSize: 15.r, fontWeight: FontWeight.w800),
       );
 
   Widget _detail(String label, String value) => Padding(
-        padding: const EdgeInsets.only(bottom: 9),
+        padding: EdgeInsets.only(bottom: 9.r),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 90,
+              width: 90.r,
               child: Text(label,
-                  style:
-                      const TextStyle(color: Color(0xFF777777), fontSize: 11)),
+                  style: TextStyle(color: Color(0xFF777777), fontSize: 11.r)),
             ),
             Expanded(
               child: Text(value,
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w700)),
+                  style:
+                      TextStyle(fontSize: 12.r, fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -684,7 +678,7 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
     final image = request.memberAvatarUrl;
     final name = request.memberName ?? 'Member';
     final child = CircleAvatar(
-      radius: 24,
+      radius: 24.r,
       backgroundColor: const Color(0xFFFFE2CC),
       backgroundImage:
           image == null || image.isEmpty ? null : NetworkImage(image),
@@ -712,13 +706,13 @@ class _PaymentDetailPageState extends State<PaymentDetailPage> {
   }
 
   Widget _badge(String text, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 4.r),
         decoration: BoxDecoration(
             color: color.withValues(alpha: .11),
-            borderRadius: BorderRadius.circular(7)),
+            borderRadius: BorderRadius.circular(7.r)),
         child: Text(text,
             style: TextStyle(
-                color: color, fontSize: 10, fontWeight: FontWeight.w800)),
+                color: color, fontSize: 10.r, fontWeight: FontWeight.w800)),
       );
 
   Future<void> _showReceipt(PaymentRequestModel request) async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ShimmerLoader extends StatelessWidget {
   const ShimmerLoader({super.key});
@@ -23,51 +24,51 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView.separated(
-        padding: const EdgeInsets.only(top: 12, bottom: 96),
+        padding: EdgeInsets.only(top: 12.r, bottom: 96.r),
         itemCount: 6,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (_, __) => const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
+        separatorBuilder: (_, __) => SizedBox(height: 8.r),
+        itemBuilder: (_, __) => Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.r),
           child: SizedBox(
-            height: 68,
+            height: 68.r,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                CircleAvatar(radius: 24, backgroundColor: Colors.white),
-                SizedBox(width: 12),
+                CircleAvatar(radius: 24.r, backgroundColor: Colors.white),
+                SizedBox(width: 12.r),
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
-                        width: 150,
-                        height: 14,
+                        width: 150.r,
+                        height: 14.r,
                         child: ColoredBox(color: Colors.white),
                       ),
-                      SizedBox(height: 8),
+                      SizedBox(height: 8.r),
                       SizedBox(
-                        width: 210,
-                        height: 11,
+                        width: 210.r,
+                        height: 11.r,
                         child: ColoredBox(color: Colors.white),
                       ),
                     ],
                   ),
                 ),
-                SizedBox(width: 12),
+                SizedBox(width: 12.r),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     SizedBox(
-                      width: 54,
-                      height: 11,
+                      width: 54.r,
+                      height: 11.r,
                       child: ColoredBox(color: Colors.white),
                     ),
-                    SizedBox(height: 9),
+                    SizedBox(height: 9.r),
                     SizedBox(
-                      width: 18,
-                      height: 4,
+                      width: 18.r,
+                      height: 4.r,
                       child: ColoredBox(color: Colors.white),
                     ),
                   ],
@@ -85,20 +86,20 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView.separated(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         itemCount: 5,
-        separatorBuilder: (_, __) => const SizedBox(height: 24),
+        separatorBuilder: (_, __) => SizedBox(height: 24.r),
         itemBuilder: (_, __) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(width: 120, height: 16, color: Colors.white),
-            const SizedBox(height: 10),
+            Container(width: 120.r, height: 16.r, color: Colors.white),
+            SizedBox(height: 10.r),
             Container(
                 width: double.infinity,
-                height: 50,
+                height: 50.r,
                 decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(10))),
+                    borderRadius: BorderRadius.circular(10.r))),
           ],
         ),
       ),
@@ -110,15 +111,15 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView.separated(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         itemCount: 4,
-        separatorBuilder: (_, __) => const SizedBox(height: 16),
+        separatorBuilder: (_, __) => SizedBox(height: 16.r),
         itemBuilder: (_, __) => Container(
           width: double.infinity,
-          height: 100,
+          height: 100.r,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12.r),
           ),
         ),
       ),
@@ -132,45 +133,45 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+        padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 100.r),
         itemCount: count,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        separatorBuilder: (_, __) => SizedBox(height: 8.r),
         itemBuilder: (_, __) => Container(
-          height: 68,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          height: 68.r,
+          padding: EdgeInsets.symmetric(horizontal: 12.r),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(10.r),
           ),
           child: Row(
             children: [
-              const SizedBox(
-                width: 38,
-                height: 38,
+              SizedBox(
+                width: 38.r,
+                height: 38.r,
                 child: ColoredBox(color: Colors.white),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.r),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     SizedBox(
-                        width: 150,
-                        height: 13,
+                        width: 150.r,
+                        height: 13.r,
                         child: ColoredBox(color: Colors.white)),
-                    SizedBox(height: 8),
+                    SizedBox(height: 8.r),
                     SizedBox(
-                        width: 210,
-                        height: 10,
+                        width: 210.r,
+                        height: 10.r,
                         child: ColoredBox(color: Colors.white)),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              const SizedBox(
-                  width: 34,
-                  height: 12,
+              SizedBox(width: 12.r),
+              SizedBox(
+                  width: 34.r,
+                  height: 12.r,
                   child: ColoredBox(color: Colors.white)),
             ],
           ),
@@ -185,32 +186,32 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        padding: EdgeInsets.fromLTRB(16.r, 16.r, 16.r, 100.r),
         children: [
           if (withAvatar) ...[
-            const Center(
+            Center(
               child: SizedBox(
-                  width: 76,
-                  height: 76,
+                  width: 76.r,
+                  height: 76.r,
                   child: ColoredBox(color: Colors.white)),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22.r),
           ],
           ...List.generate(
             5,
             (_) => Padding(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: EdgeInsets.only(bottom: 16.r),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   SizedBox(
-                      width: 120,
-                      height: 11,
+                      width: 120.r,
+                      height: 11.r,
                       child: ColoredBox(color: Colors.white)),
-                  SizedBox(height: 7),
+                  SizedBox(height: 7.r),
                   SizedBox(
                     width: double.infinity,
-                    height: 48,
+                    height: 48.r,
                     child: ColoredBox(color: Colors.white),
                   ),
                 ],
@@ -229,7 +230,7 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
+        padding: EdgeInsets.fromLTRB(16.r, 4.r, 16.r, 120.r),
         children: [
           Row(
             children: [
@@ -238,40 +239,42 @@ class ShimmerLoader extends StatelessWidget {
                   children: List.generate(
                     3,
                     (index) => Padding(
-                      padding: EdgeInsets.only(right: index == 2 ? 0 : 12),
-                      child: const SizedBox(
-                        width: 64,
-                        height: 18,
+                      padding: EdgeInsets.only(right: index == 2 ? 0 : 12.r),
+                      child: SizedBox(
+                        width: 64.r,
+                        height: 18.r,
                         child: ColoredBox(color: Colors.white),
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(
-                  width: 24,
-                  height: 24,
+              SizedBox(
+                  width: 24.r,
+                  height: 24.r,
                   child: ColoredBox(color: Colors.white)),
             ],
           ),
-          const SizedBox(height: 20),
-          const SizedBox(
-              width: 110, height: 16, child: ColoredBox(color: Colors.white)),
-          const SizedBox(height: 16),
+          SizedBox(height: 20.r),
+          SizedBox(
+              width: 110.r,
+              height: 16.r,
+              child: ColoredBox(color: Colors.white)),
+          SizedBox(height: 16.r),
           ...List.generate(
             5,
             (index) => Padding(
-              padding: const EdgeInsets.only(bottom: 14),
+              padding: EdgeInsets.only(bottom: 14.r),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(
-                      width: 92,
-                      height: 11,
-                      child: ColoredBox(color: Colors.white)),
-                  const SizedBox(height: 8),
                   SizedBox(
-                    height: index == 4 ? 44 : 48,
+                      width: 92.r,
+                      height: 11.r,
+                      child: ColoredBox(color: Colors.white)),
+                  SizedBox(height: 8.r),
+                  SizedBox(
+                    height: index == 4 ? 44.r : 48.r,
                     child: ColoredBox(color: Colors.white),
                   ),
                 ],
@@ -288,20 +291,24 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 30),
+        padding: EdgeInsets.fromLTRB(16.r, 20.r, 16.r, 30.r),
         children: [
-          const SizedBox(
-              width: 130, height: 22, child: ColoredBox(color: Colors.white)),
-          const SizedBox(height: 7),
-          const SizedBox(
-              width: 250, height: 12, child: ColoredBox(color: Colors.white)),
-          const SizedBox(height: 20),
+          SizedBox(
+              width: 130.r,
+              height: 22.r,
+              child: ColoredBox(color: Colors.white)),
+          SizedBox(height: 7.r),
+          SizedBox(
+              width: 250.r,
+              height: 12.r,
+              child: ColoredBox(color: Colors.white)),
+          SizedBox(height: 20.r),
           ...List.generate(
             4,
             (_) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child:
-                  SizedBox(height: 58, child: ColoredBox(color: Colors.white)),
+              padding: EdgeInsets.only(bottom: 8.r),
+              child: SizedBox(
+                  height: 58.r, child: ColoredBox(color: Colors.white)),
             ),
           ),
         ],
@@ -314,55 +321,55 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        padding: EdgeInsets.fromLTRB(16.r, 16.r, 16.r, 32.r),
         children: [
           Row(
-            children: const [
-              CircleAvatar(radius: 25, backgroundColor: Colors.white),
-              SizedBox(width: 12),
+            children: [
+              CircleAvatar(radius: 25.r, backgroundColor: Colors.white),
+              SizedBox(width: 12.r),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
-                        width: 160,
-                        height: 16,
+                        width: 160.r,
+                        height: 16.r,
                         child: ColoredBox(color: Colors.white)),
-                    SizedBox(height: 7),
+                    SizedBox(height: 7.r),
                     SizedBox(
-                        width: 110,
-                        height: 11,
+                        width: 110.r,
+                        height: 11.r,
                         child: ColoredBox(color: Colors.white)),
                   ],
                 ),
               ),
               SizedBox(
-                  width: 64,
-                  height: 22,
+                  width: 64.r,
+                  height: 22.r,
                   child: ColoredBox(color: Colors.white)),
             ],
           ),
-          const SizedBox(height: 26),
-          const Row(
+          SizedBox(height: 26.r),
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               SizedBox(
-                  width: 120,
-                  height: 30,
+                  width: 120.r,
+                  height: 30.r,
                   child: ColoredBox(color: Colors.white)),
               SizedBox(
-                  width: 90,
-                  height: 24,
+                  width: 90.r,
+                  height: 24.r,
                   child: ColoredBox(color: Colors.white)),
             ],
           ),
-          const SizedBox(height: 22),
+          SizedBox(height: 22.r),
           ...List.generate(
             4,
             (_) => Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child:
-                  SizedBox(height: 92, child: ColoredBox(color: Colors.white)),
+              padding: EdgeInsets.only(bottom: 14.r),
+              child: SizedBox(
+                  height: 92.r, child: ColoredBox(color: Colors.white)),
             ),
           ),
         ],
@@ -375,40 +382,40 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+        padding: EdgeInsets.fromLTRB(16.r, 20.r, 16.r, 32.r),
         children: [
-          const Center(
+          Center(
               child: SizedBox(
-                  width: 140,
-                  height: 28,
+                  width: 140.r,
+                  height: 28.r,
                   child: ColoredBox(color: Colors.white))),
-          const SizedBox(height: 8),
-          const Center(
+          SizedBox(height: 8.r),
+          Center(
               child: SizedBox(
-                  width: 170,
-                  height: 12,
+                  width: 170.r,
+                  height: 12.r,
                   child: ColoredBox(color: Colors.white))),
-          const SizedBox(height: 28),
-          const Center(
+          SizedBox(height: 28.r),
+          Center(
               child: SizedBox(
-                  width: 220,
-                  height: 220,
+                  width: 220.r,
+                  height: 220.r,
                   child: DecoratedBox(
                       decoration: BoxDecoration(
                           color: Colors.white, shape: BoxShape.circle)))),
-          const SizedBox(height: 28),
+          SizedBox(height: 28.r),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(
               3,
-              (_) => const SizedBox(
-                  width: 70,
-                  height: 42,
+              (_) => SizedBox(
+                  width: 70.r,
+                  height: 42.r,
                   child: ColoredBox(color: Colors.white)),
             ),
           ),
-          const SizedBox(height: 24),
-          const SizedBox(height: 150, child: ColoredBox(color: Colors.white)),
+          SizedBox(height: 24.r),
+          SizedBox(height: 150.r, child: ColoredBox(color: Colors.white)),
         ],
       ),
     );
@@ -420,20 +427,20 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+        padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 100.r),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 44, child: ColoredBox(color: Colors.white)),
-            const SizedBox(height: 10),
-            const SizedBox(height: 42, child: ColoredBox(color: Colors.white)),
-            const SizedBox(height: 14),
+            SizedBox(height: 44.r, child: ColoredBox(color: Colors.white)),
+            SizedBox(height: 10.r),
+            SizedBox(height: 42.r, child: ColoredBox(color: Colors.white)),
+            SizedBox(height: 14.r),
             ...List.generate(
               6,
               (_) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: EdgeInsets.only(bottom: 8.r),
                 child: SizedBox(
-                    height: 68, child: ColoredBox(color: Colors.white)),
+                    height: 68.r, child: ColoredBox(color: Colors.white)),
               ),
             ),
           ],
@@ -449,99 +456,99 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(0, 12, 0, 120),
+        padding: EdgeInsets.fromLTRB(0, 12.r, 0, 120.r),
         children: [
-          _tabStripSkeleton(count: 3, width: 62),
-          const SizedBox(height: 10),
-          _tabStripSkeleton(count: 3, width: 72),
-          const SizedBox(height: 14),
+          _tabStripSkeleton(count: 3, width: 62.r),
+          SizedBox(height: 10.r),
+          _tabStripSkeleton(count: 3, width: 72.r),
+          SizedBox(height: 14.r),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16.r),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
-                  height: 54,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  height: 54.r,
+                  padding: EdgeInsets.symmetric(horizontal: 12.r),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10.r),
                   ),
                   child: Row(
-                    children: const [
+                    children: [
                       SizedBox(
-                          width: 32,
-                          height: 32,
+                          width: 32.r,
+                          height: 32.r,
                           child: ColoredBox(color: Colors.white)),
-                      SizedBox(width: 12),
+                      SizedBox(width: 12.r),
                       Expanded(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SizedBox(
-                                width: 130,
-                                height: 13,
+                                width: 130.r,
+                                height: 13.r,
                                 child: ColoredBox(color: Colors.white)),
-                            SizedBox(height: 7),
+                            SizedBox(height: 7.r),
                             SizedBox(
-                                width: 190,
-                                height: 10,
+                                width: 190.r,
+                                height: 10.r,
                                 child: ColoredBox(color: Colors.white)),
                           ],
                         ),
                       ),
                       SizedBox(
-                          width: 62,
-                          height: 22,
+                          width: 62.r,
+                          height: 22.r,
                           child: ColoredBox(color: Colors.white)),
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14.r),
                 ...List.generate(
                   3,
                   (_) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
+                    padding: EdgeInsets.only(bottom: 14.r),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(
-                          children: const [
+                          children: [
                             SizedBox(
-                                width: 30,
-                                height: 30,
+                                width: 30.r,
+                                height: 30.r,
                                 child: ColoredBox(color: Colors.white)),
-                            SizedBox(width: 10),
+                            SizedBox(width: 10.r),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   SizedBox(
-                                      width: 150,
-                                      height: 13,
+                                      width: 150.r,
+                                      height: 13.r,
                                       child: ColoredBox(color: Colors.white)),
-                                  SizedBox(height: 6),
+                                  SizedBox(height: 6.r),
                                   SizedBox(
-                                      width: 220,
-                                      height: 10,
+                                      width: 220.r,
+                                      height: 10.r,
                                       child: ColoredBox(color: Colors.white)),
                                 ],
                               ),
                             ),
                             SizedBox(
-                                width: 54,
-                                height: 20,
+                                width: 54.r,
+                                height: 20.r,
                                 child: ColoredBox(color: Colors.white)),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8.r),
                         ...List.generate(
                           3,
-                          (_) => const Padding(
-                            padding: EdgeInsets.only(bottom: 8),
+                          (_) => Padding(
+                            padding: EdgeInsets.only(bottom: 8.r),
                             child: SizedBox(
-                                height: 38,
+                                height: 38.r,
                                 child: ColoredBox(color: Colors.white)),
                           ),
                         ),
@@ -565,59 +572,59 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(0, 12, 0, 120),
+        padding: EdgeInsets.fromLTRB(0, 12.r, 0, 120.r),
         children: [
-          _tabStripSkeleton(count: 2, width: 92),
-          const SizedBox(height: 8),
-          _tabStripSkeleton(count: 3, width: 68),
-          const SizedBox(height: 10),
-          _tabStripSkeleton(count: 4, width: 72),
-          const SizedBox(height: 12),
+          _tabStripSkeleton(count: 2, width: 92.r),
+          SizedBox(height: 8.r),
+          _tabStripSkeleton(count: 3, width: 68.r),
+          SizedBox(height: 10.r),
+          _tabStripSkeleton(count: 4, width: 72.r),
+          SizedBox(height: 12.r),
           Container(
-            height: 44,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            height: 44.r,
+            margin: EdgeInsets.symmetric(horizontal: 16.r),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(10.r),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.r),
           ...List.generate(
             7,
             (_) => Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
+              padding: EdgeInsets.fromLTRB(16.r, 0, 8.r, 8.r),
               child: SizedBox(
-                height: 62,
+                height: 62.r,
                 child: Row(
-                  children: const [
-                    CircleAvatar(radius: 22, backgroundColor: Colors.white),
-                    SizedBox(width: 10),
+                  children: [
+                    CircleAvatar(radius: 22.r, backgroundColor: Colors.white),
+                    SizedBox(width: 10.r),
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(
-                              width: 145,
-                              height: 13,
+                              width: 145.r,
+                              height: 13.r,
                               child: ColoredBox(color: Colors.white)),
-                          SizedBox(height: 7),
+                          SizedBox(height: 7.r),
                           SizedBox(
-                              width: 205,
-                              height: 10,
+                              width: 205.r,
+                              height: 10.r,
                               child: ColoredBox(color: Colors.white)),
                         ],
                       ),
                     ),
-                    SizedBox(width: 8),
+                    SizedBox(width: 8.r),
                     SizedBox(
-                        width: 45,
-                        height: 19,
+                        width: 45.r,
+                        height: 19.r,
                         child: ColoredBox(color: Colors.white)),
-                    SizedBox(width: 8),
+                    SizedBox(width: 8.r),
                     SizedBox(
-                        width: 16,
-                        height: 16,
+                        width: 16.r,
+                        height: 16.r,
                         child: ColoredBox(color: Colors.white)),
                   ],
                 ),
@@ -631,17 +638,17 @@ class ShimmerLoader extends StatelessWidget {
 
   static Widget _tabStripSkeleton({required int count, required double width}) {
     return SizedBox(
-      height: 44,
+      height: 44.r,
       child: Center(
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(
             count,
             (index) => Padding(
-              padding: EdgeInsets.only(right: index == count - 1 ? 0 : 12),
+              padding: EdgeInsets.only(right: index == count - 1 ? 0 : 12.r),
               child: SizedBox(
                 width: width,
-                height: 18,
+                height: 18.r,
                 child: const ColoredBox(color: Colors.white),
               ),
             ),
@@ -656,53 +663,53 @@ class ShimmerLoader extends StatelessWidget {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         children: [
           Row(
             children: [
               Container(
-                  width: 40,
-                  height: 40,
+                  width: 40.r,
+                  height: 40.r,
                   decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8))),
-              const SizedBox(width: 12),
+                      borderRadius: BorderRadius.circular(8.r))),
+              SizedBox(width: 12.r),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(width: 150, height: 20, color: Colors.white),
-                  const SizedBox(height: 4),
-                  Container(width: 100, height: 12, color: Colors.white),
+                  Container(width: 150.r, height: 20.r, color: Colors.white),
+                  SizedBox(height: 4.r),
+                  Container(width: 100.r, height: 12.r, color: Colors.white),
                 ],
               )
             ],
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: 32.r),
           Center(
             child: Container(
-                width: 88,
-                height: 88,
+                width: 88.r,
+                height: 88.r,
                 decoration: const BoxDecoration(
                     color: Colors.white, shape: BoxShape.circle)),
           ),
-          const SizedBox(height: 48),
-          Container(width: 100, height: 16, color: Colors.white),
-          const SizedBox(height: 10),
+          SizedBox(height: 48.r),
+          Container(width: 100.r, height: 16.r, color: Colors.white),
+          SizedBox(height: 10.r),
           Container(
               width: double.infinity,
-              height: 50,
+              height: 50.r,
               decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(10))),
-          const SizedBox(height: 24),
-          Container(width: 100, height: 16, color: Colors.white),
-          const SizedBox(height: 10),
+                  borderRadius: BorderRadius.circular(10.r))),
+          SizedBox(height: 24.r),
+          Container(width: 100.r, height: 16.r, color: Colors.white),
+          SizedBox(height: 10.r),
           Container(
               width: double.infinity,
-              height: 50,
+              height: 50.r,
               decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(10))),
+                  borderRadius: BorderRadius.circular(10.r))),
         ],
       ),
     );
@@ -715,35 +722,35 @@ class SkeletonList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       itemCount: 6,
-      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      separatorBuilder: (context, index) => SizedBox(height: 16.r),
       itemBuilder: (context, index) {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 48.r,
+              height: 48.r,
               decoration: const BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16.r),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     width: double.infinity,
-                    height: 16,
+                    height: 16.r,
                     color: Colors.white,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.r),
                   Container(
-                    width: 200,
-                    height: 12,
+                    width: 200.r,
+                    height: 12.r,
                     color: Colors.white,
                   ),
                 ],

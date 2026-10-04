@@ -21,6 +21,7 @@ import '../../../core/widgets/dailio_nav_badges.dart';
 import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../feeds/pages/feed_pages.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AnnouncementsPage extends StatefulWidget {
   const AnnouncementsPage({super.key});
@@ -231,7 +232,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
 
   Widget _buildTabs() {
     return Container(
-      height: 45,
+      height: 45.r,
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFEAEAEA))),
       ),
@@ -260,8 +261,8 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
           ),
           if (_canCreateFeed)
             SizedBox(
-              width: 42,
-              height: 45,
+              width: 42.r,
+              height: 45.r,
               child: IconButton(
                 tooltip: 'New feed',
                 onPressed: () async {
@@ -271,7 +272,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                     await _loadFeeds();
                   }
                 },
-                icon: const Icon(Iconsax.add, size: 19),
+                icon: Icon(Iconsax.add, size: 19.r),
                 color: AppColors.brandAccent,
               ),
             ),
@@ -285,15 +286,15 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
     return InkWell(
       onTap: () => setState(() => _selectedTab = index),
       child: Container(
-        height: 45,
-        margin: const EdgeInsets.only(right: 20),
-        padding: const EdgeInsets.symmetric(horizontal: 1),
+        height: 45.r,
+        margin: EdgeInsets.only(right: 20.r),
+        padding: EdgeInsets.symmetric(horizontal: 1.r),
         alignment: Alignment.center,
         child: Text(label,
             style: TextStyle(
                 color: selected ? AppColors.brandAccent : Colors.grey.shade700,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                fontSize: 13)),
+                fontSize: 13.r)),
       ),
     );
   }
@@ -304,9 +305,9 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
       child: _items.isEmpty
           ? ListView(children: const [_EmptyAnnouncements()])
           : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+              padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 100.r),
               itemCount: _items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 18),
+              separatorBuilder: (_, __) => SizedBox(height: 18.r),
               itemBuilder: (_, index) => _AnnouncementCard(
                 item: _items[index],
                 onReact: () => _react(_items[index]),
@@ -359,7 +360,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: _selectedTab == 0 && _canPublish
           ? Padding(
-              padding: const EdgeInsets.only(bottom: 78),
+              padding: EdgeInsets.only(bottom: 78.r),
               child: FloatingActionButton(
                 heroTag: 'announcement_create_fab',
                 tooltip: 'New announcement',
@@ -367,12 +368,12 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                 foregroundColor: Colors.white,
                 shape: const CircleBorder(),
                 onPressed: _openAnnouncementComposer,
-                child: const Icon(Iconsax.add, size: 27),
+                child: Icon(Iconsax.add, size: 27.r),
               ),
             )
           : _canPostToSelectedFeed
               ? Padding(
-                  padding: const EdgeInsets.only(bottom: 78),
+                  padding: EdgeInsets.only(bottom: 78.r),
                   child: FloatingActionButton(
                     heroTag: 'feed_post_create_fab',
                     tooltip: 'New post',
@@ -380,7 +381,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                     foregroundColor: Colors.white,
                     shape: const CircleBorder(),
                     onPressed: _openPostComposer,
-                    child: const Icon(Iconsax.add, size: 27),
+                    child: Icon(Iconsax.add, size: 27.r),
                   ),
                 )
               : null,
@@ -417,13 +418,13 @@ class _AnnouncementCard extends StatelessWidget {
     final memberId = _memberId(actor);
     return InkWell(
       onTap: onOpen,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(18.r),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           _Avatar(
             url: actor['avatar_url']?.toString(),
             name: name,
-            size: 36,
+            size: 36.r,
             onTap: memberId == null
                 ? null
                 : () => showDailioMemberProfileSheet(
@@ -435,33 +436,33 @@ class _AnnouncementCard extends StatelessWidget {
                       ),
                     ),
           ),
-          const SizedBox(width: 9),
+          SizedBox(width: 9.r),
           Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 Text(name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 14)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w700, fontSize: 14.r)),
                 Text(_dateLabel(created),
                     style:
-                        TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                        TextStyle(color: Colors.grey.shade600, fontSize: 11.r)),
               ])),
           if (item['priority'] != null && (item['priority'] as num) > 0)
             _Chip(label: 'Important', color: AppColors.brandAccent),
-          const SizedBox(width: 2),
+          SizedBox(width: 2.r),
           IconButton(
               onPressed: onOpen,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
-              icon: const Icon(Iconsax.more, size: 18)),
+              constraints: BoxConstraints.tightFor(width: 28.r, height: 28.r),
+              icon: Icon(Iconsax.more, size: 18.r)),
         ]),
-        const SizedBox(height: 8),
+        SizedBox(height: 8.r),
         Text(item['title']?.toString() ?? 'Announcement',
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-        const SizedBox(height: 4),
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16.r)),
+        SizedBox(height: 4.r),
         _ContentPreview(item: item),
-        const SizedBox(height: 7),
+        SizedBox(height: 7.r),
         Row(children: [
           InkWell(
               onTap: onReact,
@@ -470,34 +471,34 @@ class _AnnouncementCard extends StatelessWidget {
                     item['my_reaction'] == 'LIKE'
                         ? Iconsax.heart5
                         : Iconsax.heart,
-                    size: 20,
+                    size: 20.r,
                     color: item['my_reaction'] == 'LIKE'
                         ? AppColors.brandAccent
                         : Colors.black87),
-                const SizedBox(width: 5),
-                Text('$reactions', style: const TextStyle(fontSize: 12)),
+                SizedBox(width: 5.r),
+                Text('$reactions', style: TextStyle(fontSize: 12.r)),
               ])),
-          const SizedBox(width: 18),
+          SizedBox(width: 18.r),
           InkWell(
               onTap: onOpen,
               child: Row(children: [
-                const Icon(Iconsax.message_text, size: 19),
-                const SizedBox(width: 5),
-                Text('$comments', style: const TextStyle(fontSize: 12))
+                Icon(Iconsax.message_text, size: 19.r),
+                SizedBox(width: 5.r),
+                Text('$comments', style: TextStyle(fontSize: 12.r))
               ])),
           const Spacer(),
           Text('View details',
               style: TextStyle(
                   color: AppColors.brandAccent,
-                  fontSize: 12,
+                  fontSize: 12.r,
                   fontWeight: FontWeight.w600)),
         ]),
         if (commentPreview.isNotEmpty) ...[
-          const SizedBox(height: 10),
+          SizedBox(height: 10.r),
           ...commentPreview.map((comment) => _CommentPreview(comment: comment)),
         ],
-        const SizedBox(height: 12),
-        Divider(height: 1, color: Colors.grey.shade200),
+        SizedBox(height: 12.r),
+        Divider(height: 1.r, color: Colors.grey.shade200),
       ]),
     );
   }
@@ -543,12 +544,12 @@ class _ContentPreview extends StatelessWidget {
           final marks =
               (block['marks'] as List?)?.map((e) => e.toString()).toSet() ?? {};
           return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: EdgeInsets.only(bottom: 4.r),
               child: Text(block['text']?.toString() ?? '',
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      fontSize: type == 'heading' ? 16 : 14,
+                      fontSize: type == 'heading' ? 16.r : 14.r,
                       fontWeight: type == 'heading' || marks.contains('bold')
                           ? FontWeight.w700
                           : FontWeight.w400,
@@ -573,14 +574,14 @@ class _CommentPreview extends StatelessWidget {
         : <String, dynamic>{};
     final memberId = _memberId(user);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 5),
+      padding: EdgeInsets.only(bottom: 5.r),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _Avatar(
             url: user['avatar_url']?.toString(),
             name: user['name']?.toString() ?? 'Member',
-            size: 20,
+            size: 20.r,
             onTap: memberId == null
                 ? null
                 : () => showDailioMemberProfileSheet(
@@ -592,7 +593,7 @@ class _CommentPreview extends StatelessWidget {
                       ),
                     ),
           ),
-          const SizedBox(width: 7),
+          SizedBox(width: 7.r),
           Expanded(
             child: Text.rich(
               TextSpan(children: [
@@ -604,7 +605,7 @@ class _CommentPreview extends StatelessWidget {
               ]),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+              style: TextStyle(fontSize: 12.r, color: Colors.grey.shade800),
             ),
           ),
         ],
@@ -839,17 +840,17 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
               : Column(children: [
                   Expanded(
                       child: ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                          padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 12.r),
                           children: [
                         _AnnouncementCard(
                             item: item,
                             onReact: _toggleReaction,
                             onOpen: () {}),
-                        const SizedBox(height: 16),
-                        const Text('Comments',
+                        SizedBox(height: 16.r),
+                        Text('Comments',
                             style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 10),
+                                fontSize: 16.r, fontWeight: FontWeight.w700)),
+                        SizedBox(height: 10.r),
                         if (_comments.isEmpty)
                           const Text('No comments yet.',
                               style: TextStyle(color: Colors.grey))
@@ -859,7 +860,7 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
                   SafeArea(
                       top: false,
                       child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                          padding: EdgeInsets.fromLTRB(12.r, 8.r, 12.r, 10.r),
                           child: Row(children: [
                             Expanded(
                                 child: TextField(
@@ -871,7 +872,7 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
                                         isDense: true,
                                         border: OutlineInputBorder(
                                             borderRadius:
-                                                BorderRadius.circular(22))))),
+                                                BorderRadius.circular(22.r))))),
                             IconButton(
                                 onPressed:
                                     _commentSending ? null : _sendComment,
@@ -890,12 +891,12 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
         comment['deleted_at'] != null || comment['body'] == '[deleted]';
     final memberId = _memberId(user);
     return Padding(
-        padding: const EdgeInsets.only(bottom: 13),
+        padding: EdgeInsets.only(bottom: 13.r),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           _Avatar(
               url: user['avatar_url']?.toString(),
               name: user['name']?.toString() ?? 'Member',
-              size: 30,
+              size: 30.r,
               onTap: memberId == null
                   ? null
                   : () => showDailioMemberProfileSheet(
@@ -906,34 +907,32 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
                           avatarUrl: user['avatar_url']?.toString(),
                         ),
                       )),
-          const SizedBox(width: 8),
+          SizedBox(width: 8.r),
           Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 Text(user['name']?.toString() ?? 'Member',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 13)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w600, fontSize: 13.r)),
                 Text(
                     deleted
                         ? 'Comment deleted'
                         : comment['body']?.toString() ?? '',
                     style: TextStyle(
                         color: deleted ? Colors.grey : Colors.black87,
-                        fontSize: 13)),
+                        fontSize: 13.r)),
                 if (comment['pending'] == true)
                   Text('Sending…',
-                      style:
-                          TextStyle(color: Colors.grey.shade500, fontSize: 10))
+                      style: TextStyle(
+                          color: Colors.grey.shade500, fontSize: 10.r))
                 else if (!deleted)
                   TextButton(
                       onPressed: () =>
                           setState(() => _replyTo = comment['id']?.toString()),
                       style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size(0, 24)),
-                      child:
-                          const Text('Reply', style: TextStyle(fontSize: 12))),
+                          padding: EdgeInsets.zero, minimumSize: Size(0, 24.r)),
+                      child: Text('Reply', style: TextStyle(fontSize: 12.r))),
               ])),
         ]));
   }
@@ -1074,8 +1073,8 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
     final file = await ImagePicker().pickImage(
         source: ImageSource.gallery,
         imageQuality: 78,
-        maxWidth: 1600,
-        maxHeight: 1600);
+        maxWidth: 1600.r,
+        maxHeight: 1600.r);
     if (file == null || !mounted) return;
     setState(() => _blocks.add({
           'type': slide ? 'slide' : 'image',
@@ -1161,34 +1160,33 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
   Widget _mediaPreview() {
     if (_blocks.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: EdgeInsets.only(top: 12.r),
       child: Column(
         children: _blocks.asMap().entries.map((entry) {
           final localPath = entry.value['local_file']?.toString();
           return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.only(bottom: 8.r),
             child: Row(children: [
               if (localPath != null)
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8.r),
                   child: Image.file(File(localPath),
-                      width: 70, height: 52, fit: BoxFit.cover),
+                      width: 70.r, height: 52.r, fit: BoxFit.cover),
                 )
               else
-                const SizedBox(
-                    width: 70, height: 52, child: Icon(Iconsax.image)),
-              const SizedBox(width: 9),
+                SizedBox(width: 70.r, height: 52.r, child: Icon(Iconsax.image)),
+              SizedBox(width: 9.r),
               Expanded(
                   child: Text(
                 localPath == null
                     ? 'Attached media'
                     : 'Ready to upload when published',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12.r),
               )),
               IconButton(
                 tooltip: 'Remove media',
                 onPressed: () => setState(() => _blocks.removeAt(entry.key)),
-                icon: const Icon(Iconsax.close_circle, size: 18),
+                icon: Icon(Iconsax.close_circle, size: 18.r),
               ),
             ]),
           );
@@ -1206,46 +1204,46 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
               child: ListView(
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+                padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 24.r),
                 children: [
                   Text(
                       widget.announcementId == null
                           ? 'New announcement'
                           : 'Edit announcement',
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
+                      style: TextStyle(
+                          fontSize: 18.r, fontWeight: FontWeight.w700)),
+                  SizedBox(height: 4.r),
                   Text('Share a clear update with everyone in this branch.',
-                      style:
-                          TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                  const SizedBox(height: 18),
+                      style: TextStyle(
+                          color: Colors.grey.shade600, fontSize: 12.r)),
+                  SizedBox(height: 18.r),
                   _Field(
                       controller: _title,
                       label: 'Title',
                       hint: 'What should people know?'),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.r),
                   Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(14.r),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 12, 10, 8),
+                            padding: EdgeInsets.fromLTRB(14.r, 12.r, 10.r, 8.r),
                             child: Row(children: [
-                              const Text('Message',
+                              Text('Message',
                                   style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 12.r,
                                       fontWeight: FontWeight.w600)),
                               const Spacer(),
                               Text('${_body.text.length}/10000',
                                   style: TextStyle(
                                       color: Colors.grey.shade500,
-                                      fontSize: 11)),
-                              const SizedBox(width: 8),
+                                      fontSize: 11.r)),
+                              SizedBox(width: 8.r),
                               SegmentedButton<bool>(
                                 segments: const [
                                   ButtonSegment<bool>(
@@ -1260,17 +1258,16 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
                                 style: ButtonStyle(
                                   visualDensity: VisualDensity.compact,
                                   textStyle: WidgetStateProperty.all(
-                                      const TextStyle(fontSize: 11)),
+                                      TextStyle(fontSize: 11.r)),
                                   padding: WidgetStateProperty.all(
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 8)),
+                                      EdgeInsets.symmetric(horizontal: 8.r)),
                                 ),
                               ),
                             ]),
                           ),
                           if (!_preview) ...[
                             Container(
-                              height: 42,
+                              height: 42.r,
                               color: const Color(0xFFFAFAFA),
                               child: SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
@@ -1278,33 +1275,30 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
                                   IconButton(
                                       tooltip: 'Bold',
                                       onPressed: () => _formatSelection('**'),
-                                      icon: const Icon(Iconsax.text_bold,
-                                          size: 18)),
+                                      icon:
+                                          Icon(Iconsax.text_bold, size: 18.r)),
                                   IconButton(
                                       tooltip: 'Italic',
                                       onPressed: () => _formatSelection('_'),
-                                      icon: const Icon(Iconsax.text_italic,
-                                          size: 18)),
+                                      icon: Icon(Iconsax.text_italic,
+                                          size: 18.r)),
                                   IconButton(
                                       tooltip: 'Bullet',
                                       onPressed: () => _insertLinePrefix('• '),
-                                      icon: const Icon(Iconsax.task_square,
-                                          size: 18)),
+                                      icon: Icon(Iconsax.task_square,
+                                          size: 18.r)),
                                   IconButton(
                                       tooltip: 'Quote',
                                       onPressed: () => _insertLinePrefix('> '),
-                                      icon: const Icon(Iconsax.quote_up,
-                                          size: 18)),
+                                      icon: Icon(Iconsax.quote_up, size: 18.r)),
                                   IconButton(
                                       tooltip: 'Add image',
                                       onPressed: () => _addImage(),
-                                      icon:
-                                          const Icon(Iconsax.image, size: 18)),
+                                      icon: Icon(Iconsax.image, size: 18.r)),
                                   IconButton(
                                       tooltip: 'Add slide',
                                       onPressed: () => _addImage(slide: true),
-                                      icon: const Icon(Iconsax.gallery,
-                                          size: 18)),
+                                      icon: Icon(Iconsax.gallery, size: 18.r)),
                                 ]),
                               ),
                             ),
@@ -1316,18 +1310,18 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
                               maxLength: 10000,
                               keyboardType: TextInputType.multiline,
                               textAlignVertical: TextAlignVertical.top,
-                              style: const TextStyle(fontSize: 14, height: 1.5),
-                              decoration: const InputDecoration(
+                              style: TextStyle(fontSize: 14.r, height: 1.5),
+                              decoration: InputDecoration(
                                 hintText: 'Write your announcement here...',
                                 border: InputBorder.none,
                                 counterText: '',
                                 contentPadding:
-                                    EdgeInsets.fromLTRB(14, 14, 14, 18),
+                                    EdgeInsets.fromLTRB(14.r, 14.r, 14.r, 18.r),
                               ),
                             ),
                           ] else
                             Padding(
-                              padding: const EdgeInsets.all(14),
+                              padding: EdgeInsets.all(14.r),
                               child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -1335,41 +1329,41 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
                                         ? Text('Your preview will appear here.',
                                             style: TextStyle(
                                                 color: Colors.grey.shade500,
-                                                fontSize: 14))
+                                                fontSize: 14.r))
                                         : _AnnouncementRichText(
                                             text: _body.text,
-                                            style: const TextStyle(
-                                                fontSize: 14, height: 1.5)),
+                                            style: TextStyle(
+                                                fontSize: 14.r, height: 1.5)),
                                     _mediaPreview(),
                                   ]),
                             ),
                         ]),
                   ),
                   if (!_preview) _mediaPreview(),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.r),
                   Text(
                       'Use the toolbar for emphasis, bullets, quotes, images, and slides.',
-                      style:
-                          TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+                      style: TextStyle(
+                          color: Colors.grey.shade500, fontSize: 11.r)),
                 ],
               ),
             ),
             SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                padding: EdgeInsets.fromLTRB(16.r, 8.r, 16.r, 12.r),
                 child: SizedBox(
-                  height: 46,
+                  height: 46.r,
                   child: FilledButton(
                     onPressed: _saving ? null : _publish,
                     style: FilledButton.styleFrom(
                         backgroundColor: AppColors.brandAccent),
                     child: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
+                        ? SizedBox(
+                            width: 18.r,
+                            height: 18.r,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
+                                strokeWidth: 2.r, color: Colors.white))
                         : Text(widget.announcementId == null
                             ? 'Publish announcement'
                             : 'Save changes'),
@@ -1390,27 +1384,27 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
         backgroundColor: Colors.white,
         appBar: DailioSimpleAppBar(onBack: () => context.pop()),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+          padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 20.r),
           children: [
             Text(
               widget.announcementId == null
                   ? 'New announcement'
                   : 'Edit announcement',
-              style: const TextStyle(
-                fontSize: 17,
+              style: TextStyle(
+                fontSize: 17.r,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             _Field(
                 controller: _title,
                 label: 'Title',
                 hint: 'What should people know?'),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             Container(
                 decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14.r)),
                 child: Column(children: [
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -1421,8 +1415,7 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
                               style: TextStyle(fontWeight: FontWeight.w800))),
                       TextButton(
                           onPressed: () => _addTextBlock('quote'),
-                          child:
-                              const Text('“', style: TextStyle(fontSize: 20))),
+                          child: Text('“', style: TextStyle(fontSize: 20.r))),
                       TextButton(
                           onPressed: () =>
                               setState(() => _blocks.add({'type': 'divider'})),
@@ -1450,13 +1443,13 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
                   TextField(
                       controller: _body,
                       maxLines: 6,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                           hintText: 'Write an announcement...',
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.all(14))),
+                          contentPadding: EdgeInsets.all(14.r))),
                 ])),
             if (_blocks.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: 12.r),
               ..._blocks.asMap().entries.map((entry) {
                 final localPath = entry.value['local_file']?.toString();
                 return ListTile(
@@ -1464,11 +1457,11 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
                   leading: localPath == null
                       ? const Icon(Iconsax.image)
                       : ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(8.r),
                           child: Image.file(
                             File(localPath),
-                            width: 56,
-                            height: 56,
+                            width: 56.r,
+                            height: 56.r,
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -1481,7 +1474,7 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
                   trailing: IconButton(
                       onPressed: () =>
                           setState(() => _blocks.removeAt(entry.key)),
-                      icon: const Icon(Iconsax.close_circle, size: 19)),
+                      icon: Icon(Iconsax.close_circle, size: 19.r)),
                 );
               }),
             ],
@@ -1490,20 +1483,20 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
         bottomNavigationBar: SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: EdgeInsets.fromLTRB(16.r, 8.r, 16.r, 12.r),
             child: SizedBox(
-              height: 44,
+              height: 44.r,
               child: FilledButton(
                 onPressed: _saving ? null : _publish,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.brandAccent,
                 ),
                 child: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
+                    ? SizedBox(
+                        width: 18.r,
+                        height: 18.r,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                          strokeWidth: 2.r,
                           color: Colors.white,
                         ),
                       )
@@ -1538,33 +1531,32 @@ class _Field extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style:
-                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 7),
+              style: TextStyle(fontSize: 12.r, fontWeight: FontWeight.w500)),
+          SizedBox(height: 7.r),
           TextField(
             controller: controller,
-            style: const TextStyle(fontSize: 13),
+            style: TextStyle(fontSize: 13.r),
             decoration: InputDecoration(
               isDense: true,
               hintText: hint,
-              hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-              prefixIcon: const Icon(Iconsax.edit_2, size: 16),
+              hintStyle: TextStyle(fontSize: 13.r, color: Colors.grey),
+              prefixIcon: Icon(Iconsax.edit_2, size: 16.r),
               filled: true,
               fillColor: Colors.white,
               contentPadding:
-                  const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+                  EdgeInsets.symmetric(vertical: 13.r, horizontal: 14.r),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(10.r),
                 borderSide: BorderSide(color: Colors.grey.shade200),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(10.r),
                 borderSide: BorderSide(color: Colors.grey.shade200),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(10.r),
                 borderSide:
-                    const BorderSide(color: AppColors.brandAccent, width: 1.4),
+                    BorderSide(color: AppColors.brandAccent, width: 1.4.r),
               ),
             ),
           ),
@@ -1578,13 +1570,13 @@ class _Chip extends StatelessWidget {
   const _Chip({required this.label, required this.color});
   @override
   Widget build(BuildContext context) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 4.r),
       decoration: BoxDecoration(
           color: color.withValues(alpha: .1),
-          borderRadius: BorderRadius.circular(8)),
+          borderRadius: BorderRadius.circular(8.r)),
       child: Text(label,
           style: TextStyle(
-              color: color, fontSize: 11, fontWeight: FontWeight.w700)));
+              color: color, fontSize: 11.r, fontWeight: FontWeight.w700)));
 }
 
 class _Avatar extends StatelessWidget {
@@ -1696,20 +1688,20 @@ class _MediaPlaceholderState extends State<_MediaPlaceholder> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(
-                width: 18,
-                height: 18,
+            SizedBox(
+                width: 18.r,
+                height: 18.r,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: AppColors.brandAccent)),
+                    strokeWidth: 2.r, color: AppColors.brandAccent)),
           ],
         ),
       ),
     );
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 5),
+      margin: EdgeInsets.only(bottom: 5.r),
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.r)),
       child: _url == null
           ? placeholder
           : CachedNetworkImage(
@@ -1723,7 +1715,7 @@ class _MediaPlaceholderState extends State<_MediaPlaceholder> {
                   color: const Color(0xFFF7F7F7),
                   alignment: Alignment.center,
                   child: Icon(Iconsax.image,
-                      color: Colors.grey.shade400, size: 20),
+                      color: Colors.grey.shade400, size: 20.r),
                 ),
               ),
             ),
@@ -1735,27 +1727,27 @@ class _AnnouncementSkeleton extends StatelessWidget {
   const _AnnouncementSkeleton();
   @override
   Widget build(BuildContext context) => ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
+        padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 100.r),
         itemCount: 5,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (_, __) => const Padding(
-          padding: EdgeInsets.symmetric(vertical: 12),
+        separatorBuilder: (_, __) => Divider(height: 1.r),
+        itemBuilder: (_, __) => Padding(
+          padding: EdgeInsets.symmetric(vertical: 12.r),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(radius: 18, backgroundColor: Color(0xFFF1F1F1)),
-              SizedBox(width: 9),
+              CircleAvatar(radius: 18.r, backgroundColor: Color(0xFFF1F1F1)),
+              SizedBox(width: 9.r),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _AnnouncementSkeletonLine(width: 120),
-                    SizedBox(height: 8),
-                    _AnnouncementSkeletonLine(width: 190),
-                    SizedBox(height: 7),
+                    _AnnouncementSkeletonLine(width: 120.r),
+                    SizedBox(height: 8.r),
+                    _AnnouncementSkeletonLine(width: 190.r),
+                    SizedBox(height: 7.r),
                     _AnnouncementSkeletonLine(width: double.infinity),
-                    SizedBox(height: 10),
-                    _AnnouncementSkeletonLine(width: 75),
+                    SizedBox(height: 10.r),
+                    _AnnouncementSkeletonLine(width: 75.r),
                   ],
                 ),
               ),
@@ -1772,10 +1764,10 @@ class _AnnouncementSkeletonLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         width: width,
-        height: 10,
+        height: 10.r,
         decoration: BoxDecoration(
           color: const Color(0xFFF1F1F1),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(6.r),
         ),
       );
 }
@@ -1787,20 +1779,19 @@ class _AnnouncementDetailError extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24.r),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Iconsax.warning_2,
-                  size: 30, color: AppColors.brandAccent),
-              const SizedBox(height: 10),
+              Icon(Iconsax.warning_2, size: 30.r, color: AppColors.brandAccent),
+              SizedBox(height: 10.r),
               const Text('Could not open this announcement',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.r),
               TextButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Iconsax.refresh, size: 16),
+                icon: Icon(Iconsax.refresh, size: 16.r),
                 label: const Text('Try again'),
               ),
             ],
@@ -1814,33 +1805,32 @@ class _AnnouncementDetailSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+        padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 32.r),
         children: [
           Row(
             children: [
-              const CircleAvatar(
-                  radius: 18, backgroundColor: Color(0xFFF1F1F1)),
-              const SizedBox(width: 9),
+              CircleAvatar(radius: 18.r, backgroundColor: Color(0xFFF1F1F1)),
+              SizedBox(width: 9.r),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  _AnnouncementSkeletonLine(width: 125),
-                  SizedBox(height: 7),
-                  _AnnouncementSkeletonLine(width: 80),
+                children: [
+                  _AnnouncementSkeletonLine(width: 125.r),
+                  SizedBox(height: 7.r),
+                  _AnnouncementSkeletonLine(width: 80.r),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 18),
-          const _AnnouncementSkeletonLine(width: 210),
-          const SizedBox(height: 10),
+          SizedBox(height: 18.r),
+          _AnnouncementSkeletonLine(width: 210.r),
+          SizedBox(height: 10.r),
           const _AnnouncementSkeletonLine(width: double.infinity),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.r),
           const _AnnouncementSkeletonLine(width: double.infinity),
-          const SizedBox(height: 8),
-          const _AnnouncementSkeletonLine(width: 160),
-          const SizedBox(height: 24),
-          const _AnnouncementSkeletonLine(width: 90),
+          SizedBox(height: 8.r),
+          _AnnouncementSkeletonLine(width: 160.r),
+          SizedBox(height: 24.r),
+          _AnnouncementSkeletonLine(width: 90.r),
         ],
       );
 }
@@ -1848,8 +1838,8 @@ class _AnnouncementDetailSkeleton extends StatelessWidget {
 class _EmptyAnnouncements extends StatelessWidget {
   const _EmptyAnnouncements();
   @override
-  Widget build(BuildContext context) => const Padding(
-      padding: EdgeInsets.only(top: 220),
+  Widget build(BuildContext context) => Padding(
+      padding: EdgeInsets.only(top: 220.r),
       child: Center(child: Text('No announcements yet.')));
 }
 
@@ -1862,7 +1852,7 @@ class _ErrorState extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
         Text('Could not load announcements',
             style: TextStyle(color: Colors.grey.shade700)),
-        const SizedBox(height: 10),
+        SizedBox(height: 10.r),
         TextButton.icon(
             onPressed: onRetry,
             icon: const Icon(Iconsax.refresh),

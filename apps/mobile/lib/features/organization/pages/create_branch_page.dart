@@ -15,6 +15,7 @@ import '../../../core/network/interceptors/logging_interceptor.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/widgets/dailio_onboarding_widgets.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CreateBranchPage extends StatefulWidget {
   final CreateOrganizationInput organizationInput;
@@ -336,50 +337,50 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
 
   Widget _buildMarkerWidget({required bool isGreen, String? label}) {
     return Transform.translate(
-      offset: const Offset(0, -16),
+      offset: Offset(0, (-16).r),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (label != null) ...[
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: EdgeInsets.symmetric(horizontal: 10.r, vertical: 6.r),
               decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
+                  borderRadius: BorderRadius.circular(20.r),
+                  boxShadow: [
                     BoxShadow(
                         color: Colors.black12,
-                        blurRadius: 6,
+                        blurRadius: 6.r,
                         offset: Offset(0, 3))
                   ]),
               child: Text(label,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: Colors.black,
-                      fontSize: 12,
+                      fontSize: 12.r,
                       fontWeight: FontWeight.bold),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6.r),
           ],
           Container(
-            width: 20,
-            height: 20,
+            width: 20.r,
+            height: 20.r,
             decoration: BoxDecoration(
                 color: isGreen ? Colors.green : Colors.black,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(color: Colors.white, width: 2.r),
                 boxShadow: [
                   BoxShadow(
                       color: (isGreen ? Colors.green : Colors.black)
                           .withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4))
+                      blurRadius: 8.r,
+                      offset: Offset(0, 4.r))
                 ]),
           ),
           Container(
-              width: 2.5,
-              height: 12,
+              width: 2.5.r,
+              height: 12.r,
               color: isGreen ? Colors.green : Colors.black),
         ],
       ),
@@ -395,20 +396,21 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 96),
+            padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 96.r),
             children: [
-              const Text('Create first branch',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 5),
-              const Text('Step 2 of 2 · Add the location people will use.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF858585))),
-              const SizedBox(height: 20),
-              const LinearProgressIndicator(
+              Text('Create first branch',
+                  style:
+                      TextStyle(fontSize: 22.r, fontWeight: FontWeight.w800)),
+              SizedBox(height: 5.r),
+              Text('Step 2 of 2 · Add the location people will use.',
+                  style: TextStyle(fontSize: 13.r, color: Color(0xFF858585))),
+              SizedBox(height: 20.r),
+              LinearProgressIndicator(
                   value: 1,
-                  minHeight: 3,
+                  minHeight: 3.r,
                   backgroundColor: Color(0xFFF0E6DC),
                   color: Color(0xFFCC5A00)),
-              const SizedBox(height: 22),
+              SizedBox(height: 22.r),
               const DailioOnboardingSectionLabel('BRANCH DETAILS'),
               TextFormField(
                 controller: _nameController,
@@ -417,34 +419,35 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
                     ? 'Branch name is required'
                     : null,
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10.r),
               TextFormField(
                 controller: _codeController,
                 decoration: dailioOnboardingInput(
                   'Branch code',
                   Iconsax.code,
                   suffixIcon: _isCheckingCode
-                      ? const Padding(
-                          padding: EdgeInsets.all(13),
+                      ? Padding(
+                          padding: EdgeInsets.all(13.r),
                           child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2)),
+                              width: 16.r,
+                              height: 16.r,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2.r)),
                         )
                       : _codeController.text.isNotEmpty && _isCodeUnique
-                          ? const Icon(Iconsax.tick_circle5,
-                              color: Color(0xFF2E9D59), size: 18)
+                          ? Icon(Iconsax.tick_circle5,
+                              color: Color(0xFF2E9D59), size: 18.r)
                           : null,
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20.r),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const DailioOnboardingSectionLabel('LOCATION'),
                   TextButton.icon(
                     onPressed: _isDetectingLocation ? null : _detectLocation,
-                    icon: const Icon(Iconsax.gps, size: 15),
+                    icon: Icon(Iconsax.gps, size: 15.r),
                     label: Text(
                         _isDetectingLocation ? 'Detecting…' : 'Use current'),
                     style: TextButton.styleFrom(
@@ -462,33 +465,33 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
               ),
               if (_suggestions.isNotEmpty)
                 Container(
-                  margin: const EdgeInsets.only(top: 6),
-                  constraints: const BoxConstraints(maxHeight: 180),
+                  margin: EdgeInsets.only(top: 6.r),
+                  constraints: BoxConstraints(maxHeight: 180.r),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10.r),
                     border: Border.all(color: const Color(0xFFE4E4E4)),
                   ),
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: _suggestions.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, __) => Divider(height: 1.r),
                     itemBuilder: (_, index) => ListTile(
                       dense: true,
-                      leading: const Icon(Iconsax.location, size: 17),
+                      leading: Icon(Iconsax.location, size: 17.r),
                       title: Text(_suggestions[index]['display_name'] ?? '',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12)),
+                          style: TextStyle(fontSize: 12.r)),
                       onTap: () => _onSuggestionSelected(_suggestions[index]),
                     ),
                   ),
                 ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.r),
               ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
                 child: SizedBox(
-                  height: 190,
+                  height: 190.r,
                   child: Stack(
                     children: [
                       FlutterMap(
@@ -511,7 +514,7 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.r),
               Row(
                 children: [
                   Expanded(
@@ -522,7 +525,7 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
                           'Street / area', Iconsax.location),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10.r),
                   Expanded(
                     child: TextField(
                       controller: _cityController,
@@ -533,7 +536,7 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10.r),
               Row(
                 children: [
                   Expanded(
@@ -543,7 +546,7 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
                       decoration: dailioOnboardingInput('State', Iconsax.map_1),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10.r),
                   Expanded(
                     child: TextField(
                       controller: _postalController,
@@ -559,7 +562,7 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
         ),
       ),
       bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        minimum: EdgeInsets.fromLTRB(16.r, 8.r, 16.r, 12.r),
         child: DailioOnboardingButton(
           label: 'Create organization',
           icon: Iconsax.tick_circle,
@@ -574,31 +577,31 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
   // ignore: unused_element
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      padding: EdgeInsets.fromLTRB(24.r, 16.r, 24.r, 8.r),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8.r)),
             child: IconButton(
-                icon: const Icon(Iconsax.arrow_left, size: 20),
+                icon: Icon(Iconsax.arrow_left, size: 20.r),
                 onPressed: () => context.pop(),
-                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                constraints: BoxConstraints(minWidth: 40.r, minHeight: 40.r),
                 padding: EdgeInsets.zero),
           ),
-          const SizedBox(width: 16),
-          const Expanded(
+          SizedBox(width: 16.r),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Create Branch',
                     style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                SizedBox(height: 4),
+                        TextStyle(fontSize: 20.r, fontWeight: FontWeight.bold)),
+                SizedBox(height: 4.r),
                 Text('Set up your first physical location.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    style: TextStyle(fontSize: 12.r, color: Colors.grey)),
               ],
             ),
           ),
@@ -611,26 +614,26 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
   // ignore: unused_element
   Widget _buildProgress() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+      padding: EdgeInsets.fromLTRB(24.r, 8.r, 24.r, 16.r),
       child: Row(
         children: [
-          const Text('STEP 2 OF 2',
+          Text('STEP 2 OF 2',
               style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 10.r,
                   fontWeight: FontWeight.bold,
                   color: Colors.orange)),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.r),
           Expanded(
               child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(4.r),
                   child: LinearProgressIndicator(
                       value: 1.0,
                       backgroundColor: Colors.grey.shade200,
                       color: Colors.orange,
-                      minHeight: 4))),
-          const SizedBox(width: 12),
+                      minHeight: 4.r))),
+          SizedBox(width: 12.r),
           Text('Branch Setup',
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+              style: TextStyle(fontSize: 10.r, color: Colors.grey.shade600)),
         ],
       ),
     );
@@ -646,20 +649,19 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
         _buildTextField('Branch Name*', 'Main Branch - [City]',
             controller: _nameController,
             validator: (v) => v!.isEmpty ? 'Required' : null),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.r),
         _buildTextField('Branch Code', 'e.g. BLR-01',
             controller: _codeController,
             suffixIcon: _isCheckingCode
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
+                ? Padding(
+                    padding: EdgeInsets.all(12.r),
                     child: SizedBox(
-                        width: 16,
-                        height: 16,
+                        width: 16.r,
+                        height: 16.r,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.orange)))
+                            strokeWidth: 2.r, color: Colors.orange)))
                 : (_codeController.text.isNotEmpty && _isCodeUnique
-                    ? const Icon(Iconsax.tick_circle,
-                        color: Colors.green, size: 18)
+                    ? Icon(Iconsax.tick_circle, color: Colors.green, size: 18.r)
                     : null)),
       ],
     );
@@ -674,13 +676,13 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
       action: TextButton.icon(
         onPressed: _isDetectingLocation ? null : _detectLocation,
         icon: _isDetectingLocation
-            ? const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2))
-            : const Icon(Icons.my_location, size: 14),
+            ? SizedBox(
+                width: 14.r,
+                height: 14.r,
+                child: CircularProgressIndicator(strokeWidth: 2.r))
+            : Icon(Icons.my_location, size: 14.r),
         label: Text(_isDetectingLocation ? 'Detecting...' : 'Auto-Detect',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.r)),
         style: TextButton.styleFrom(
             padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
       ),
@@ -689,19 +691,19 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
             controller: _searchController,
             focusNode: _searchFocus,
             onChanged: _onSearchChanged,
-            prefixIcon: const Icon(Iconsax.search_normal_1,
-                size: 18, color: Colors.grey),
+            prefixIcon:
+                Icon(Iconsax.search_normal_1, size: 18.r, color: Colors.grey),
             suffixIcon: _isFetchingSuggestions
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
+                ? Padding(
+                    padding: EdgeInsets.all(12.r),
                     child: SizedBox(
-                        width: 16,
-                        height: 16,
+                        width: 16.r,
+                        height: 16.r,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.orange)))
+                            strokeWidth: 2.r, color: Colors.orange)))
                 : (_searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
+                        icon: Icon(Icons.clear, size: 18.r),
                         onPressed: () {
                           _searchController.clear();
                           setState(() => _suggestions = []);
@@ -709,43 +711,42 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
                     : null)),
         if (_suggestions.isNotEmpty)
           Container(
-            constraints: const BoxConstraints(maxHeight: 200),
-            margin: const EdgeInsets.only(top: 4, bottom: 12),
+            constraints: BoxConstraints(maxHeight: 200.r),
+            margin: EdgeInsets.only(top: 4.r, bottom: 12.r),
             decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(color: Colors.grey.shade200),
                 boxShadow: [
                   BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4))
+                      blurRadius: 10.r,
+                      offset: Offset(0, 4.r))
                 ]),
             child: ListView.separated(
               shrinkWrap: true,
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(8.r),
               itemCount: _suggestions.length,
-              separatorBuilder: (c, i) => const Divider(height: 1),
+              separatorBuilder: (c, i) => Divider(height: 1.r),
               itemBuilder: (c, i) => ListTile(
-                leading:
-                    const Icon(Iconsax.location, color: Colors.grey, size: 18),
+                leading: Icon(Iconsax.location, color: Colors.grey, size: 18.r),
                 title: Text(_suggestions[i]['display_name'] ?? '',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12)),
+                    style: TextStyle(fontSize: 12.r)),
                 onTap: () => _onSuggestionSelected(_suggestions[i]),
               ),
             ),
           ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.r),
         Container(
-          height: 200,
+          height: 200.r,
           decoration: BoxDecoration(
               color: const Color(0xFFF3F4F6),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               border: Border.all(color: Colors.grey.shade200)),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(11),
+            borderRadius: BorderRadius.circular(11.r),
             child: Stack(
               children: [
                 FlutterMap(
@@ -798,25 +799,25 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.r),
         Row(
           children: [
             Expanded(
                 child: _buildTextField('Street / Area', '',
                     controller: _streetController, readOnly: true)),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.r),
             Expanded(
                 child: _buildTextField('City', '',
                     controller: _cityController, readOnly: true)),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.r),
         Row(
           children: [
             Expanded(
                 child: _buildTextField('State', '',
                     controller: _stateController, readOnly: true)),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.r),
             Expanded(
                 child: _buildTextField('Postal Code', '',
                     controller: _postalController, readOnly: true)),
@@ -832,10 +833,10 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
       Widget? action,
       required List<Widget> children}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: Colors.grey.shade200)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -843,20 +844,20 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
           Row(
             children: [
               Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: EdgeInsets.all(8.r),
                   decoration: BoxDecoration(
                       color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(8)),
-                  child: Icon(icon, color: Colors.orange, size: 18)),
-              const SizedBox(width: 12),
+                      borderRadius: BorderRadius.circular(8.r)),
+                  child: Icon(icon, color: Colors.orange, size: 18.r)),
+              SizedBox(width: 12.r),
               Expanded(
                   child: Text(title,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold))),
+                      style: TextStyle(
+                          fontSize: 14.r, fontWeight: FontWeight.bold))),
               if (action != null) action,
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.r),
           ...children,
         ],
       ),
@@ -875,11 +876,11 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(
-                fontSize: 12,
+            style: TextStyle(
+                fontSize: 12.r,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87)),
-        const SizedBox(height: 6),
+        SizedBox(height: 6.r),
         TextFormField(
           controller: controller,
           focusNode: focusNode,
@@ -887,21 +888,21 @@ class _CreateBranchPageState extends State<CreateBranchPage> {
           readOnly: readOnly,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+            hintStyle: TextStyle(fontSize: 13.r, color: Colors.grey),
             filled: true,
             fillColor: readOnly ? Colors.grey.shade50 : Colors.white,
             prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                EdgeInsets.symmetric(horizontal: 16.r, vertical: 12.r),
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
                 borderSide: BorderSide(color: Colors.grey.shade300)),
             enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
                 borderSide: BorderSide(color: Colors.grey.shade200)),
           ),
-          style: const TextStyle(fontSize: 13),
+          style: TextStyle(fontSize: 13.r),
           validator: validator,
         ),
       ],

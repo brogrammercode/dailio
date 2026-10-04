@@ -12,6 +12,7 @@ import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../branch/models/member_model.dart';
 import '../../organization/controllers/organization_repository.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AssignSubscriptionPage extends StatefulWidget {
   final MemberModel member;
@@ -107,7 +108,7 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
       bottomNavigationBar: canSubmit ? _submitBar() : null,
       body: _isLoading
           ? Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 0),
               child: ShimmerLoader.planList(),
             )
           : _error != null
@@ -117,30 +118,30 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
                   onRefresh: _loadPlans,
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                    padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 28.r),
                     children: [
                       _memberHeader(),
-                      const SizedBox(height: 24),
-                      const Text(
+                      SizedBox(height: 24.r),
+                      Text(
                         'Assign a plan',
                         style: TextStyle(
                           color: AppColors.brandDark,
-                          fontSize: 21,
+                          fontSize: 21.r,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
+                      SizedBox(height: 4.r),
+                      Text(
                         'Choose the plan to activate for this member.',
                         style:
-                            TextStyle(color: Color(0xFF777777), fontSize: 12),
+                            TextStyle(color: Color(0xFF777777), fontSize: 12.r),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16.r),
                       if (_plans.isEmpty)
                         _emptyPlans()
                       else
                         ..._plans.map(_planRow),
-                      const SizedBox(height: 18),
+                      SizedBox(height: 18.r),
                       _infoNote(),
                     ],
                   ),
@@ -167,7 +168,7 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
             ),
           ),
           child: CircleAvatar(
-            radius: 25,
+            radius: 25.r,
             backgroundColor: const Color(0xFFF2F2F2),
             backgroundImage: widget.member.avatarUrl == null
                 ? null
@@ -185,7 +186,7 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
                 : null,
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12.r),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,16 +195,16 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
                 widget.member.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.brandDark,
-                  fontSize: 16,
+                  fontSize: 16.r,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 3),
-              const Text(
+              SizedBox(height: 3.r),
+              Text(
                 'Assisted subscription assignment',
-                style: TextStyle(color: Color(0xFF777777), fontSize: 11),
+                style: TextStyle(color: Color(0xFF777777), fontSize: 11.r),
               ),
             ],
           ),
@@ -215,16 +216,16 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
 
   Widget _badge(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 5.r),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF1E5),
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(7.r),
       ),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.brandAccent,
-          fontSize: 9,
+          fontSize: 9.r,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -246,27 +247,27 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
         _selectedPlanId = id;
         _idempotencyKey = null;
       }),
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(10.r),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        margin: EdgeInsets.only(bottom: 8.r),
+        padding: EdgeInsets.symmetric(horizontal: 12.r, vertical: 14.r),
         decoration: BoxDecoration(
           color: selected ? const Color(0xFFFFF9F3) : Colors.white,
           border: Border.all(
             color: selected ? AppColors.brandAccent : const Color(0xFFE7E7E7),
-            width: selected ? 1.4 : 1,
+            width: selected ? 1.4.r : 1.r,
           ),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
         ),
         child: Row(
           children: [
             Icon(
               selected ? Iconsax.tick_circle5 : Iconsax.radio,
-              size: 19,
+              size: 19.r,
               color: selected ? AppColors.brandAccent : const Color(0xFFB5B5B5),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10.r),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,29 +276,28 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
                     plan['name']?.toString() ?? 'Plan',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.brandDark,
-                      fontSize: 14,
+                      fontSize: 14.r,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3.r),
                   Text(
                     '$duration days${description == null ? '' : ' · $description'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(color: Color(0xFF777777), fontSize: 11),
+                    style: TextStyle(color: Color(0xFF777777), fontSize: 11.r),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10.r),
             Text(
               _money(amount),
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.brandDark,
-                fontSize: 14,
+                fontSize: 14.r,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -309,22 +309,22 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
 
   Widget _infoNote() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12.r),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF9F3),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: const Color(0xFFFFE4CB)),
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Iconsax.info_circle, size: 17, color: AppColors.brandAccent),
-          SizedBox(width: 9),
+          Icon(Iconsax.info_circle, size: 17.r, color: AppColors.brandAccent),
+          SizedBox(width: 9.r),
           Expanded(
             child: Text(
               'This activates the selected plan immediately. Payment posting and receipt generation remain part of the normal payment flow.',
               style: TextStyle(
-                  color: Color(0xFF777777), fontSize: 11, height: 1.35),
+                  color: Color(0xFF777777), fontSize: 11.r, height: 1.35),
             ),
           ),
         ],
@@ -334,18 +334,18 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
 
   Widget _emptyPlans() {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: EdgeInsets.all(22.r),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFFE7E7E7)),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(10.r),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Icon(Iconsax.card_remove, size: 30, color: Color(0xFF999999)),
-          SizedBox(height: 8),
+          Icon(Iconsax.card_remove, size: 30.r, color: Color(0xFF999999)),
+          SizedBox(height: 8.r),
           Text(
             'No active plans are available right now.',
-            style: TextStyle(color: Color(0xFF777777), fontSize: 12),
+            style: TextStyle(color: Color(0xFF777777), fontSize: 12.r),
           ),
         ],
       ),
@@ -363,33 +363,33 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+        padding: EdgeInsets.fromLTRB(16.r, 10.r, 16.r, 14.r),
         child: SizedBox(
-          height: 48,
+          height: 48.r,
           width: double.infinity,
           child: FilledButton.icon(
             onPressed: _isSubmitting ? null : _submit,
             icon: _isSubmitting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
+                ? SizedBox(
+                    width: 16.r,
+                    height: 16.r,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2,
+                      strokeWidth: 2.r,
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Iconsax.tick_circle, size: 18),
+                : Icon(Iconsax.tick_circle, size: 18.r),
             label: Text(
               _isSubmitting
                   ? 'Assigning…'
                   : 'Assign ${plan['name'] ?? 'plan'} · ${_money(amount)}',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+              style: TextStyle(fontSize: 12.r, fontWeight: FontWeight.w800),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(9),
+                borderRadius: BorderRadius.circular(9.r),
               ),
             ),
           ),
@@ -401,21 +401,21 @@ class _AssignSubscriptionPageState extends State<AssignSubscriptionPage> {
   Widget _errorView() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Iconsax.cloud_cross, size: 36, color: Color(0xFF777777)),
-            const SizedBox(height: 12),
+            Icon(Iconsax.cloud_cross, size: 36.r, color: Color(0xFF777777)),
+            SizedBox(height: 12.r),
             Text(
               _error ?? 'Could not load plans.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFF777777), fontSize: 12),
+              style: TextStyle(color: Color(0xFF777777), fontSize: 12.r),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14.r),
             OutlinedButton.icon(
               onPressed: _loadPlans,
-              icon: const Icon(Iconsax.refresh, size: 16),
+              icon: Icon(Iconsax.refresh, size: 16.r),
               label: const Text('Try again'),
             ),
           ],

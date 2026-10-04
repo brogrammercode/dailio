@@ -13,6 +13,7 @@ import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_picker_field.dart';
 import '../controllers/organization_repository.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class EditOrganizationPage extends StatefulWidget {
   const EditOrganizationPage({super.key});
@@ -127,8 +128,8 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
   Future<void> _pickLogo() async {
     final picked = await ImagePicker().pickImage(
       source: ImageSource.gallery,
-      maxWidth: 800,
-      maxHeight: 800,
+      maxWidth: 800.r,
+      maxHeight: 800.r,
       imageQuality: 80,
     );
     if (picked != null) {
@@ -240,28 +241,28 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                     children: [
                       ListView(
                         padding: EdgeInsets.fromLTRB(
-                          24,
-                          16,
-                          24,
-                          _isDirty ? 140 : 40,
+                          24.r,
+                          16.r,
+                          24.r,
+                          _isDirty ? 140.r : 40.r,
                         ),
                         children: [
                           //  Logo Section
                           Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: EdgeInsets.all(16.r),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(16.r),
                               border: Border.all(color: Colors.grey.shade200),
                             ),
                             child: Row(
                               children: [
                                 Container(
-                                  width: 60,
-                                  height: 60,
+                                  width: 60.r,
+                                  height: 60.r,
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(12.r),
                                     border:
                                         Border.all(color: Colors.grey.shade200),
                                     image: _pickedLogo != null
@@ -283,29 +284,29 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                                           color: Colors.grey)
                                       : null,
                                 ),
-                                const SizedBox(width: 16),
+                                SizedBox(width: 16.r),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Text('Organization Logo',
+                                      Text('Organization Logo',
                                           style: TextStyle(
-                                              fontSize: 14,
+                                              fontSize: 14.r,
                                               fontWeight: FontWeight.bold)),
-                                      const Text('JPG/PNG up to 2MB',
+                                      Text('JPG/PNG up to 2MB',
                                           style: TextStyle(
-                                              fontSize: 11,
+                                              fontSize: 11.r,
                                               color: Colors.grey)),
-                                      const SizedBox(height: 4),
+                                      SizedBox(height: 4.r),
                                       Row(
                                         children: [
-                                          const Icon(Iconsax.verify,
-                                              size: 12, color: Colors.green),
-                                          const SizedBox(width: 4),
+                                          Icon(Iconsax.verify,
+                                              size: 12.r, color: Colors.green),
+                                          SizedBox(width: 4.r),
                                           Text('512 x 512 Recommended',
                                               style: TextStyle(
-                                                  fontSize: 10,
+                                                  fontSize: 10.r,
                                                   color: Colors.green.shade700,
                                                   fontWeight: FontWeight.w600)),
                                         ],
@@ -315,26 +316,25 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                                 ),
                                 OutlinedButton.icon(
                                   onPressed: _pickLogo,
-                                  icon:
-                                      const Icon(Iconsax.cloud_plus, size: 14),
+                                  icon: Icon(Iconsax.cloud_plus, size: 14.r),
                                   label: Text(
                                       _organization?['logo_url'] != null ||
                                               _pickedLogo != null
                                           ? 'Replace'
                                           : 'Upload',
-                                      style: const TextStyle(
-                                          color: Colors.black, fontSize: 12)),
+                                      style: TextStyle(
+                                          color: Colors.black, fontSize: 12.r)),
                                   style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 12),
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 12.r),
                                       shape: RoundedRectangleBorder(
                                           borderRadius:
-                                              BorderRadius.circular(8))),
+                                              BorderRadius.circular(8.r))),
                                 )
                               ],
                             ),
                           ),
-                          const SizedBox(height: 28),
+                          SizedBox(height: 28.r),
 
                           //  Form Fields
                           _buildFormSection(
@@ -358,37 +358,37 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 12),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 14.r, vertical: 12.r),
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade50,
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(10.r),
                                     border:
                                         Border.all(color: Colors.grey.shade300),
                                   ),
                                   child: Row(
                                     children: [
-                                      const Text('dailio.app/',
+                                      Text('dailio.app/',
                                           style: TextStyle(
                                               color: Colors.grey,
-                                              fontSize: 13)),
+                                              fontSize: 13.r)),
                                       Expanded(
                                         child: Text(
                                           _organization?['slug'] ?? '',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 13),
+                                              fontSize: 13.r),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                const Text(
+                                SizedBox(height: 8.r),
+                                Text(
                                     'Used for member invites & public references.',
                                     style: TextStyle(
-                                        fontSize: 11, color: Colors.grey)),
+                                        fontSize: 11.r, color: Colors.grey)),
                               ],
                             ),
                           ),
@@ -458,14 +458,15 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                           left: 0,
                           right: 0,
                           child: Container(
-                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+                            padding:
+                                EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 28.r),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.06),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, -4),
+                                  blurRadius: 16.r,
+                                  offset: Offset(0, (-4).r),
                                 )
                               ],
                             ),
@@ -475,53 +476,53 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                                 ElevatedButton.icon(
                                   onPressed: _isSubmitting ? null : _save,
                                   icon: _isSubmitting
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
+                                      ? SizedBox(
+                                          width: 16.r,
+                                          height: 16.r,
                                           child: CircularProgressIndicator(
-                                              strokeWidth: 2,
+                                              strokeWidth: 2.r,
                                               color: Colors.white),
                                         )
-                                      : const Icon(Iconsax.save_2, size: 16),
+                                      : Icon(Iconsax.save_2, size: 16.r),
                                   label: Text(
                                     _isSubmitting
                                         ? 'Saving...'
                                         : 'Save Organization Changes',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 13),
+                                        fontSize: 13.r),
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.orange.shade700,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 14),
+                                    padding:
+                                        EdgeInsets.symmetric(vertical: 14.r),
                                     minimumSize: const Size(double.infinity, 0),
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
-                                            BorderRadius.circular(12)),
+                                            BorderRadius.circular(12.r)),
                                   ),
                                 ),
-                                const SizedBox(height: 8),
+                                SizedBox(height: 8.r),
                                 OutlinedButton(
                                   onPressed:
                                       _isSubmitting ? null : _discardChanges,
                                   style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 14),
+                                    padding:
+                                        EdgeInsets.symmetric(vertical: 14.r),
                                     minimumSize: const Size(double.infinity, 0),
                                     side:
                                         BorderSide(color: Colors.grey.shade300),
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
-                                            BorderRadius.circular(12)),
+                                            BorderRadius.circular(12.r)),
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     'Discard Changes',
                                     style: TextStyle(
                                         color: Colors.grey,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 13),
+                                        fontSize: 13.r),
                                   ),
                                 ),
                               ],
@@ -539,23 +540,23 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
   Widget _buildErrorState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Iconsax.warning_2, size: 48, color: Colors.orange),
-            const SizedBox(height: 16),
+            Icon(Iconsax.warning_2, size: 48.r, color: Colors.orange),
+            SizedBox(height: 16.r),
             Text(
               'Could not load organization',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 16.r, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.r),
             Text(
               _errorMessage ?? 'Unknown error',
-              style: const TextStyle(fontSize: 13, color: Colors.grey),
+              style: TextStyle(fontSize: 13.r, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.r),
             ElevatedButton(
               onPressed: _fetchOrganization,
               style: ElevatedButton.styleFrom(
@@ -580,32 +581,31 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
     required Widget child,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: EdgeInsets.only(bottom: 24.r),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Text(title,
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.bold)),
+                  style:
+                      TextStyle(fontSize: 12.r, fontWeight: FontWeight.bold)),
               const Spacer(),
               if (badge != null)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: EdgeInsets.symmetric(horizontal: 6.r, vertical: 2.r),
                   decoration: BoxDecoration(
                       color: badgeColor,
-                      borderRadius: BorderRadius.circular(4)),
+                      borderRadius: BorderRadius.circular(4.r)),
                   child: Row(
                     children: [
                       if (badgeIcon != null) ...[
-                        Icon(badgeIcon, size: 10, color: badgeTextColor),
-                        const SizedBox(width: 4)
+                        Icon(badgeIcon, size: 10.r, color: badgeTextColor),
+                        SizedBox(width: 4.r)
                       ],
                       Text(badge,
                           style: TextStyle(
-                              fontSize: 9,
+                              fontSize: 9.r,
                               color: badgeTextColor,
                               fontWeight: FontWeight.bold)),
                     ],
@@ -613,7 +613,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                 )
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10.r),
           child,
         ],
       ),
@@ -629,26 +629,25 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 13),
+      style: TextStyle(fontSize: 13.r),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-        prefixIcon: Icon(icon, size: 16, color: Colors.grey),
+        hintStyle: TextStyle(fontSize: 13.r, color: Colors.grey),
+        prefixIcon: Icon(icon, size: 16.r, color: Colors.grey),
         filled: true,
         fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+        contentPadding: EdgeInsets.symmetric(vertical: 13.r, horizontal: 14.r),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: BorderSide(color: Colors.grey.shade200),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: BorderSide(color: Colors.grey.shade200),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5),
+          borderRadius: BorderRadius.circular(10.r),
+          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5.r),
         ),
       ),
     );
@@ -663,29 +662,28 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
     return DailioPickerField<String>(
       initialValue: items.contains(value) ? value : items.first,
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, size: 16, color: Colors.grey),
+        prefixIcon: Icon(icon, size: 16.r, color: Colors.grey),
         filled: true,
         fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        contentPadding: EdgeInsets.symmetric(horizontal: 14.r, vertical: 13.r),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: const BorderSide(color: Color(0xFFE7E7E7)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: const BorderSide(color: Color(0xFFE7E7E7)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFFF8A00), width: 1.4),
+          borderRadius: BorderRadius.circular(10.r),
+          borderSide: BorderSide(color: Color(0xFFFF8A00), width: 1.4.r),
         ),
       ),
       onChanged: onChanged,
       items: items
           .map((item) => DropdownMenuItem<String>(
                 value: item,
-                child: Text(item, style: const TextStyle(fontSize: 13)),
+                child: Text(item, style: TextStyle(fontSize: 13.r)),
               ))
           .toList(),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../support/screenutil_test_app.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -59,7 +60,7 @@ void main() {
     final apiClient = _apiClient(preferences);
 
     await tester.pumpWidget(
-      Provider<AttendanceRepository>.value(
+      screenUtilTestApp(Provider<AttendanceRepository>.value(
         value: _FakeAttendanceRepository(apiClient),
         child: MaterialApp(
           home: GateAttendancePage(
@@ -75,7 +76,7 @@ void main() {
             },
           ),
         ),
-      ),
+      )),
     );
 
     expect(find.text('Next action: Clock out'), findsOneWidget);

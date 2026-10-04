@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'shimmer_loader.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LoadingWidget extends StatelessWidget {
   final String? message;
@@ -13,7 +14,7 @@ class LoadingWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const CircularProgressIndicator(),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.r),
             Text(message!),
           ],
         ),

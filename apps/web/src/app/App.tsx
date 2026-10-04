@@ -13,11 +13,19 @@ import { QrAttendancePage } from "../modules/attendance/QrAttendancePage";
 import { MemberAttendancePage } from "../modules/attendance/MemberAttendancePage";
 import { PurchasePage } from "../modules/subscriptions/PurchasePage";
 import { MemberFeesPage } from "../modules/payments/MemberFeesPage";
-import { contextFromInvite } from "../modules/branches/branches.api";
+import {
+  contextFromInvite,
+  getMemberContexts,
+} from "../modules/branches/branches.api";
 import { safeMessage } from "../lib/errors";
 import { newIdempotencyKey } from "../lib/idempotency";
 import { getContext, setContext } from "../lib/session";
-import { readInviteToken, rememberQrIntent, takeQrIntent } from "../lib/qr";
+import {
+  hasQrIntent,
+  readInviteToken,
+  rememberQrIntent,
+  takeQrIntent,
+} from "../lib/qr";
 import type {
   AttendanceSession,
   Invite,
@@ -35,6 +43,8 @@ export function App() {
   const [inviteState, setInviteState] = useState<InviteState>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [contextLoading, setContextLoading] = useState(false);
+  const [contextError, setContextError] = useState<string | null>(null);
   const [result, setResult] = useState<{
     title: string;
     message: string;
@@ -45,13 +55,54 @@ export function App() {
     const token = readInviteToken();
     if (token) rememberQrIntent(token);
     getCurrentUser()
-      .then(setUser)
-      .catch(() => setUser(null))
+      .then((currentUser) => {
+        if (currentUser) void activateUser(currentUser);
+        else {
+          setContext(null);
+          setUser(null);
+        }
+      })
+      .catch(() => {
+        setContext(null);
+        setUser(null);
+      })
       .finally(() => setReady(true));
   }, []);
 
+  async function restoreMemberContext() {
+    setContextLoading(true);
+    setContextError(null);
+    try {
+      const contexts = await getMemberContexts();
+      const previous = getContext();
+      const selected =
+        contexts.find(
+          (context) =>
+            context.organizationId === previous?.organizationId &&
+            context.branchId === previous?.branchId,
+        ) ?? contexts[0];
+      setContext(selected ?? null);
+    } catch (cause) {
+      setContext(null);
+      setContextError(
+        safeMessage(cause, "Your memberships could not be loaded."),
+      );
+    } finally {
+      setContextLoading(false);
+    }
+  }
+
+  async function activateUser(authenticatedUser: User) {
+    setUser(authenticatedUser);
+    if (hasQrIntent()) {
+      setContext(null);
+      return;
+    }
+    await restoreMemberContext();
+  }
+
   useEffect(() => {
-    if (!ready || !user || inviteState || inviteLoading) return;
+    if (!ready || !user || inviteState || inviteLoading || inviteError) return;
     const token = takeQrIntent();
     if (!token) return;
     setInviteLoading(true);
@@ -71,18 +122,25 @@ export function App() {
         setInviteState({ token, invite });
         setContext(contextFromInvite(invite));
       })
-      .catch((cause) =>
+      .catch((cause) => {
+        rememberQrIntent(token);
         setInviteError(
           safeMessage(cause, "This QR code is invalid or unavailable."),
-        ),
-      )
+        );
+      })
       .finally(() => setInviteLoading(false));
-  }, [ready, user, inviteState, inviteLoading]);
+  }, [ready, user, inviteState, inviteLoading, inviteError]);
 
   async function handleSignOut() {
-    await signOut();
+    try {
+      await signOut();
+    } catch {
+      // Local credentials are cleared by signOut even if the server is offline.
+    }
     setUser(null);
     setInviteState(null);
+    setInviteError(null);
+    setContextError(null);
     setResult(null);
     navigate("/sign-in");
   }
@@ -109,7 +167,8 @@ export function App() {
         </div>
       </div>
     );
-  if (!user) return <AuthPage onAuthenticated={setUser} />;
+  if (!user)
+    return <AuthPage onAuthenticated={(next) => void activateUser(next)} />;
   const context = getContext();
   const authenticatedShell = (
     children: ReactNode,
@@ -122,7 +181,11 @@ export function App() {
       onBack={() =>
         window.history.length > 1 ? navigate(-1) : navigate("/home/attendance")
       }
-      onNavigate={(route) => navigate(`/home/${route}`)}
+      onNavigate={(route) => {
+        setInviteState(null);
+        setResult(null);
+        navigate(`/home/${route}`);
+      }}
       onSignOut={() => void handleSignOut()}
     >
       {children}
@@ -137,15 +200,45 @@ export function App() {
         message={inviteError}
         tone="error"
         action={
+          <div className="space-y-3">
+            <button
+              className="primary-button w-full"
+              onClick={() => setInviteError(null)}
+              type="button"
+            >
+              Retry QR
+            </button>
+            <button
+              className="secondary-button w-full"
+              onClick={() => {
+                takeQrIntent();
+                setInviteError(null);
+                void restoreMemberContext();
+                navigate("/home/attendance");
+              }}
+              type="button"
+            >
+              Open member home
+            </button>
+          </div>
+        }
+      />,
+    );
+  if (contextLoading)
+    return authenticatedShell(<LoadingCard label="Loading your membership" />);
+  if (contextError)
+    return authenticatedShell(
+      <StateCard
+        title="Memberships unavailable"
+        message={contextError}
+        tone="error"
+        action={
           <button
             className="primary-button w-full"
-            onClick={() => {
-              setInviteError(null);
-              navigate("/home/attendance");
-            }}
+            onClick={() => void restoreMemberContext()}
             type="button"
           >
-            Go to Dailio
+            Retry
           </button>
         }
       />,

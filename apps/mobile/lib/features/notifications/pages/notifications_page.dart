@@ -15,6 +15,7 @@ import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_notification_button.dart';
 import '../../../core/widgets/dailio_member_profile_sheet.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -187,7 +188,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   ? RefreshIndicator(
                       onRefresh: _load,
                       child: ListView(
-                        padding: const EdgeInsets.only(top: 170),
+                        padding: EdgeInsets.only(top: 170.r),
                         children: const [
                           _NotificationEmpty(),
                         ],
@@ -196,9 +197,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                        padding: EdgeInsets.fromLTRB(16.r, 8.r, 16.r, 32.r),
                         itemCount: _items.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, __) => Divider(height: 1.r),
                         itemBuilder: (_, index) => _buildItem(index),
                       ),
                     ),
@@ -227,8 +228,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
     return InkWell(
       onTap: () => _markRead(index),
       child: Container(
-        constraints: const BoxConstraints(minHeight: 70),
-        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 2),
+        constraints: BoxConstraints(minHeight: 70.r),
+        padding: EdgeInsets.symmetric(vertical: 11.r, horizontal: 2.r),
         decoration: BoxDecoration(
           color: unread ? const Color(0xFFFFF8F1) : Colors.white,
         ),
@@ -241,7 +242,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               actorMemberId: actorMemberId,
               unread: unread,
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10.r),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,7 +257,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                           style: TextStyle(
                             fontWeight:
                                 unread ? FontWeight.w700 : FontWeight.w600,
-                            fontSize: 13,
+                            fontSize: 13.r,
                           ),
                         ),
                       ),
@@ -265,30 +266,31 @@ class _NotificationsPageState extends State<NotificationsPage> {
                           DateFormat('dd MMM, hh:mm a')
                               .format(created.toLocal()),
                           style: TextStyle(
-                              color: Colors.grey.shade500, fontSize: 10),
+                              color: Colors.grey.shade500, fontSize: 10.r),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3.r),
                   Text(
                     item['body']?.toString() ?? '',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                    style:
+                        TextStyle(color: Colors.grey.shade700, fontSize: 12.r),
                   ),
                 ],
               ),
             ),
             if (relatedImage != null) ...[
-              const SizedBox(width: 8),
+              SizedBox(width: 8.r),
               _NotificationImage(url: relatedImage),
             ],
             if (unread) ...[
-              const SizedBox(width: 6),
-              const Padding(
-                padding: EdgeInsets.only(top: 5),
+              SizedBox(width: 6.r),
+              Padding(
+                padding: EdgeInsets.only(top: 5.r),
                 child: Icon(Iconsax.record_circle,
-                    size: 10, color: AppColors.brandAccent),
+                    size: 10.r, color: AppColors.brandAccent),
               ),
             ],
           ],
@@ -408,22 +410,22 @@ class _NotificationLeading extends StatelessWidget {
         : const Color(0xFFF4F4F4);
     final iconColor = unread ? AppColors.brandAccent : Colors.grey.shade600;
     final leading = SizedBox(
-      width: 38,
-      height: 38,
+      width: 38.r,
+      height: 38.r,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           if (actorAvatar == null)
             Container(
-              width: 34,
-              height: 34,
+              width: 34.r,
+              height: 34.r,
               decoration: BoxDecoration(
                 color: fallbackColor,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 unread ? Iconsax.notification_bing : Iconsax.notification,
-                size: 17,
+                size: 17.r,
                 color: iconColor,
               ),
             )
@@ -431,18 +433,18 @@ class _NotificationLeading extends StatelessWidget {
             ClipOval(
               child: CachedNetworkImage(
                 imageUrl: actorAvatar!,
-                width: 34,
-                height: 34,
+                width: 34.r,
+                height: 34.r,
                 fit: BoxFit.cover,
                 placeholder: (_, __) => Container(
-                  width: 34,
-                  height: 34,
+                  width: 34.r,
+                  height: 34.r,
                   color: fallbackColor,
-                  child: Icon(Iconsax.user, size: 17, color: iconColor),
+                  child: Icon(Iconsax.user, size: 17.r, color: iconColor),
                 ),
                 errorWidget: (_, __, ___) => Container(
-                  width: 34,
-                  height: 34,
+                  width: 34.r,
+                  height: 34.r,
                   color: fallbackColor,
                   alignment: Alignment.center,
                   child: Text(
@@ -458,16 +460,16 @@ class _NotificationLeading extends StatelessWidget {
               right: 0,
               bottom: 0,
               child: Container(
-                width: 15,
-                height: 15,
+                width: 15.r,
+                height: 15.r,
                 decoration: BoxDecoration(
                   color: unread ? AppColors.brandAccent : Colors.grey.shade600,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
+                  border: Border.all(color: Colors.white, width: 1.5.r),
                 ),
                 child: Icon(
                   unread ? Iconsax.notification_bing : Iconsax.notification,
-                  size: 8,
+                  size: 8.r,
                   color: Colors.white,
                 ),
               ),
@@ -502,23 +504,23 @@ class _NotificationImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
         child: CachedNetworkImage(
           imageUrl: url,
-          width: 52,
-          height: 52,
+          width: 52.r,
+          height: 52.r,
           fit: BoxFit.cover,
           placeholder: (_, __) => Container(
-            width: 52,
-            height: 52,
+            width: 52.r,
+            height: 52.r,
             color: const Color(0xFFF1F1F1),
-            child: const Icon(Iconsax.image, size: 17, color: Colors.grey),
+            child: Icon(Iconsax.image, size: 17.r, color: Colors.grey),
           ),
           errorWidget: (_, __, ___) => Container(
-            width: 52,
-            height: 52,
+            width: 52.r,
+            height: 52.r,
             color: const Color(0xFFF1F1F1),
-            child: const Icon(Iconsax.image, size: 17, color: Colors.grey),
+            child: Icon(Iconsax.image, size: 17.r, color: Colors.grey),
           ),
         ),
       );
@@ -529,21 +531,21 @@ class _NotificationSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: EdgeInsets.fromLTRB(16.r, 8.r, 16.r, 32.r),
         itemCount: 7,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (_, __) => const Padding(
-          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 2),
+        separatorBuilder: (_, __) => Divider(height: 1.r),
+        itemBuilder: (_, __) => Padding(
+          padding: EdgeInsets.symmetric(vertical: 12.r, horizontal: 2.r),
           child: Row(
             children: [
-              CircleAvatar(radius: 17, backgroundColor: Color(0xFFF1F1F1)),
-              SizedBox(width: 10),
+              CircleAvatar(radius: 17.r, backgroundColor: Color(0xFFF1F1F1)),
+              SizedBox(width: 10.r),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _NotificationSkeletonLine(width: 150),
-                    SizedBox(height: 8),
+                    _NotificationSkeletonLine(width: 150.r),
+                    SizedBox(height: 8.r),
                     _NotificationSkeletonLine(width: double.infinity),
                   ],
                 ),
@@ -561,10 +563,10 @@ class _NotificationSkeletonLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         width: width,
-        height: 10,
+        height: 10.r,
         decoration: BoxDecoration(
           color: const Color(0xFFF1F1F1),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(6.r),
         ),
       );
 }
@@ -576,8 +578,8 @@ class _NotificationEmpty extends StatelessWidget {
   Widget build(BuildContext context) => Column(
         children: [
           Icon(Iconsax.notification_status,
-              size: 28, color: Colors.grey.shade500),
-          const SizedBox(height: 10),
+              size: 28.r, color: Colors.grey.shade500),
+          SizedBox(height: 10.r),
           const Text('You are all caught up.'),
         ],
       );
@@ -598,12 +600,12 @@ class _NotificationMessage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.brandAccent, size: 28),
-            const SizedBox(height: 8),
+            Icon(icon, color: AppColors.brandAccent, size: 28.r),
+            SizedBox(height: 8.r),
             Text(message),
             TextButton.icon(
               onPressed: action,
-              icon: const Icon(Iconsax.refresh, size: 16),
+              icon: Icon(Iconsax.refresh, size: 16.r),
               label: const Text('Retry'),
             ),
           ],

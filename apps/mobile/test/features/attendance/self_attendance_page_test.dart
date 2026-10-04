@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../support/screenutil_test_app.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -126,13 +127,13 @@ Widget _page(
   PreferencesStorage preferences,
   _FakeAttendanceRepository repository,
 ) {
-  return MultiProvider(
+  return screenUtilTestApp(MultiProvider(
     providers: [
       ChangeNotifierProvider.value(value: preferences),
       Provider<AttendanceRepository>.value(value: repository),
     ],
     child: const MaterialApp(home: SelfAttendancePage()),
-  );
+  ));
 }
 
 void main() {

@@ -15,6 +15,7 @@ import '../../../core/widgets/dailio_tab_strip.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/holiday_repository.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LeavesHolidayPage extends StatefulWidget {
   const LeavesHolidayPage({super.key});
@@ -161,12 +162,12 @@ class _LeavesHolidayPageState extends State<LeavesHolidayPage> {
           ? FloatingActionButton(
               backgroundColor: AppColors.brandAccent,
               foregroundColor: Colors.white,
-              elevation: 4,
+              elevation: 4.r,
               onPressed: () async {
                 await context.push(AppRoutes.createHoliday);
                 if (mounted) _load();
               },
-              child: const Icon(Iconsax.add, size: 22),
+              child: Icon(Iconsax.add, size: 22.r),
             )
           : null,
       body: Column(
@@ -174,7 +175,7 @@ class _LeavesHolidayPageState extends State<LeavesHolidayPage> {
           BranchFilterTabs(
             selectedBranchId: _branchId,
             centered: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16.r),
             onChanged: (value) {
               if (value == null || value == 'none') return;
               setState(() => _branchId = value);
@@ -196,17 +197,17 @@ class _LeavesHolidayPageState extends State<LeavesHolidayPage> {
     );
   }
 
-  Widget _emptyLeaves() => const Center(
+  Widget _emptyLeaves() => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Iconsax.calendar_remove, size: 34, color: Color(0xFFBDBDBD)),
-            SizedBox(height: 10),
+            Icon(Iconsax.calendar_remove, size: 34.r, color: Color(0xFFBDBDBD)),
+            SizedBox(height: 10.r),
             Text('No leaves',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-            SizedBox(height: 4),
+                style: TextStyle(fontSize: 14.r, fontWeight: FontWeight.w700)),
+            SizedBox(height: 4.r),
             Text('Leave requests will appear here.',
-                style: TextStyle(fontSize: 11, color: Colors.grey)),
+                style: TextStyle(fontSize: 11.r, color: Colors.grey)),
           ],
         ),
       );
@@ -224,22 +225,22 @@ class _LeavesHolidayPageState extends State<LeavesHolidayPage> {
       ));
     }
     if (_holidays.isEmpty) {
-      return const Center(
+      return Center(
           child: Text('No holidays configured',
-              style: TextStyle(color: Colors.grey, fontSize: 12)));
+              style: TextStyle(color: Colors.grey, fontSize: 12.r)));
     }
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(0, 12, 0, 100),
+      padding: EdgeInsets.fromLTRB(0, 12.r, 0, 100.r),
       itemCount: _holidays.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 6),
+      separatorBuilder: (_, __) => SizedBox(height: 6.r),
       itemBuilder: (_, index) {
         final holiday = _holidays[index];
         return DailioCompactTile(
-          avatar: const CircleAvatar(
-            radius: 22,
+          avatar: CircleAvatar(
+            radius: 22.r,
             backgroundColor: Color(0xFFFFF3E8),
             child: Icon(Iconsax.calendar_1,
-                color: AppColors.brandAccent, size: 20),
+                color: AppColors.brandAccent, size: 20.r),
           ),
           title: holiday['name']?.toString() ?? 'Holiday',
           titleBadge: holiday['is_recurring'] == true ||
@@ -434,72 +435,71 @@ class _CreateHolidayPageState extends State<CreateHolidayPage> {
       appBar: DailioSimpleAppBar(onBack: () => context.pop()),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+          padding: EdgeInsets.fromLTRB(20.r, 18.r, 20.r, 32.r),
           children: [
             Text(_editing ? 'Edit holiday' : 'New holiday',
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            const Text('Keep the branch calendar clear and accurate.',
-                style: TextStyle(fontSize: 12, color: Colors.grey)),
-            const SizedBox(height: 24),
+                style: TextStyle(fontSize: 20.r, fontWeight: FontWeight.w800)),
+            SizedBox(height: 4.r),
+            Text('Keep the branch calendar clear and accurate.',
+                style: TextStyle(fontSize: 12.r, color: Colors.grey)),
+            SizedBox(height: 24.r),
             _label('Holiday name'),
             _textField(_name, 'e.g. Republic Day', Iconsax.text),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.r),
             _label('Dates'),
             _datePickerField(),
             if (_dates.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: 8.r),
               Wrap(
-                spacing: 6,
-                runSpacing: 6,
+                spacing: 6.r,
+                runSpacing: 6.r,
                 children: _dates
                     .map((date) => InputChip(
                           label: Text(DateFormat('d MMM yyyy').format(date)),
-                          labelStyle: const TextStyle(fontSize: 11),
+                          labelStyle: TextStyle(fontSize: 11.r),
                           onDeleted: () => setState(() => _dates.remove(date)),
-                          deleteIcon:
-                              const Icon(Iconsax.close_circle, size: 15),
+                          deleteIcon: Icon(Iconsax.close_circle, size: 15.r),
                           visualDensity: VisualDensity.compact,
                         ))
                     .toList(),
               ),
             ],
-            const SizedBox(height: 16),
+            SizedBox(height: 16.r),
             _label('Weekly recurring days (optional)'),
             _weekdayPicker(),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               value: _recurring,
               onChanged: (value) => setState(() => _recurring = value),
               activeThumbColor: AppColors.brandAccent,
-              title: const Text('Repeats every year',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-              subtitle: const Text('Repeat the selected dates every year.',
-                  style: TextStyle(fontSize: 11, color: Colors.grey)),
+              title: Text('Repeats every year',
+                  style:
+                      TextStyle(fontSize: 13.r, fontWeight: FontWeight.w600)),
+              subtitle: Text('Repeat the selected dates every year.',
+                  style: TextStyle(fontSize: 11.r, color: Colors.grey)),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             OutlinedButton.icon(
                 onPressed: _chooseTemplate,
-                icon: const Icon(Iconsax.magicpen, size: 17),
+                icon: Icon(Iconsax.magicpen, size: 17.r),
                 label: const Text('Pick from template')),
-            const SizedBox(height: 22),
+            SizedBox(height: 22.r),
             SizedBox(
-                height: 46,
+                height: 46.r,
                 child: ElevatedButton(
                     onPressed: _saving ? null : _save,
                     style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.brandAccent,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10))),
+                            borderRadius: BorderRadius.circular(10.r))),
                     child: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
+                        ? SizedBox(
+                            width: 18.r,
+                            height: 18.r,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
+                                strokeWidth: 2.r, color: Colors.white))
                         : Text(_editing ? 'Save changes' : 'Create holiday'))),
           ],
         ),
@@ -508,26 +508,26 @@ class _CreateHolidayPageState extends State<CreateHolidayPage> {
   }
 
   Widget _label(String value) => Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 8.r),
       child: Text(value,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)));
+          style: TextStyle(fontSize: 12.r, fontWeight: FontWeight.w500)));
   Widget _textField(
           TextEditingController controller, String hint, IconData icon) =>
       TextField(
           controller: controller,
-          style: const TextStyle(fontSize: 13),
+          style: TextStyle(fontSize: 13.r),
           decoration: _decoration(hint, icon));
   Widget _datePickerField() => InkWell(
       onTap: _pickDate,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(10.r),
       child: InputDecorator(
           decoration: _decoration('Add one or more dates', Iconsax.calendar_1)
-              .copyWith(suffixIcon: const Icon(Iconsax.arrow_down_1, size: 17)),
-          child: const Text('Add one or more dates',
-              style: TextStyle(fontSize: 13, color: Colors.grey))));
+              .copyWith(suffixIcon: Icon(Iconsax.arrow_down_1, size: 17.r)),
+          child: Text('Add one or more dates',
+              style: TextStyle(fontSize: 13.r, color: Colors.grey))));
   Widget _weekdayPicker() => Wrap(
-        spacing: 6,
-        runSpacing: 6,
+        spacing: 6.r,
+        runSpacing: 6.r,
         children: List.generate(7, (index) {
           final day = index + 1;
           const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -545,7 +545,7 @@ class _CreateHolidayPageState extends State<CreateHolidayPage> {
             selectedColor: const Color(0xFFFFE2CC),
             checkmarkColor: AppColors.brandAccent,
             labelStyle: TextStyle(
-              fontSize: 11,
+              fontSize: 11.r,
               color: selected ? AppColors.brandDark : Colors.grey.shade700,
               fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             ),
@@ -555,20 +555,20 @@ class _CreateHolidayPageState extends State<CreateHolidayPage> {
       );
   InputDecoration _decoration(String hint, IconData icon) => InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-      prefixIcon: Icon(icon, size: 16, color: Colors.grey),
+      hintStyle: TextStyle(fontSize: 13.r, color: Colors.grey),
+      prefixIcon: Icon(icon, size: 16.r, color: Colors.grey),
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+      contentPadding: EdgeInsets.symmetric(vertical: 13.r, horizontal: 14.r),
       border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: BorderSide(color: Colors.grey.shade200)),
       enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           borderSide: BorderSide(color: Colors.grey.shade200)),
       focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5)));
+          borderRadius: BorderRadius.circular(10.r),
+          borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5.r)));
 }
 
 class _HolidayTemplateSheet extends StatelessWidget {
@@ -636,34 +636,34 @@ class _HolidayTemplateSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SafeArea(
       child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          padding: EdgeInsets.fromLTRB(16.r, 4.r, 16.r, 16.r),
           child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Holiday templates',
+                Text('Holiday templates',
                     style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 8),
+                        TextStyle(fontSize: 16.r, fontWeight: FontWeight.w800)),
+                SizedBox(height: 8.r),
                 Flexible(
                     child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: templates.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, __) => Divider(height: 1.r),
                         itemBuilder: (_, index) {
                           final item = templates[index];
                           return ListTile(
                               contentPadding: EdgeInsets.zero,
                               dense: true,
-                              leading: const Icon(Iconsax.calendar_1,
-                                  size: 18, color: AppColors.brandAccent),
+                              leading: Icon(Iconsax.calendar_1,
+                                  size: 18.r, color: AppColors.brandAccent),
                               title: Text(item['name']!,
-                                  style: const TextStyle(
-                                      fontSize: 13,
+                                  style: TextStyle(
+                                      fontSize: 13.r,
                                       fontWeight: FontWeight.w600)),
                               subtitle: Text(item['date']!,
-                                  style: const TextStyle(
-                                      fontSize: 11, color: Colors.grey)),
+                                  style: TextStyle(
+                                      fontSize: 11.r, color: Colors.grey)),
                               onTap: () => Navigator.pop(context, item));
                         }))
               ])));

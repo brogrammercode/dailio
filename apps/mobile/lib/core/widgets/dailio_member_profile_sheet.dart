@@ -11,6 +11,7 @@ import '../router/route_names.dart';
 import '../storage/preferences_storage.dart';
 import 'dailio_streak_card.dart';
 import '../../features/attendance/controllers/streak_repository.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// The minimum member information needed by the shared profile surface.
 class DailioMemberPreview {
@@ -82,34 +83,34 @@ class _DailioMemberProfileSurface extends StatelessWidget {
             _topBar(context),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 20, 18, 22),
+                padding: EdgeInsets.fromLTRB(18.r, 20.r, 18.r, 22.r),
                 child: Column(
                   children: [
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12.r),
                     _zoomableAvatar(avatarSize),
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30.r),
                     Text(
                       member.name.trim().isEmpty ? 'Member' : member.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 18.r,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 5),
+                    SizedBox(height: 5.r),
                     Text(
                       '${_pretty(member.role)} · ${_pretty(member.status)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Color(0xFFA7ADB5),
-                        fontSize: 12,
+                        fontSize: 12.r,
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    SizedBox(height: 28.r),
                     _primaryActions(context),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20.r),
                     _secondaryActions(context),
                     _streakCard(),
                   ],
@@ -124,7 +125,7 @@ class _DailioMemberProfileSurface extends StatelessWidget {
 
   Widget _topBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+      padding: EdgeInsets.fromLTRB(8.r, 8.r, 8.r, 0),
       child: Row(
         children: [
           IconButton(
@@ -137,9 +138,9 @@ class _DailioMemberProfileSurface extends StatelessWidget {
               member.name.trim().isEmpty ? 'Member' : member.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Color(0xFFDDE1E5),
-                fontSize: 16,
+                fontSize: 16.r,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -174,7 +175,7 @@ class _DailioMemberProfileSurface extends StatelessWidget {
         child: InteractiveViewer(
           minScale: 1,
           maxScale: 4,
-          boundaryMargin: const EdgeInsets.all(80),
+          boundaryMargin: EdgeInsets.all(80.r),
           child: hasImage
               ? Image.network(
                   member.avatarUrl!,
@@ -193,9 +194,9 @@ class _DailioMemberProfileSurface extends StatelessWidget {
       child: Center(
         child: Text(
           initials,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
-            fontSize: 72,
+            fontSize: 72.r,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -243,7 +244,7 @@ class _DailioMemberProfileSurface extends StatelessWidget {
           enabled: _hasPhone,
           onTap: _call,
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: 10.r),
         _subtleAction(
           icon: Iconsax.info_circle,
           label: 'Info',
@@ -287,27 +288,27 @@ class _DailioMemberProfileSurface extends StatelessWidget {
     return Expanded(
       child: InkWell(
         onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
+          padding: EdgeInsets.symmetric(horizontal: 2.r),
           child: Column(
             children: [
               Container(
-                width: 54,
-                height: 54,
+                width: 54.r,
+                height: 54.r,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: const Color(0xFF343A42)),
                 ),
-                child: Icon(icon, color: color, size: 22),
+                child: Icon(icon, color: color, size: 22.r),
               ),
-              const SizedBox(height: 9),
+              SizedBox(height: 9.r),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: color, fontSize: 11),
+                style: TextStyle(color: color, fontSize: 11.r),
               ),
             ],
           ),
@@ -324,12 +325,12 @@ class _DailioMemberProfileSurface extends StatelessWidget {
   }) {
     return TextButton.icon(
       onPressed: onTap,
-      icon: Icon(icon, size: 16),
+      icon: Icon(icon, size: 16.r),
       label: Text(label),
       style: TextButton.styleFrom(
         foregroundColor:
             enabled ? const Color(0xFFDDE1E5) : const Color(0xFF626970),
-        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        textStyle: TextStyle(fontSize: 12.r, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -378,7 +379,7 @@ class _DailioMemberProfileSurface extends StatelessWidget {
         title: Text(member.name),
         content: QrImageView(
           data: 'dailio://member/$identity',
-          size: 220,
+          size: 220.r,
           errorCorrectionLevel: QrErrorCorrectLevel.H,
         ),
         actions: [

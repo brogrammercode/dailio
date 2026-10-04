@@ -15,6 +15,8 @@ import 'package:dailio/features/organization/pages/attendance_policy_page.dart';
 import 'package:dailio/features/branch/controllers/members_repository.dart';
 import 'package:dailio/core/widgets/dailio_picker_field.dart';
 
+import '../../support/screenutil_test_app.dart';
+
 ApiClient _apiClient(PreferencesStorage preferences) => ApiClient(
       baseUrl: 'https://test.invalid',
       authInterceptor: AuthInterceptor(
@@ -107,7 +109,7 @@ void main() {
     final apiClient = _apiClient(preferences);
 
     await tester.pumpWidget(
-      MultiProvider(
+      screenUtilTestApp(MultiProvider(
         providers: [
           ChangeNotifierProvider.value(value: preferences),
           Provider<AttendanceRepository>(
@@ -121,7 +123,7 @@ void main() {
           ),
         ],
         child: const MaterialApp(home: AttendancePolicyPage()),
-      ),
+      )),
     );
     await tester.pumpAndSettle();
 

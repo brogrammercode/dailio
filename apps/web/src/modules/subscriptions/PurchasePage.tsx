@@ -3,8 +3,6 @@ import { Amount } from "../../components/data-display/Amount";
 import { StateCard } from "../../components/feedback/StateCard";
 import { safeMessage } from "../../lib/errors";
 import { newIdempotencyKey } from "../../lib/idempotency";
-import { setContext } from "../../lib/session";
-import { contextFromInvite } from "../branches/branches.api";
 import {
   createPaymentRequest,
   createEvidenceUploadSignature,
@@ -37,7 +35,6 @@ export function PurchasePage({
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  setContext(contextFromInvite(invite));
 
   async function makeDraft() {
     setBusy(true);

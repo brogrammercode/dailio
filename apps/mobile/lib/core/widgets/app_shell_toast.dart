@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AppShellToastData {
   final String message;
@@ -39,40 +40,40 @@ class AppShellToast extends StatelessWidget {
       builder: (context, data, _) {
         if (data == null) return const SizedBox.shrink();
         return Positioned(
-          left: 16,
-          right: 88,
-          bottom: 84,
+          left: 16.r,
+          right: 88.r,
+          bottom: 84.r,
           child: IgnorePointer(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
               child: Container(
                 key: ValueKey(data.message),
-                height: 32,
-                padding: const EdgeInsets.symmetric(horizontal: 11),
+                height: 32.r,
+                padding: EdgeInsets.symmetric(horizontal: 11.r),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(16.r),
                   border: Border.all(color: const Color(0xFFE6E6E6)),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      blurRadius: 12.r,
+                      offset: Offset(0, 4.r),
                     ),
                   ],
                 ),
                 child: Row(
                   children: [
-                    Icon(data.icon, size: 14, color: AppColors.brandAccent),
-                    const SizedBox(width: 7),
+                    Icon(data.icon, size: 14.r, color: AppColors.brandAccent),
+                    SizedBox(width: 7.r),
                     Expanded(
                       child: Text(
                         data.message,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.brandDark,
-                          fontSize: 10,
+                          fontSize: 10.r,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

@@ -12,6 +12,7 @@ import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import 'attendance_detail_page.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 List<String> gateAttendanceRequirementLabels(
   Map<String, dynamic> policy, {
@@ -195,23 +196,22 @@ class _GateAttendancePageState extends State<GateAttendancePage> {
         },
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.r),
         children: [
           _card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(_branch['name']?.toString() ?? 'Branch',
-                style:
-                    const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
+                style: TextStyle(fontSize: 22.r, fontWeight: FontWeight.bold)),
+            SizedBox(height: 6.r),
             Text(clockOut ? 'Next action: Clock out' : 'Next action: Clock in',
                 style: TextStyle(
                     color: AttendanceUi.accent, fontWeight: FontWeight.w700)),
             if (_scanFromGallery) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: 12.r),
               _card(
                   Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Icon(Icons.camera_alt_outlined,
                     color: AttendanceUi.accent),
-                const SizedBox(width: 8),
+                SizedBox(width: 8.r),
                 Expanded(
                   child: Text(
                     'This QR was selected from your gallery. Use the live camera scan for gate attendance; saved QR images can only be used for branch discovery.',
@@ -220,47 +220,46 @@ class _GateAttendancePageState extends State<GateAttendancePage> {
                 ),
               ])),
             ],
-            const SizedBox(height: 18),
+            SizedBox(height: 18.r),
             Text('Your effective attendance requirements',
                 style: const TextStyle(color: AttendanceUi.muted)),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.r),
             Text(requirements.isEmpty
                 ? 'No additional evidence required.'
                 : requirements.join(' • ')),
-            const SizedBox(height: 6),
+            SizedBox(height: 6.r),
             Text(
                 'Policy ${_policy['version'] ?? '-'} • ${_policy['source_scope'] ?? 'BRANCH_DEFAULT'}',
-                style:
-                    const TextStyle(color: AttendanceUi.muted, fontSize: 12)),
+                style: TextStyle(color: AttendanceUi.muted, fontSize: 12.r)),
             if (shift != null) ...[
-              const SizedBox(height: 4),
+              SizedBox(height: 4.r),
               Text(
                 'Shift: ${shift['name'] ?? 'Scheduled'} (${shift['start_time'] ?? '--'}–${shift['end_time'] ?? '--'})',
-                style: const TextStyle(color: AttendanceUi.muted, fontSize: 12),
+                style: TextStyle(color: AttendanceUi.muted, fontSize: 12.r),
               ),
             ],
           ])),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.r),
           if (_error != null)
             _card(Row(children: [
               const Icon(Icons.error_outline, color: AttendanceUi.text),
-              const SizedBox(width: 8),
+              SizedBox(width: 8.r),
               Expanded(child: Text(_error!)),
             ])),
-          if (_error != null) const SizedBox(height: 16),
+          if (_error != null) SizedBox(height: 16.r),
           FilledButton.icon(
             onPressed: _loading ? null : _confirmAndPunch,
             icon: _loading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                ? SizedBox(
+                    width: 18.r,
+                    height: 18.r,
+                    child: CircularProgressIndicator(strokeWidth: 2.r))
                 : Icon(clockOut ? Icons.logout : Icons.login),
             label: Text(_loading
                 ? 'Submitting…'
                 : (clockOut ? 'Confirm clock out' : 'Confirm clock in')),
             style: AttendanceUi.primaryButton().copyWith(
-              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(52)),
+              minimumSize: WidgetStatePropertyAll(Size.fromHeight(52.r)),
             ),
           ),
         ],
@@ -269,10 +268,10 @@ class _GateAttendancePageState extends State<GateAttendancePage> {
   }
 
   Widget _card(Widget child) => Container(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(18.r),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: AttendanceUi.divider),
         ),
         child: child,

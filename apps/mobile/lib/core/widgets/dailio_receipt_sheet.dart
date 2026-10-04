@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../theme/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// The single receipt presentation used by payment and subscription details.
 ///
@@ -56,22 +57,21 @@ class _DailioReceiptSheetState extends State<DailioReceiptSheet> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+        padding: EdgeInsets.fromLTRB(16.r, 10.r, 16.r, 16.r),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 children: [
-                  const Icon(Iconsax.receipt_text,
-                      color: Colors.white, size: 19),
-                  const SizedBox(width: 8),
-                  const Expanded(
+                  Icon(Iconsax.receipt_text, color: Colors.white, size: 19.r),
+                  SizedBox(width: 8.r),
+                  Expanded(
                     child: Text(
                       'Official receipt',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
+                        fontSize: 14.r,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -80,15 +80,15 @@ class _DailioReceiptSheetState extends State<DailioReceiptSheet> {
                     onPressed: widget.onClose,
                     tooltip: 'Close receipt',
                     visualDensity: VisualDensity.compact,
-                    icon: const Icon(Iconsax.close_circle,
-                        color: Colors.white70, size: 22),
+                    icon: Icon(Iconsax.close_circle,
+                        color: Colors.white70, size: 22.r),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6.r),
               Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 430),
+                  constraints: BoxConstraints(maxWidth: 430.r),
                   child: RepaintBoundary(
                     key: widget.receiptKey,
                     child: _ReceiptPaper(
@@ -104,27 +104,27 @@ class _DailioReceiptSheetState extends State<DailioReceiptSheet> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.r),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: _isSharing ? null : _share,
                   icon: _isSharing
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
+                      ? SizedBox(
+                          width: 16.r,
+                          height: 16.r,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                              strokeWidth: 2.r, color: Colors.white),
                         )
-                      : const Icon(Iconsax.share, size: 17),
+                      : Icon(Iconsax.share, size: 17.r),
                   label:
                       Text(_isSharing ? 'Preparing receipt…' : 'Share receipt'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(44),
+                    minimumSize: Size.fromHeight(44.r),
                     side: const BorderSide(color: Colors.white38),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10.r)),
                   ),
                 ),
               ),
@@ -163,86 +163,84 @@ class _ReceiptPaper extends StatelessWidget {
       clipper: const _ReceiptEdgeClipper(),
       child: Container(
         color: Colors.white,
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
+        padding: EdgeInsets.fromLTRB(20.r, 24.r, 20.r, 22.r),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
               child: Column(
                 children: [
-                  const Text('Dailio',
+                  Text('Dailio',
                       style: TextStyle(
                           color: AppColors.brandDark,
-                          fontSize: 21,
+                          fontSize: 21.r,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: -0.4)),
-                  const SizedBox(height: 4),
+                          letterSpacing: (-0.4).r)),
+                  SizedBox(height: 4.r),
                   Text(
                     '$organizationName · $branchName',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                    style:
-                        const TextStyle(color: Color(0xFF7E7E7E), fontSize: 10),
+                    style: TextStyle(color: Color(0xFF7E7E7E), fontSize: 10.r),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 18),
-            const Divider(height: 1, color: Color(0xFFE7E7E7)),
-            const SizedBox(height: 14),
+            SizedBox(height: 18.r),
+            Divider(height: 1.r, color: Color(0xFFE7E7E7)),
+            SizedBox(height: 14.r),
             _line('Receipt no', receiptNumber),
             _line('Date & time', issuedAt),
-            const SizedBox(height: 12),
-            const Text(
+            SizedBox(height: 12.r),
+            Text(
               'PAYMENT DETAILS',
               style: TextStyle(
                 color: AppColors.brandAccent,
-                fontSize: 9,
+                fontSize: 9.r,
                 fontWeight: FontWeight.w800,
-                letterSpacing: .5,
+                letterSpacing: .5.r,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.r),
             _line('Member', memberName),
             if (planName != null && planName!.isNotEmpty)
               _line('Plan', planName!),
             _line('Method', method),
-            const SizedBox(height: 7),
-            const Divider(height: 1, color: Color(0xFFE7E7E7)),
-            const SizedBox(height: 13),
+            SizedBox(height: 7.r),
+            Divider(height: 1.r, color: Color(0xFFE7E7E7)),
+            SizedBox(height: 13.r),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Expanded(
+                Expanded(
                   child: Text('TOTAL PAID',
                       style: TextStyle(
                           color: Color(0xFF777777),
-                          fontSize: 10,
+                          fontSize: 10.r,
                           fontWeight: FontWeight.w700)),
                 ),
                 Text(totalPaid,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.brandAccent,
-                        fontSize: 18,
+                        fontSize: 18.r,
                         fontWeight: FontWeight.w900)),
               ],
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14.r),
             Center(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 10.r, vertical: 5.r),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF4EA),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(6.r),
                   border: Border.all(color: const Color(0xFFFFD4B0)),
                 ),
-                child: const Text(
+                child: Text(
                   'PAID · CONFIRMED',
                   style: TextStyle(
                       color: AppColors.brandAccent,
-                      fontSize: 9,
+                      fontSize: 9.r,
                       fontWeight: FontWeight.w800),
                 ),
               ),
@@ -255,25 +253,25 @@ class _ReceiptPaper extends StatelessWidget {
 
   Widget _line(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 8.r),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 78,
+            width: 78.r,
             child: Text(label,
-                style: const TextStyle(
+                style: TextStyle(
                     color: Color(0xFF858585),
-                    fontSize: 11,
+                    fontSize: 11.r,
                     fontWeight: FontWeight.w500)),
           ),
           Expanded(
             child: Text(value.isEmpty ? '—' : value,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.brandDark,
-                    fontSize: 11,
+                    fontSize: 11.r,
                     fontWeight: FontWeight.w700)),
           ),
         ],

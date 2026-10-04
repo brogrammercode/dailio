@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../theme/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// Compact, consistent picker field used by forms across Dailio.
 ///
@@ -38,7 +39,7 @@ class DailioPickerField<T> extends StatelessWidget {
           errorText: state.errorText,
           suffixIcon: Icon(
             Iconsax.arrow_down_1,
-            size: 18,
+            size: 18.r,
             color: enabled ? AppColors.brandDark : const Color(0xFFB5B5B5),
           ),
         );
@@ -48,15 +49,15 @@ class DailioPickerField<T> extends StatelessWidget {
           label: decoration.labelText ?? decoration.hintText,
           child: InkWell(
             onTap: enabled ? () => _open(context, state) : null,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(10.r),
             child: InputDecorator(
               decoration: fieldDecoration,
               isEmpty: selected == null,
               child: selected?.child ??
                   Text(
                     decoration.hintText ?? 'Select an option',
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: TextStyle(
+                      fontSize: 13.r,
                       color: Color(0xFF8A8A8A),
                     ),
                   ),
@@ -79,9 +80,9 @@ class DailioPickerField<T> extends StatelessWidget {
       context: context,
       backgroundColor: Colors.white,
       isScrollControlled: true,
-      constraints: const BoxConstraints(maxHeight: 460),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      constraints: BoxConstraints(maxHeight: 460.r),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18.r)),
       ),
       builder: (sheetContext) => _DailioPickerSheet<T>(
         title:
@@ -111,39 +112,39 @@ class _DailioPickerSheet<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+        padding: EdgeInsets.fromLTRB(16.r, 10.r, 16.r, 12.r),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
               child: Container(
-                width: 34,
-                height: 4,
+                width: 34.r,
+                height: 4.r,
                 decoration: BoxDecoration(
                   color: const Color(0xFFD6D6D6),
-                  borderRadius: BorderRadius.circular(99),
+                  borderRadius: BorderRadius.circular(99.r),
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14.r),
             Text(
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.brandDark,
-                fontSize: 15,
+                fontSize: 15.r,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.r),
             Flexible(
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: items.length,
                 separatorBuilder: (_, __) =>
-                    const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                    Divider(height: 1.r, color: Color(0xFFF0F0F0)),
                 itemBuilder: (context, index) {
                   final item = items[index];
                   final active = item.value == selectedValue;
@@ -152,16 +153,16 @@ class _DailioPickerSheet<T> extends StatelessWidget {
                         ? () => Navigator.pop(
                             context, _DailioPickerSelection<T>(item.value))
                         : null,
-                    borderRadius: BorderRadius.circular(9),
+                    borderRadius: BorderRadius.circular(9.r),
                     child: SizedBox(
-                      height: 48,
+                      height: 48.r,
                       child: Row(
                         children: [
                           Expanded(child: item.child),
                           if (active)
-                            const Icon(
+                            Icon(
                               Iconsax.tick_circle5,
-                              size: 19,
+                              size: 19.r,
                               color: AppColors.brandAccent,
                             ),
                         ],

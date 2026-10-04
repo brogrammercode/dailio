@@ -16,6 +16,7 @@ import '../../auth/models/user_model.dart';
 import '../../organization/controllers/organization_repository.dart';
 import '../../attendance/controllers/streak_repository.dart';
 import '../../../core/widgets/dailio_streak_card.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -75,6 +76,8 @@ class _SettingsPageState extends State<SettingsPage> {
       icon: Iconsax.logout,
     );
     if (confirmed == true && mounted) {
+      await context.read<PreferencesStorage>().clearContext();
+      if (!mounted) return;
       await context.read<AuthCubit>().signOut();
     }
   }
@@ -147,11 +150,11 @@ class _SettingsPageState extends State<SettingsPage> {
               color: AppColors.brandAccent,
               onRefresh: _refreshPage,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 100.r),
                 children: [
                   //  Context Pill
                   _buildContextPill(orgName, branchName),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.r),
 
                   //  Profile Card
                   _buildProfileCard(context, user, prefs),
@@ -159,16 +162,16 @@ class _SettingsPageState extends State<SettingsPage> {
                     DailioStreakCard(
                       future: _streakFuture!,
                     ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.r),
 
                   //  Organization Card
                   _buildOrgCard(context, orgMap, orgName,
                       canEdit: prefs.hasPermission('GYM_UPDATE')),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24.r),
 
                   //  Management Modules
                   _sectionHeader('MANAGEMENT & OPERATIONS', 'Workspace tools'),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12.r),
 
                   if (canReadRoles)
                     _buildModuleCard(
@@ -302,24 +305,25 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildContextPill(String? orgName, String? branchName) {
     if (orgName == null) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 12.r, vertical: 10.r),
         decoration: BoxDecoration(
           color: Colors.orange.shade50,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8.r),
           border: Border.all(color: Colors.orange.shade100),
         ),
         child: Row(
           children: [
-            Icon(Iconsax.info_circle, size: 16, color: Colors.orange.shade700),
-            const SizedBox(width: 8),
-            const Expanded(
+            Icon(Iconsax.info_circle,
+                size: 16.r, color: Colors.orange.shade700),
+            SizedBox(width: 8.r),
+            Expanded(
               child: Text(
                 'No active branch selected. Tap to choose a workspace.',
-                style: TextStyle(fontSize: 12, color: Colors.orange),
+                style: TextStyle(fontSize: 12.r, color: Colors.orange),
               ),
             ),
             Icon(Iconsax.arrow_right_3,
-                size: 14, color: Colors.orange.shade700),
+                size: 14.r, color: Colors.orange.shade700),
           ],
         ),
       );
@@ -328,31 +332,31 @@ class _SettingsPageState extends State<SettingsPage> {
     return GestureDetector(
       onTap: () => context.push(AppRoutes.contextSwitcher),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 12.r, vertical: 10.r),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8.r),
           border: Border.all(color: Colors.grey.shade200),
         ),
         child: Row(
           children: [
-            const Icon(Iconsax.building_3, size: 16, color: Colors.orange),
-            const SizedBox(width: 8),
+            Icon(Iconsax.building_3, size: 16.r, color: Colors.orange),
+            SizedBox(width: 8.r),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     orgName,
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w600),
+                    style:
+                        TextStyle(fontSize: 12.r, fontWeight: FontWeight.w600),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (branchName != null)
                     Text(
                       branchName,
-                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      style: TextStyle(fontSize: 10.r, color: Colors.grey),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -360,27 +364,27 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 4.r),
               decoration: BoxDecoration(
                 color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircleAvatar(radius: 3, backgroundColor: Colors.green),
-                  const SizedBox(width: 4),
+                  CircleAvatar(radius: 3.r, backgroundColor: Colors.green),
+                  SizedBox(width: 4.r),
                   Text('Live',
                       style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 10.r,
                           color: Colors.green.shade700,
                           fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8.r),
             Icon(Iconsax.arrow_swap_horizontal,
-                size: 14, color: Colors.grey.shade500),
+                size: 14.r, color: Colors.grey.shade500),
           ],
         ),
       ),
@@ -391,7 +395,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildProfileCard(
       BuildContext context, UserModel? user, PreferencesStorage prefs) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: EdgeInsets.symmetric(vertical: 10.r),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
@@ -400,7 +404,7 @@ class _SettingsPageState extends State<SettingsPage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           CircleAvatar(
-            radius: 23,
+            radius: 23.r,
             backgroundColor: AppColors.brandAccent.withValues(alpha: 0.12),
             backgroundImage:
                 user?.avatarUrl == null ? null : NetworkImage(user!.avatarUrl!),
@@ -416,7 +420,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   )
                 : null,
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.r),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,37 +429,37 @@ class _SettingsPageState extends State<SettingsPage> {
                   user?.name ?? 'Loading...',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.brandDark,
-                    fontSize: 14,
+                    fontSize: 14.r,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 3),
+                SizedBox(height: 3.r),
                 Text(
                   user?.email ??
                       '${prefs.activeRoleSystemKey ?? 'Member'} · Verified sign-in',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xFF6B6B6B),
-                    fontSize: 11,
+                    fontSize: 11.r,
                   ),
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: 7.r, vertical: 4.r),
             decoration: BoxDecoration(
               color: AppColors.brandAccent.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(5),
+              borderRadius: BorderRadius.circular(5.r),
             ),
             child: Text(
               prefs.activeRoleSystemKey ?? 'Member',
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.brandAccent,
-                fontSize: 9,
+                fontSize: 9.r,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -463,7 +467,7 @@ class _SettingsPageState extends State<SettingsPage> {
           IconButton(
             tooltip: 'Edit profile',
             onPressed: () => context.push(AppRoutes.profile),
-            icon: const Icon(Iconsax.edit_2, size: 18),
+            icon: Icon(Iconsax.edit_2, size: 18.r),
             color: AppColors.brandDark,
             visualDensity: VisualDensity.compact,
           ),
@@ -477,7 +481,7 @@ class _SettingsPageState extends State<SettingsPage> {
       BuildContext context, Map<String, dynamic>? orgMap, String? orgName,
       {required bool canEdit}) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: EdgeInsets.symmetric(vertical: 10.r),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
@@ -485,16 +489,16 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 40.r,
+            height: 40.r,
             decoration: BoxDecoration(
               color: AppColors.brandAccent.withValues(alpha: 0.10),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Iconsax.building_3,
-                color: AppColors.brandAccent, size: 19),
+            child: Icon(Iconsax.building_3,
+                color: AppColors.brandAccent, size: 19.r),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.r),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -505,13 +509,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       : (orgMap?['name'] ?? orgName ?? 'Your Organization'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.brandDark,
-                    fontSize: 14,
+                    fontSize: 14.r,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 3),
+                SizedBox(height: 3.r),
                 Text(
                   _isLoadingOrg
                       ? 'Loading organization details'
@@ -520,9 +524,9 @@ class _SettingsPageState extends State<SettingsPage> {
                           'No website configured'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xFF6B6B6B),
-                    fontSize: 11,
+                    fontSize: 11.r,
                   ),
                 ),
               ],
@@ -532,13 +536,12 @@ class _SettingsPageState extends State<SettingsPage> {
             IconButton(
               tooltip: 'Edit organization',
               onPressed: () => context.push(AppRoutes.editOrganization),
-              icon: const Icon(Iconsax.setting_4, size: 18),
+              icon: Icon(Iconsax.setting_4, size: 18.r),
               color: AppColors.brandDark,
               visualDensity: VisualDensity.compact,
             )
           else
-            const Icon(Iconsax.arrow_right_3,
-                size: 16, color: Color(0xFF9E9E9E)),
+            Icon(Iconsax.arrow_right_3, size: 16.r, color: Color(0xFF9E9E9E)),
         ],
       ),
     );
@@ -555,7 +558,7 @@ class _SettingsPageState extends State<SettingsPage> {
     required VoidCallback onTap,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: EdgeInsets.only(bottom: 8.r),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(
@@ -564,21 +567,21 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 10, 4, 12),
+          padding: EdgeInsets.fromLTRB(4.r, 10.r, 4.r, 12.r),
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 40.r,
+                height: 40.r,
                 decoration: BoxDecoration(
                   color: iconBg ?? const Color(0xFFF3F4F6),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: iconColor, size: 20),
+                child: Icon(icon, color: iconColor, size: 20.r),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.r),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -587,37 +590,36 @@ class _SettingsPageState extends State<SettingsPage> {
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.brandDark,
-                        fontSize: 13,
+                        fontSize: 13.r,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    SizedBox(height: 3.r),
                     Text(
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Color(0xFF6B6B6B),
-                        fontSize: 11,
+                        fontSize: 11.r,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8.r),
               Text(
                 actionLabel,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.brandAccent,
-                  fontSize: 10,
+                  fontSize: 10.r,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(width: 6),
-              const Icon(Iconsax.arrow_right_3,
-                  size: 16, color: Color(0xFF9E9E9E)),
+              SizedBox(width: 6.r),
+              Icon(Iconsax.arrow_right_3, size: 16.r, color: Color(0xFF9E9E9E)),
             ],
           ),
         ),
@@ -630,22 +632,22 @@ class _SettingsPageState extends State<SettingsPage> {
     return Row(
       children: [
         Text(label,
-            style: const TextStyle(
-                fontSize: 10,
+            style: TextStyle(
+                fontSize: 10.r,
                 fontWeight: FontWeight.bold,
                 color: Colors.grey,
-                letterSpacing: 0.5)),
+                letterSpacing: 0.5.r)),
         if (badge != null) ...[
-          const SizedBox(width: 8),
+          SizedBox(width: 8.r),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 3.r),
             decoration: BoxDecoration(
               color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
             ),
             child: Text(badge,
                 style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 10.r,
                     color: Colors.orange.shade800,
                     fontWeight: FontWeight.bold)),
           ),

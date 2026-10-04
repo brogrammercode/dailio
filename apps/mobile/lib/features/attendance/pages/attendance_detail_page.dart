@@ -14,6 +14,7 @@ import '../attendance_error.dart';
 import '../attendance_ui.dart';
 import '../controllers/attendance_repository.dart';
 import '../models/attendance_models.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AttendanceDetailPage extends StatefulWidget {
   final String sessionId;
@@ -91,16 +92,16 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                       onRefresh: _load,
                       child: ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 96),
+                        padding: EdgeInsets.fromLTRB(16.r, 20.r, 16.r, 96.r),
                         children: [
                           _identityHeader(_session!),
-                          const SizedBox(height: 22),
+                          SizedBox(height: 22.r),
                           _sessionDial(_session!),
-                          const SizedBox(height: 28),
+                          SizedBox(height: 28.r),
                           _activityTimeline(_session!),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12.r),
                           _sessionContext(_session!),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12.r),
                           _evidence(_session!),
                         ],
                       ),
@@ -110,15 +111,14 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
 
   Widget _errorView() => Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24.r),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Iconsax.cloud_cross,
-                  size: 42, color: AttendanceUi.muted),
-              const SizedBox(height: 12),
+              Icon(Iconsax.cloud_cross, size: 42.r, color: AttendanceUi.muted),
+              SizedBox(height: 12.r),
               Text(_error!, textAlign: TextAlign.center),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.r),
               OutlinedButton(
                 onPressed: _load,
                 style: AttendanceUi.outlinedButton(),
@@ -141,7 +141,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         _avatar(session),
-        const SizedBox(width: 12),
+        SizedBox(width: 12.r),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,22 +153,22 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                       session.memberName ?? 'Attendance record',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: TextStyle(
+                        fontSize: 16.r,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                   if (session.memberRoleName != null) ...[
-                    const SizedBox(width: 7),
+                    SizedBox(width: 7.r),
                     _badge(session.memberRoleName!),
                   ],
                 ],
               ),
-              const SizedBox(height: 3),
+              SizedBox(height: 3.r),
               Text(
                 DateFormat('EEEE, dd MMM yyyy').format(localDate),
-                style: const TextStyle(color: AttendanceUi.muted, fontSize: 11),
+                style: TextStyle(color: AttendanceUi.muted, fontSize: 11.r),
               ),
             ],
           ),
@@ -183,12 +183,12 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
     final name = session.memberName?.trim() ?? 'A';
     final child = avatar != null && avatar.isNotEmpty
         ? CircleAvatar(
-            radius: 25,
+            radius: 25.r,
             backgroundColor: AttendanceUi.accentTint,
             backgroundImage: NetworkImage(avatar),
           )
         : CircleAvatar(
-            radius: 25,
+            radius: 25.r,
             backgroundColor: AttendanceUi.accentTint,
             foregroundColor: AttendanceUi.accent,
             child: Text(
@@ -223,32 +223,32 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
       children: [
         Text(
           DateFormat('hh:mm a').format(clockIn),
-          style: const TextStyle(
+          style: TextStyle(
             color: AttendanceUi.text,
-            fontSize: 34,
+            fontSize: 34.r,
             fontWeight: FontWeight.w400,
-            letterSpacing: 0.3,
+            letterSpacing: 0.3.r,
           ),
         ),
-        const SizedBox(height: 3),
+        SizedBox(height: 3.r),
         Text(
           open
               ? 'Clocked in · session ongoing'
               : 'Attendance session completed',
-          style: const TextStyle(color: AttendanceUi.muted, fontSize: 11),
+          style: TextStyle(color: AttendanceUi.muted, fontSize: 11.r),
         ),
-        const SizedBox(height: 9),
+        SizedBox(height: 9.r),
         SizedBox(
-          width: 236,
-          height: 236,
+          width: 236.r,
+          height: 236.r,
           child: Stack(
             alignment: Alignment.center,
             children: [
               for (final size in const [210.0, 180.0, 150.0, 120.0, 92.0])
                 _dialRing(size, primaryColor),
               Container(
-                width: 104,
-                height: 104,
+                width: 104.r,
+                height: 104.r,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
@@ -258,21 +258,21 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 8,
-                      spreadRadius: 1,
+                      blurRadius: 8.r,
+                      spreadRadius: 1.r,
                     ),
                   ],
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(centerIcon, color: primaryColor, size: 24),
-                    const SizedBox(height: 7),
+                    Icon(centerIcon, color: primaryColor, size: 24.r),
+                    SizedBox(height: 7.r),
                     Text(
                       open ? 'In progress' : 'Completed',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AttendanceUi.text,
-                        fontSize: 12,
+                        fontSize: 12.r,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -282,7 +282,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
             ],
           ),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: 2.r),
         _metrics(session),
       ],
     );
@@ -294,7 +294,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: color.withValues(alpha: 0.10), width: 1.2),
+        border: Border.all(color: color.withValues(alpha: 0.10), width: 1.2.r),
       ),
     );
   }
@@ -331,20 +331,20 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
     return Expanded(
       child: Column(
         children: [
-          Icon(icon, color: AttendanceUi.accent, size: 22),
-          const SizedBox(height: 5),
+          Icon(icon, color: AttendanceUi.accent, size: 22.r),
+          SizedBox(height: 5.r),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               color: AttendanceUi.muted,
-              fontSize: 10,
+              fontSize: 10.r,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 3),
-          Text(label, style: const TextStyle(fontSize: 11)),
+          SizedBox(height: 3.r),
+          Text(label, style: TextStyle(fontSize: 11.r)),
         ],
       ),
     );
@@ -367,11 +367,11 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
               _badge('${activities.length} events'),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14.r),
           if (activities.isEmpty)
-            const Text(
+            Text(
               'No activity has been recorded for this session.',
-              style: TextStyle(color: AttendanceUi.muted, fontSize: 12),
+              style: TextStyle(color: AttendanceUi.muted, fontSize: 12.r),
             )
           else
             ...List.generate(
@@ -405,34 +405,34 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            width: 30,
+            width: 30.r,
             child: Column(
               children: [
                 Container(
-                  width: 24,
-                  height: 24,
+                  width: 24.r,
+                  height: 24.r,
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.10),
                     shape: BoxShape.circle,
                   ),
                   child:
-                      Icon(_timelineIcon(event.type), size: 13, color: color),
+                      Icon(_timelineIcon(event.type), size: 13.r, color: color),
                 ),
                 if (!isLast)
                   Expanded(
                     child: Container(
-                      width: 1,
-                      margin: const EdgeInsets.symmetric(vertical: 3),
+                      width: 1.r,
+                      margin: EdgeInsets.symmetric(vertical: 3.r),
                       color: AttendanceUi.divider,
                     ),
                   ),
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10.r),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 14.r),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -442,42 +442,42 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                       children: [
                         Text(
                           _timelineLabel(event.type),
-                          style: const TextStyle(
-                            fontSize: 12,
+                          style: TextStyle(
+                            fontSize: 12.r,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         if (detail.isNotEmpty) ...[
-                          const SizedBox(height: 2),
+                          SizedBox(height: 2.r),
                           Text(
                             detail,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AttendanceUi.muted,
-                              fontSize: 10,
+                              fontSize: 10.r,
                             ),
                           ),
                         ],
                         if (event.reason != null) ...[
-                          const SizedBox(height: 2),
+                          SizedBox(height: 2.r),
                           Text(
                             event.reason!,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AttendanceUi.muted,
-                              fontSize: 10,
+                              fontSize: 10.r,
                             ),
                           ),
                         ],
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8.r),
                   Text(
                     _time(event.at, session.branchTimezone),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AttendanceUi.muted,
-                      fontSize: 10,
+                      fontSize: 10.r,
                     ),
                   ),
                 ],
@@ -548,10 +548,10 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
             'Session details',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10.r),
           Wrap(
-            spacing: 7,
-            runSpacing: 7,
+            spacing: 7.r,
+            runSpacing: 7.r,
             children: [
               _infoPill('Status', _statusLabel(session)),
               _infoPill('Source', _pretty(session.source ?? 'SELF')),
@@ -562,17 +562,17 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
             ],
           ),
           if (session.shiftName != null) ...[
-            const SizedBox(height: 9),
+            SizedBox(height: 9.r),
             Text(
               'Shift · ${session.shiftName} · ${session.shiftStartTime ?? '--'}–${session.shiftEndTime ?? '--'}',
-              style: const TextStyle(color: AttendanceUi.muted, fontSize: 11),
+              style: TextStyle(color: AttendanceUi.muted, fontSize: 11.r),
             ),
           ],
           if (session.branchTimezone != null) ...[
-            const SizedBox(height: 4),
+            SizedBox(height: 4.r),
             Text(
               'Branch time · ${session.branchTimezone}',
-              style: const TextStyle(color: AttendanceUi.muted, fontSize: 10),
+              style: TextStyle(color: AttendanceUi.muted, fontSize: 10.r),
             ),
           ],
         ],
@@ -582,14 +582,14 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
 
   Widget _infoPill(String label, String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 5.r),
       decoration: BoxDecoration(
         color: AttendanceUi.accentTint,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(6.r),
       ),
       child: Text(
         '$label · $value',
-        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+        style: TextStyle(fontSize: 10.r, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -603,11 +603,11 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
             'Evidence',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10.r),
           if (session.evidence.isEmpty)
-            const Text(
+            Text(
               'No evidence was recorded for this session.',
-              style: TextStyle(color: AttendanceUi.muted, fontSize: 12),
+              style: TextStyle(color: AttendanceUi.muted, fontSize: 12.r),
             )
           else
             ...List.generate(
@@ -638,38 +638,38 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
           : canOpenLocation
               ? () => _openLocation(item)
               : () => _viewSelfie(session.id, item.id),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(8.r),
       child: Padding(
-        padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+        padding: EdgeInsets.only(bottom: isLast ? 0 : 10.r),
         child: Row(
           children: [
             Icon(
               isLocation ? Iconsax.location : Iconsax.camera,
               color: AttendanceUi.accent,
-              size: 19,
+              size: 19.r,
             ),
-            const SizedBox(width: 9),
+            SizedBox(width: 9.r),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     _pretty(item.type),
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: TextStyle(
+                      fontSize: 12.r,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2.r),
                   Text(
                     isLocation
                         ? item.accuracy == null
                             ? 'Location recorded'
                             : 'Accuracy ${item.accuracy!.toStringAsFixed(1)} m'
                         : 'Tap to preview authorized private evidence',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AttendanceUi.muted,
-                      fontSize: 10,
+                      fontSize: 10.r,
                     ),
                   ),
                 ],
@@ -678,14 +678,14 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
             if (item.createdAt != null)
               Text(
                 _time(item.createdAt!, session.branchTimezone),
-                style: const TextStyle(color: AttendanceUi.muted, fontSize: 10),
+                style: TextStyle(color: AttendanceUi.muted, fontSize: 10.r),
               ),
             if (canOpen) ...[
-              const SizedBox(width: 6),
-              const Icon(
+              SizedBox(width: 6.r),
+              Icon(
                 Iconsax.arrow_right_3,
                 color: AttendanceUi.muted,
-                size: 15,
+                size: 15.r,
               ),
             ],
           ],
@@ -706,7 +706,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
         context: context,
         builder: (_) => Dialog(
           backgroundColor: Colors.black,
-          insetPadding: const EdgeInsets.all(16),
+          insetPadding: EdgeInsets.all(16.r),
           child: SafeArea(
             child: Stack(
               alignment: Alignment.topRight,
@@ -719,8 +719,8 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                     fit: BoxFit.contain,
                     loadingBuilder: (context, child, progress) {
                       if (progress == null) return child;
-                      return const SizedBox(
-                        height: 320,
+                      return SizedBox(
+                        height: 320.r,
                         child: Center(
                           child: CircularProgressIndicator(
                             color: AttendanceUi.accent,
@@ -728,9 +728,8 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                         ),
                       );
                     },
-                    errorBuilder: (context, error, stackTrace) =>
-                        const SizedBox(
-                      height: 320,
+                    errorBuilder: (context, error, stackTrace) => SizedBox(
+                      height: 320.r,
                       child: Center(
                         child: Text(
                           'Evidence preview unavailable',
@@ -795,16 +794,16 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
   Widget _badge(String value, {Color? color}) {
     final badgeColor = color ?? AttendanceUi.softBlack;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 7.r, vertical: 4.r),
       decoration: BoxDecoration(
         color: badgeColor.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(6.r),
       ),
       child: Text(
         value,
         style: TextStyle(
           color: badgeColor,
-          fontSize: 9,
+          fontSize: 9.r,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -812,10 +811,10 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
   }
 
   Widget _card(Widget child) => Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12.r),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: AttendanceUi.divider),
         ),
         child: child,

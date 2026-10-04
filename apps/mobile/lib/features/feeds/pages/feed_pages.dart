@@ -19,6 +19,7 @@ import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/confirm_dialog.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class FeedTimeline extends StatefulWidget {
   final Map<String, dynamic> feed;
@@ -155,12 +156,12 @@ class _FeedTimelineState extends State<FeedTimeline> {
     }
     return Column(children: [
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 12, 0),
+        padding: EdgeInsets.fromLTRB(16.r, 4.r, 12.r, 0),
         child: Row(
           children: [
             Text(
               '${_posts.length} ${_posts.length == 1 ? 'post' : 'posts'}',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12.r),
             ),
           ],
         ),
@@ -171,9 +172,9 @@ class _FeedTimelineState extends State<FeedTimeline> {
           child: _posts.isEmpty
               ? ListView(children: const [_FeedEmpty()])
               : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                  padding: EdgeInsets.fromLTRB(16.r, 8.r, 16.r, 100.r),
                   itemCount: _posts.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, __) => Divider(height: 1.r),
                   itemBuilder: (_, index) => _FeedPostTile(
                       post: _posts[index],
                       onTap: () => _openPost(_posts[index]),
@@ -270,17 +271,17 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
         backgroundColor: Colors.white,
         appBar: DailioSimpleAppBar(onBack: () => context.pop()),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+          padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 20.r),
           children: [
-            const Text('New feed',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
+            Text('New feed',
+                style: TextStyle(fontSize: 17.r, fontWeight: FontWeight.w700)),
+            SizedBox(height: 4.r),
             Text('Choose participants and posting rules.',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-            const SizedBox(height: 14),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12.r)),
+            SizedBox(height: 14.r),
             _FeedField(
                 controller: _name, label: 'Feed name', hint: 'e.g. Trainers'),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               dense: true,
@@ -294,13 +295,13 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
                 controller: _timeout,
                 label: 'Post timeout (minutes)',
                 hint: 'Optional'),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
             _FeedField(
                 controller: _threshold, label: 'Report threshold', hint: '3'),
-            const SizedBox(height: 22),
+            SizedBox(height: 22.r),
             const Text('Participants',
                 style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.r),
             if (_loadingMembers)
               ...List.generate(5, (_) => const _ParticipantSkeleton())
             else if (_members.isEmpty)
@@ -325,25 +326,25 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
                       : _selectedMembers.remove(id)),
                 );
               }),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.r),
           ],
         ),
         bottomNavigationBar: SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: EdgeInsets.fromLTRB(16.r, 8.r, 16.r, 12.r),
             child: SizedBox(
-              height: 44,
+              height: 44.r,
               child: FilledButton(
                 onPressed: _saving ? null : _save,
                 style: FilledButton.styleFrom(
                     backgroundColor: AppColors.brandAccent),
                 child: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
+                    ? SizedBox(
+                        width: 18.r,
+                        height: 18.r,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                            strokeWidth: 2.r, color: Colors.white))
                     : const Text('Create feed'),
               ),
             ),
@@ -462,8 +463,8 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
     final file = await ImagePicker().pickImage(
         source: ImageSource.gallery,
         imageQuality: 78,
-        maxWidth: 1600,
-        maxHeight: 1600);
+        maxWidth: 1600.r,
+        maxHeight: 1600.r);
     if (file == null || !mounted) return;
     setState(() => _blocks.add({
           'type': slide ? 'slide' : 'image',
@@ -543,32 +544,32 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
   Widget _composerMediaPreview() {
     if (_blocks.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: EdgeInsets.only(top: 12.r),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: _blocks.asMap().entries.map((entry) {
           final localPath = entry.value['local_file']?.toString();
           return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.only(bottom: 8.r),
             child: Row(
               children: [
                 if (localPath != null)
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                     child: Image.file(
                       File(localPath),
-                      width: 70,
-                      height: 52,
+                      width: 70.r,
+                      height: 52.r,
                       fit: BoxFit.cover,
                     ),
                   )
                 else
-                  const SizedBox(
-                    width: 70,
-                    height: 52,
+                  SizedBox(
+                    width: 70.r,
+                    height: 52.r,
                     child: Icon(Iconsax.image),
                   ),
-                const SizedBox(width: 9),
+                SizedBox(width: 9.r),
                 Expanded(
                   child: Text(
                     localPath == null
@@ -576,14 +577,14 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
                         : 'Ready to upload when published',
                     style: TextStyle(
                       color: Colors.grey.shade600,
-                      fontSize: 12,
+                      fontSize: 12.r,
                     ),
                   ),
                 ),
                 IconButton(
                   tooltip: 'Remove media',
                   onPressed: () => setState(() => _blocks.removeAt(entry.key)),
-                  icon: const Icon(Iconsax.close_circle, size: 18),
+                  icon: Icon(Iconsax.close_circle, size: 18.r),
                 ),
               ],
             ),
@@ -605,38 +606,38 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
               child: ListView(
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+                padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 24.r),
                 children: [
                   Text(widget.postId == null ? 'New post' : 'Edit post',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
+                      style: TextStyle(
+                          fontSize: 18.r, fontWeight: FontWeight.w700)),
+                  SizedBox(height: 4.r),
                   Text('Share a clear update with this feed.',
-                      style:
-                          TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                  const SizedBox(height: 18),
+                      style: TextStyle(
+                          color: Colors.grey.shade600, fontSize: 12.r)),
+                  SizedBox(height: 18.r),
                   _FeedField(
                     controller: _title,
                     label: 'Title',
                     hint: 'What is this about?',
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.r),
                   Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(14.r),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 12, 10, 8),
+                          padding: EdgeInsets.fromLTRB(14.r, 12.r, 10.r, 8.r),
                           child: Row(
                             children: [
-                              const Text('Message',
+                              Text('Message',
                                   style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 12.r,
                                       fontWeight: FontWeight.w600)),
                               const Spacer(),
                               Text('${_body.text.length}/10000',
@@ -644,8 +645,8 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
                                       color: _body.text.length > 9500
                                           ? Colors.red
                                           : Colors.grey.shade500,
-                                      fontSize: 11)),
-                              const SizedBox(width: 8),
+                                      fontSize: 11.r)),
+                              SizedBox(width: 8.r),
                               SegmentedButton<bool>(
                                 segments: const [
                                   ButtonSegment<bool>(
@@ -660,10 +661,9 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
                                 style: ButtonStyle(
                                   visualDensity: VisualDensity.compact,
                                   textStyle: WidgetStateProperty.all(
-                                      const TextStyle(fontSize: 11)),
+                                      TextStyle(fontSize: 11.r)),
                                   padding: WidgetStateProperty.all(
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 8)),
+                                      EdgeInsets.symmetric(horizontal: 8.r)),
                                 ),
                               ),
                             ],
@@ -671,7 +671,7 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
                         ),
                         if (!_preview) ...[
                           Container(
-                            height: 42,
+                            height: 42.r,
                             decoration: BoxDecoration(
                                 color: const Color(0xFFFAFAFA),
                                 border: Border(
@@ -686,36 +686,32 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
                                   IconButton(
                                     tooltip: 'Bold selection',
                                     onPressed: () => _formatSelection('**'),
-                                    icon:
-                                        const Icon(Iconsax.text_bold, size: 18),
+                                    icon: Icon(Iconsax.text_bold, size: 18.r),
                                   ),
                                   IconButton(
                                     tooltip: 'Italic selection',
                                     onPressed: () => _formatSelection('_'),
-                                    icon: const Icon(Iconsax.text_italic,
-                                        size: 18),
+                                    icon: Icon(Iconsax.text_italic, size: 18.r),
                                   ),
                                   IconButton(
                                     tooltip: 'Bullet line',
                                     onPressed: () => _insertLinePrefix('• '),
-                                    icon: const Icon(Iconsax.task_square,
-                                        size: 18),
+                                    icon: Icon(Iconsax.task_square, size: 18.r),
                                   ),
                                   IconButton(
                                     tooltip: 'Quote line',
                                     onPressed: () => _insertLinePrefix('> '),
-                                    icon:
-                                        const Icon(Iconsax.quote_up, size: 18),
+                                    icon: Icon(Iconsax.quote_up, size: 18.r),
                                   ),
                                   IconButton(
                                     tooltip: 'Add image',
                                     onPressed: () => _addMedia(slide: false),
-                                    icon: const Icon(Iconsax.image, size: 18),
+                                    icon: Icon(Iconsax.image, size: 18.r),
                                   ),
                                   IconButton(
                                     tooltip: 'Add slide',
                                     onPressed: () => _addMedia(slide: true),
-                                    icon: const Icon(Iconsax.gallery, size: 18),
+                                    icon: Icon(Iconsax.gallery, size: 18.r),
                                   ),
                                 ],
                               ),
@@ -731,21 +727,21 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
                             keyboardType: TextInputType.multiline,
                             textInputAction: TextInputAction.newline,
                             textAlignVertical: TextAlignVertical.top,
-                            scrollPadding: const EdgeInsets.all(24),
-                            style: const TextStyle(fontSize: 14, height: 1.5),
-                            decoration: const InputDecoration(
+                            scrollPadding: EdgeInsets.all(24.r),
+                            style: TextStyle(fontSize: 14.r, height: 1.5),
+                            decoration: InputDecoration(
                               hintText: 'Write your update here...',
                               hintStyle:
-                                  TextStyle(color: Colors.grey, fontSize: 14),
+                                  TextStyle(color: Colors.grey, fontSize: 14.r),
                               border: InputBorder.none,
                               counterText: '',
                               contentPadding:
-                                  EdgeInsets.fromLTRB(14, 14, 14, 18),
+                                  EdgeInsets.fromLTRB(14.r, 14.r, 14.r, 18.r),
                             ),
                           ),
                         ] else
                           Padding(
-                            padding: const EdgeInsets.all(14),
+                            padding: EdgeInsets.all(14.r),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -753,11 +749,11 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
                                     ? Text('Your preview will appear here.',
                                         style: TextStyle(
                                             color: Colors.grey.shade500,
-                                            fontSize: 14))
+                                            fontSize: 14.r))
                                     : _FeedRichText(
                                         text: _body.text,
-                                        style: const TextStyle(
-                                            fontSize: 14, height: 1.5)),
+                                        style: TextStyle(
+                                            fontSize: 14.r, height: 1.5)),
                                 _composerMediaPreview(),
                               ],
                             ),
@@ -766,29 +762,29 @@ class _FeedPostComposerPageState extends State<FeedPostComposerPage> {
                     ),
                   ),
                   if (!_preview) _composerMediaPreview(),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.r),
                   Text('Use the toolbar for emphasis, bullets, and quotes.',
-                      style:
-                          TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+                      style: TextStyle(
+                          color: Colors.grey.shade500, fontSize: 11.r)),
                 ],
               ),
             ),
             SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                padding: EdgeInsets.fromLTRB(16.r, 8.r, 16.r, 12.r),
                 child: SizedBox(
-                  height: 46,
+                  height: 46.r,
                   child: FilledButton(
                     onPressed: _saving || !_canPublish ? null : _save,
                     style: FilledButton.styleFrom(
                         backgroundColor: AppColors.brandAccent),
                     child: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
+                        ? SizedBox(
+                            width: 18.r,
+                            height: 18.r,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
+                                strokeWidth: 2.r, color: Colors.white))
                         : Text(widget.postId == null
                             ? 'Publish post'
                             : 'Save changes'),
@@ -1055,7 +1051,7 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
               : Column(children: [
                   Expanded(
                       child: ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                          padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 16.r),
                           children: [
                         Row(children: [
                           _FeedAvatar(
@@ -1073,7 +1069,7 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
                                               user['avatar_url']?.toString(),
                                         ),
                                       )),
-                          const SizedBox(width: 10),
+                          SizedBox(width: 10.r),
                           Expanded(
                               child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1083,20 +1079,20 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
                                         fontWeight: FontWeight.w700)),
                                 Text(_date(post['created_at']),
                                     style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 12.r,
                                         color: Colors.grey.shade600))
                               ]))
                         ]),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18.r),
                         Text(post['title']?.toString() ?? '',
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 8),
+                            style: TextStyle(
+                                fontSize: 18.r, fontWeight: FontWeight.w700)),
+                        SizedBox(height: 8.r),
                         _FeedRichText(
                             text: post['body']?.toString() ?? '',
-                            style: const TextStyle(fontSize: 15, height: 1.45)),
+                            style: TextStyle(fontSize: 15.r, height: 1.45)),
                         _FeedContentMedia(post: post, maxItems: null),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18.r),
                         Row(children: [
                           IconButton(
                               onPressed: _reactionBusy ? null : _react,
@@ -1109,17 +1105,17 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
                                       : Colors.black87)),
                           Text(
                               '${(post['_count'] is Map ? post['_count']['reactions'] : 0) ?? 0}'),
-                          const SizedBox(width: 18),
-                          const Icon(Iconsax.message_text, size: 19),
-                          const SizedBox(width: 5),
+                          SizedBox(width: 18.r),
+                          Icon(Iconsax.message_text, size: 19.r),
+                          SizedBox(width: 5.r),
                           Text(
                               '${(post['_count'] is Map ? post['_count']['comments'] : 0) ?? 0}')
                         ]),
-                        const SizedBox(height: 22),
-                        const Text('Comments',
+                        SizedBox(height: 22.r),
+                        Text('Comments',
                             style: TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 17)),
-                        const SizedBox(height: 12),
+                                fontWeight: FontWeight.w700, fontSize: 17.r)),
+                        SizedBox(height: 12.r),
                         if (_comments.isEmpty)
                           Text('No comments yet.',
                               style: TextStyle(color: Colors.grey.shade600))
@@ -1129,7 +1125,7 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
                   SafeArea(
                       top: false,
                       child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                          padding: EdgeInsets.fromLTRB(12.r, 8.r, 12.r, 10.r),
                           child: Row(children: [
                             Expanded(
                               child: TextField(
@@ -1141,7 +1137,7 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
                                           : 'Reply to comment',
                                       border: OutlineInputBorder(
                                           borderRadius:
-                                              BorderRadius.circular(22)))),
+                                              BorderRadius.circular(22.r)))),
                             ),
                             IconButton(
                                 onPressed:
@@ -1161,12 +1157,12 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
         ? Map<String, dynamic>.from(member['user'])
         : <String, dynamic>{};
     return Padding(
-        padding: const EdgeInsets.only(bottom: 14),
+        padding: EdgeInsets.only(bottom: 14.r),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           _FeedAvatar(
               url: user['avatar_url']?.toString(),
               name: user['name']?.toString() ?? 'Member',
-              size: 30,
+              size: 30.r,
               onTap: member['id'] == null
                   ? null
                   : () => showDailioMemberProfileSheet(
@@ -1177,29 +1173,27 @@ class _FeedPostDetailPageState extends State<FeedPostDetailPage> {
                           avatarUrl: user['avatar_url']?.toString(),
                         ),
                       )),
-          const SizedBox(width: 8),
+          SizedBox(width: 8.r),
           Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 Text(user['name']?.toString() ?? 'Member',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 13)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w600, fontSize: 13.r)),
                 Text(comment['body']?.toString() ?? '',
-                    style: const TextStyle(fontSize: 13)),
+                    style: TextStyle(fontSize: 13.r)),
                 if (comment['pending'] == true)
                   Text('Sending…',
-                      style:
-                          TextStyle(color: Colors.grey.shade500, fontSize: 10))
+                      style: TextStyle(
+                          color: Colors.grey.shade500, fontSize: 10.r))
                 else
                   TextButton(
                       onPressed: () =>
                           setState(() => _replyTo = comment['id']?.toString()),
                       style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size(0, 22)),
-                      child:
-                          const Text('Reply', style: TextStyle(fontSize: 12)))
+                          padding: EdgeInsets.zero, minimumSize: Size(0, 22.r)),
+                      child: Text('Reply', style: TextStyle(fontSize: 12.r)))
               ]))
         ]));
   }
@@ -1292,7 +1286,7 @@ class _FeedContentMedia extends StatelessWidget {
     final visible = maxItems == null ? blocks : blocks.take(maxItems!).toList();
     if (visible.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: EdgeInsets.only(top: 10.r),
       child: Column(
         children: visible
             .map((block) => _FeedMediaPlaceholder(
@@ -1384,17 +1378,17 @@ class _FeedMediaPlaceholderState extends State<_FeedMediaPlaceholder> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(
-                width: 18,
-                height: 18,
+            SizedBox(
+                width: 18.r,
+                height: 18.r,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: AppColors.brandAccent)),
+                    strokeWidth: 2.r, color: AppColors.brandAccent)),
           ],
         ),
       ),
     );
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(12.r),
       child: _url == null
           ? placeholder
           : CachedNetworkImage(
@@ -1408,7 +1402,7 @@ class _FeedMediaPlaceholderState extends State<_FeedMediaPlaceholder> {
                   color: const Color(0xFFF7F7F7),
                   alignment: Alignment.center,
                   child: Icon(Iconsax.image,
-                      color: Colors.grey.shade400, size: 20),
+                      color: Colors.grey.shade400, size: 20.r),
                 ),
               ),
             ),
@@ -1442,7 +1436,7 @@ class _FeedPostTile extends StatelessWidget {
     return InkWell(
         onTap: onTap,
         child: Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: EdgeInsets.only(bottom: 12.r),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
@@ -1459,32 +1453,32 @@ class _FeedPostTile extends StatelessWidget {
                                 avatarUrl: user['avatar_url']?.toString(),
                               ),
                             )),
-                const SizedBox(width: 9),
+                SizedBox(width: 9.r),
                 Expanded(
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                       Text(user['name']?.toString() ?? 'Member',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 14)),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 14.r)),
                       Text(_date(post['created_at']),
                           style: TextStyle(
-                              color: Colors.grey.shade600, fontSize: 11)),
+                              color: Colors.grey.shade600, fontSize: 11.r)),
                     ])),
-                const Icon(Iconsax.more, size: 18),
+                Icon(Iconsax.more, size: 18.r),
               ]),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.r),
               Text(post['title']?.toString() ?? 'Post',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 16)),
-              const SizedBox(height: 4),
+                  style:
+                      TextStyle(fontWeight: FontWeight.w700, fontSize: 16.r)),
+              SizedBox(height: 4.r),
               _FeedRichText(
                   text: post['body']?.toString() ?? '',
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: Colors.grey.shade800, height: 1.35)),
               _FeedContentMedia(post: post, maxItems: null),
-              const SizedBox(height: 7),
+              SizedBox(height: 7.r),
               Row(children: [
                 InkWell(
                     onTap: onReact,
@@ -1493,35 +1487,35 @@ class _FeedPostTile extends StatelessWidget {
                           post['my_reaction'] == 'LIKE'
                               ? Iconsax.heart5
                               : Iconsax.heart,
-                          size: 20,
+                          size: 20.r,
                           color: post['my_reaction'] == 'LIKE'
                               ? AppColors.brandAccent
                               : Colors.black87),
-                      const SizedBox(width: 5),
-                      Text('$reactions', style: const TextStyle(fontSize: 12)),
+                      SizedBox(width: 5.r),
+                      Text('$reactions', style: TextStyle(fontSize: 12.r)),
                     ])),
-                const SizedBox(width: 18),
+                SizedBox(width: 18.r),
                 InkWell(
                     onTap: onTap,
                     child: Row(children: [
-                      const Icon(Iconsax.message_text, size: 19),
-                      const SizedBox(width: 5),
-                      Text('$comments', style: const TextStyle(fontSize: 12)),
+                      Icon(Iconsax.message_text, size: 19.r),
+                      SizedBox(width: 5.r),
+                      Text('$comments', style: TextStyle(fontSize: 12.r)),
                     ])),
                 const Spacer(),
                 Text('View details',
                     style: TextStyle(
                         color: AppColors.brandAccent,
-                        fontSize: 12,
+                        fontSize: 12.r,
                         fontWeight: FontWeight.w600)),
               ]),
               if (previews.isNotEmpty) ...[
-                const SizedBox(height: 10),
+                SizedBox(height: 10.r),
                 ...previews
                     .map((comment) => _FeedCommentPreview(comment: comment)),
               ],
-              const SizedBox(height: 12),
-              Divider(height: 1, color: Colors.grey.shade200),
+              SizedBox(height: 12.r),
+              Divider(height: 1.r, color: Colors.grey.shade200),
             ])));
   }
 }
@@ -1539,13 +1533,13 @@ class _FeedCommentPreview extends StatelessWidget {
         ? Map<String, dynamic>.from(member['user'])
         : <String, dynamic>{};
     return Padding(
-      padding: const EdgeInsets.only(bottom: 5),
+      padding: EdgeInsets.only(bottom: 5.r),
       child: Row(children: [
         _FeedAvatar(
             url: user['avatar_url']?.toString(),
             name: user['name']?.toString() ?? 'Member',
-            size: 20),
-        const SizedBox(width: 7),
+            size: 20.r),
+        SizedBox(width: 7.r),
         Expanded(
             child: Text.rich(
                 TextSpan(children: [
@@ -1556,7 +1550,7 @@ class _FeedCommentPreview extends StatelessWidget {
                 ]),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade800))),
+                style: TextStyle(fontSize: 12.r, color: Colors.grey.shade800))),
       ]),
     );
   }
@@ -1573,9 +1567,8 @@ class _FeedField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style:
-                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 7),
+              style: TextStyle(fontSize: 12.r, fontWeight: FontWeight.w500)),
+          SizedBox(height: 7.r),
           TextField(
             controller: controller,
             maxLines: 1,
@@ -1583,29 +1576,29 @@ class _FeedField extends StatelessWidget {
                 label.contains('minute') || label.contains('threshold')
                     ? TextInputType.number
                     : null,
-            style: const TextStyle(fontSize: 13),
+            style: TextStyle(fontSize: 13.r),
             decoration: InputDecoration(
               isDense: true,
               hintText: hint,
-              hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-              prefixIcon: const Icon(Iconsax.edit_2, size: 16),
+              hintStyle: TextStyle(fontSize: 13.r, color: Colors.grey),
+              prefixIcon: Icon(Iconsax.edit_2, size: 16.r),
               alignLabelWithHint: false,
               filled: true,
               fillColor: Colors.white,
               contentPadding:
-                  const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+                  EdgeInsets.symmetric(vertical: 13.r, horizontal: 14.r),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(10.r),
                 borderSide: BorderSide(color: Colors.grey.shade200),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(10.r),
                 borderSide: BorderSide(color: Colors.grey.shade200),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(10.r),
                 borderSide:
-                    const BorderSide(color: AppColors.brandAccent, width: 1.4),
+                    BorderSide(color: AppColors.brandAccent, width: 1.4.r),
               ),
             ),
           ),
@@ -1616,18 +1609,19 @@ class _FeedField extends StatelessWidget {
 class _FeedAvatar extends StatelessWidget {
   final String? url;
   final String name;
-  final double size;
+  final double? size;
   final VoidCallback? onTap;
   const _FeedAvatar({
     required this.url,
     required this.name,
-    this.size = 42,
+    this.size,
     this.onTap,
   });
   @override
   Widget build(BuildContext context) {
+    final avatarSize = size ?? 42.r;
     final avatar = CircleAvatar(
-      radius: size / 2,
+      radius: avatarSize / 2,
       backgroundColor: const Color(0xFFFFE6D2),
       backgroundImage:
           url == null || url!.isEmpty ? null : CachedNetworkImageProvider(url!),
@@ -1649,27 +1643,27 @@ class _ParticipantSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: 8.r),
         child: Row(
           children: [
-            const CircleAvatar(radius: 18, backgroundColor: Color(0xFFF0F0F0)),
-            const SizedBox(width: 10),
-            const Expanded(
+            CircleAvatar(radius: 18.r, backgroundColor: Color(0xFFF0F0F0)),
+            SizedBox(width: 10.r),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SkeletonLine(width: 140),
-                  SizedBox(height: 7),
-                  _SkeletonLine(width: 82),
+                  _SkeletonLine(width: 140.r),
+                  SizedBox(height: 7.r),
+                  _SkeletonLine(width: 82.r),
                 ],
               ),
             ),
             Container(
-              width: 20,
-              height: 20,
+              width: 20.r,
+              height: 20.r,
               decoration: BoxDecoration(
                 border: Border.all(color: const Color(0xFFE5E7EB)),
-                borderRadius: BorderRadius.circular(5),
+                borderRadius: BorderRadius.circular(5.r),
               ),
             ),
           ],
@@ -1681,24 +1675,24 @@ class FeedTimelineSkeleton extends StatelessWidget {
   const FeedTimelineSkeleton({super.key});
   @override
   Widget build(BuildContext context) => ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 80),
+      padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 80.r),
       itemCount: 5,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, __) => Divider(height: 1.r),
       itemBuilder: (_, __) =>
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const CircleAvatar(radius: 21, backgroundColor: Color(0xFFF0F0F0)),
-            const SizedBox(width: 10),
+            CircleAvatar(radius: 21.r, backgroundColor: Color(0xFFF0F0F0)),
+            SizedBox(width: 10.r),
             Expanded(
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                  const _SkeletonLine(width: 130),
-                  SizedBox(height: 9),
+                  _SkeletonLine(width: 130.r),
+                  SizedBox(height: 9.r),
                   _SkeletonLine(width: double.infinity),
-                  SizedBox(height: 7),
-                  _SkeletonLine(width: 220),
-                  SizedBox(height: 10),
-                  _SkeletonLine(width: 80)
+                  SizedBox(height: 7.r),
+                  _SkeletonLine(width: 220.r),
+                  SizedBox(height: 10.r),
+                  _SkeletonLine(width: 80.r)
                 ]))
           ]));
 }
@@ -1708,33 +1702,32 @@ class FeedPostDetailSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+        padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 32.r),
         children: [
           Row(
             children: [
-              const CircleAvatar(
-                  radius: 21, backgroundColor: Color(0xFFF0F0F0)),
-              const SizedBox(width: 10),
+              CircleAvatar(radius: 21.r, backgroundColor: Color(0xFFF0F0F0)),
+              SizedBox(width: 10.r),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  _SkeletonLine(width: 130),
-                  SizedBox(height: 8),
-                  _SkeletonLine(width: 85),
+                children: [
+                  _SkeletonLine(width: 130.r),
+                  SizedBox(height: 8.r),
+                  _SkeletonLine(width: 85.r),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 22),
-          const _SkeletonLine(width: 220),
-          const SizedBox(height: 12),
+          SizedBox(height: 22.r),
+          _SkeletonLine(width: 220.r),
+          SizedBox(height: 12.r),
           const _SkeletonLine(width: double.infinity),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.r),
           const _SkeletonLine(width: double.infinity),
-          const SizedBox(height: 8),
-          const _SkeletonLine(width: 160),
-          const SizedBox(height: 26),
-          const _SkeletonLine(width: 95),
+          SizedBox(height: 8.r),
+          _SkeletonLine(width: 160.r),
+          SizedBox(height: 26.r),
+          _SkeletonLine(width: 95.r),
         ],
       );
 }
@@ -1745,17 +1738,17 @@ class _SkeletonLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
       width: width,
-      height: 11,
+      height: 11.r,
       decoration: BoxDecoration(
           color: const Color(0xFFF0F0F0),
-          borderRadius: BorderRadius.circular(8)));
+          borderRadius: BorderRadius.circular(8.r)));
 }
 
 class _FeedEmpty extends StatelessWidget {
   const _FeedEmpty();
   @override
-  Widget build(BuildContext context) => const Padding(
-      padding: EdgeInsets.only(top: 100),
+  Widget build(BuildContext context) => Padding(
+      padding: EdgeInsets.only(top: 100.r),
       child: Center(child: Text('No posts in this feed yet.')));
 }
 
@@ -1769,7 +1762,7 @@ class _FeedMessage extends StatelessWidget {
   Widget build(BuildContext context) => Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
         Icon(icon, color: AppColors.brandAccent),
-        const SizedBox(height: 8),
+        SizedBox(height: 8.r),
         Text(text),
         TextButton(onPressed: action, child: const Text('Retry'))
       ]));

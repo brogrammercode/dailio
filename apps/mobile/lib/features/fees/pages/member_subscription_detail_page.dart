@@ -23,6 +23,7 @@ import '../../../core/widgets/shimmer_loader.dart';
 import '../controllers/fees_repository.dart';
 import '../models/fee_models.dart';
 import '../../payments/pages/payment_detail_page.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class MemberSubscriptionDetailPage extends StatefulWidget {
   final String memberId;
@@ -132,7 +133,7 @@ class _MemberSubscriptionDetailPageState
       ),
       body: _loading
           ? Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 0),
               child: ShimmerLoader.detailPage(),
             )
           : _error != null
@@ -142,7 +143,7 @@ class _MemberSubscriptionDetailPageState
                   onRefresh: _load,
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                    padding: EdgeInsets.fromLTRB(16.r, 8.r, 16.r, 32.r),
                     children: [_buildContent()],
                   ),
                 ),
@@ -152,27 +153,27 @@ class _MemberSubscriptionDetailPageState
   Widget _buildError() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(28),
+        padding: EdgeInsets.all(28.r),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Iconsax.cloud_cross, size: 34, color: Color(0xFFD95B00)),
-            const SizedBox(height: 12),
-            const Text(
+            Icon(Iconsax.cloud_cross, size: 34.r, color: Color(0xFFD95B00)),
+            SizedBox(height: 12.r),
+            Text(
               'Could not load this subscription',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16.r),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6.r),
             Text(
               _error ?? 'Please try again.',
-              style: const TextStyle(color: Color(0xFF777777), fontSize: 12),
+              style: TextStyle(color: Color(0xFF777777), fontSize: 12.r),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.r),
             OutlinedButton.icon(
               onPressed: _load,
-              icon: const Icon(Iconsax.refresh, size: 17),
+              icon: Icon(Iconsax.refresh, size: 17.r),
               label: const Text('Try again'),
             ),
           ],
@@ -220,7 +221,7 @@ class _MemberSubscriptionDetailPageState
         Row(
           children: [
             _avatar(avatarUrl, memberName, status: status, role: memberRole),
-            const SizedBox(width: 10),
+            SizedBox(width: 10.r),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,18 +230,18 @@ class _MemberSubscriptionDetailPageState
                     memberName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 17,
+                    style: TextStyle(
+                      fontSize: 17.r,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF171717),
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3.r),
                   Text(
                     memberRole,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF777777),
-                      fontSize: 12,
+                      fontSize: 12.r,
                     ),
                   ),
                 ],
@@ -249,7 +250,7 @@ class _MemberSubscriptionDetailPageState
             _badge(_pretty(status), color: _statusColor(status)),
           ],
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24.r),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -257,55 +258,55 @@ class _MemberSubscriptionDetailPageState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'PLAN',
                     style: TextStyle(
                       color: Color(0xFF969696),
-                      fontSize: 10,
+                      fontSize: 10.r,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
+                      letterSpacing: 0.8.r,
                     ),
                   ),
-                  const SizedBox(height: 5),
+                  SizedBox(height: 5.r),
                   Text(
                     planName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize: 18.r,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4.r),
                   Text(
                     '$start — $end',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF777777),
-                      fontSize: 12,
+                      fontSize: 12.r,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16.r),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text(
+                Text(
                   'TOTAL',
                   style: TextStyle(
                     color: Color(0xFF969696),
-                    fontSize: 10,
+                    fontSize: 10.r,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
+                    letterSpacing: 0.8.r,
                   ),
                 ),
-                const SizedBox(height: 5),
+                SizedBox(height: 5.r),
                 Text(
                   _money(amountMinor),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xFFD95B00),
-                    fontSize: 17,
+                    fontSize: 17.r,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -313,9 +314,9 @@ class _MemberSubscriptionDetailPageState
             ),
           ],
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 17),
-          child: Divider(height: 1),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 17.r),
+          child: Divider(height: 1.r),
         ),
         Row(
           children: [
@@ -329,13 +330,13 @@ class _MemberSubscriptionDetailPageState
             ),
           ],
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24.r),
         _sectionTitle(_isOwnSubscription ? 'Payments' : 'Payment requests'),
-        const SizedBox(height: 8),
+        SizedBox(height: 8.r),
         _paymentSection(outstanding),
-        const SizedBox(height: 24),
+        SizedBox(height: 24.r),
         _sectionTitle('Activity'),
-        const SizedBox(height: 8),
+        SizedBox(height: 8.r),
         _ledgerTimeline(entries),
       ],
     );
@@ -347,31 +348,31 @@ class _MemberSubscriptionDetailPageState
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(13),
+      padding: EdgeInsets.all(13.r),
       decoration: _boxDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_paymentRequests.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 3),
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 3.r),
               child: Text(
                 'No payment requests yet.',
-                style: TextStyle(color: Color(0xFF777777), fontSize: 13),
+                style: TextStyle(color: Color(0xFF777777), fontSize: 13.r),
               ),
             ),
           ..._paymentRequests.asMap().entries.map(
                 (item) => _paymentRow(item.value, item.key == 0),
               ),
           if (!_isOwnSubscription && _paymentRequests.isNotEmpty) ...[
-            const Divider(height: 18),
-            const Text(
+            Divider(height: 18.r),
+            Text(
               'Submitted payment details are shown above for review. Editing is available only to the member who submitted the request.',
-              style: TextStyle(color: Color(0xFF777777), fontSize: 11),
+              style: TextStyle(color: Color(0xFF777777), fontSize: 11.r),
             ),
           ],
           if (_isOwnSubscription && hasOpenRequest) ...[
-            const Divider(height: 18),
+            Divider(height: 18.r),
             Text(
               hasOpenRequest &&
                       _paymentRequests.any(
@@ -379,18 +380,18 @@ class _MemberSubscriptionDetailPageState
                       )
                   ? 'Branch requested more information. Update your payment submission below.'
                   : 'Your payment request is waiting for branch review.',
-              style: TextStyle(color: Color(0xFF777777), fontSize: 11),
+              style: TextStyle(color: Color(0xFF777777), fontSize: 11.r),
             ),
           ],
           if (_isOwnSubscription &&
               outstandingMinorUnit > 0 &&
               !hasOpenRequest) ...[
-            if (_paymentRequests.isNotEmpty) const Divider(height: 18),
+            if (_paymentRequests.isNotEmpty) Divider(height: 18.r),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () => _showPaymentRequestForm(outstandingMinorUnit),
-                icon: const Icon(Iconsax.document_upload, size: 17),
+                icon: Icon(Iconsax.document_upload, size: 17.r),
                 label: Text(
                   'Submit evidence · ${_money(outstandingMinorUnit)}',
                 ),
@@ -406,12 +407,12 @@ class _MemberSubscriptionDetailPageState
     final hasReceipt = request.payment?.receipt != null;
     final status = request.status.toUpperCase();
     return Padding(
-      padding: EdgeInsets.only(top: first ? 0 : 10),
+      padding: EdgeInsets.only(top: first ? 0 : 10.r),
       child: Row(
         children: [
           Container(
-            width: 34,
-            height: 34,
+            width: 34.r,
+            height: 34.r,
             decoration: BoxDecoration(
               color: hasReceipt
                   ? const Color(0xFFE8F7EF)
@@ -420,34 +421,34 @@ class _MemberSubscriptionDetailPageState
             ),
             child: Icon(
               hasReceipt ? Iconsax.receipt_text : Iconsax.money_time,
-              size: 17,
+              size: 17.r,
               color: hasReceipt
                   ? const Color(0xFF198754)
                   : const Color(0xFFD95B00),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10.r),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '${request.method} · ${_money(request.amountMinorUnit)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 13,
+                    fontSize: 13.r,
                   ),
                 ),
-                const SizedBox(height: 3),
+                SizedBox(height: 3.r),
                 Text(
                   request.reason == null || request.reason!.isEmpty
                       ? _pretty(status)
                       : '${_pretty(status)} · ${request.reason}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xFF777777),
-                    fontSize: 11,
+                    fontSize: 11.r,
                   ),
                 ),
               ],
@@ -456,7 +457,7 @@ class _MemberSubscriptionDetailPageState
           IconButton(
             tooltip: 'View payment details',
             onPressed: () => _openPaymentDetail(request),
-            icon: const Icon(Iconsax.arrow_right_3, size: 18),
+            icon: Icon(Iconsax.arrow_right_3, size: 18.r),
             color: const Color(0xFF999999),
             visualDensity: VisualDensity.compact,
           ),
@@ -464,7 +465,7 @@ class _MemberSubscriptionDetailPageState
             IconButton(
               tooltip: 'View receipt',
               onPressed: () => _viewReceipt(request),
-              icon: const Icon(Iconsax.receipt_text, size: 19),
+              icon: Icon(Iconsax.receipt_text, size: 19.r),
               color: const Color(0xFFD95B00),
               visualDensity: VisualDensity.compact,
             )
@@ -478,7 +479,7 @@ class _MemberSubscriptionDetailPageState
                   0,
                   existingRequest: request,
                 ),
-                icon: const Icon(Iconsax.edit_2, size: 17),
+                icon: Icon(Iconsax.edit_2, size: 17.r),
                 color: const Color(0xFFD95B00),
                 visualDensity: VisualDensity.compact,
               ),
@@ -506,7 +507,7 @@ class _MemberSubscriptionDetailPageState
     }
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(13, 14, 13, 5),
+      padding: EdgeInsets.fromLTRB(13.r, 14.r, 13.r, 5.r),
       decoration: _boxDecoration(),
       child: Column(
         children: entries.asMap().entries.map((item) {
@@ -542,13 +543,13 @@ class _MemberSubscriptionDetailPageState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            width: 25,
+            width: 25.r,
             child: Column(
               children: [
                 Container(
-                  width: 10,
-                  height: 10,
-                  margin: const EdgeInsets.only(top: 4),
+                  width: 10.r,
+                  height: 10.r,
+                  margin: EdgeInsets.only(top: 4.r),
                   decoration: const BoxDecoration(
                     color: Color(0xFFD95B00),
                     shape: BoxShape.circle,
@@ -557,8 +558,8 @@ class _MemberSubscriptionDetailPageState
                 if (!isLast)
                   Expanded(
                     child: Container(
-                      width: 1,
-                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      width: 1.r,
+                      margin: EdgeInsets.symmetric(vertical: 4.r),
                       color: const Color(0xFFF0D8C7),
                     ),
                   ),
@@ -567,7 +568,7 @@ class _MemberSubscriptionDetailPageState
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 14),
+              padding: EdgeInsets.only(bottom: 14.r),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -579,29 +580,29 @@ class _MemberSubscriptionDetailPageState
                           title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            fontSize: 13,
+                            fontSize: 13.r,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        SizedBox(height: 3.r),
                         Text(
                           subtitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Color(0xFF777777),
-                            fontSize: 11,
+                            fontSize: 11.r,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10.r),
                   Text(
                     amount,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFFD95B00),
                       fontWeight: FontWeight.w800,
-                      fontSize: 12,
+                      fontSize: 12.r,
                     ),
                   ),
                 ],
@@ -620,12 +621,12 @@ class _MemberSubscriptionDetailPageState
       children: [
         Text(
           label,
-          style: const TextStyle(color: Color(0xFF777777), fontSize: 11),
+          style: TextStyle(color: Color(0xFF777777), fontSize: 11.r),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4.r),
         Text(
           value,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+          style: TextStyle(fontSize: 14.r, fontWeight: FontWeight.w800),
         ),
       ],
     );
@@ -638,17 +639,17 @@ class _MemberSubscriptionDetailPageState
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       decoration: _boxDecoration(),
       child: Column(
         children: [
-          Icon(icon, size: 28, color: const Color(0xFFD95B00)),
-          const SizedBox(height: 9),
+          Icon(icon, size: 28.r, color: const Color(0xFFD95B00)),
+          SizedBox(height: 9.r),
           Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 4),
+          SizedBox(height: 4.r),
           Text(
             message,
-            style: const TextStyle(color: Color(0xFF777777), fontSize: 12),
+            style: TextStyle(color: Color(0xFF777777), fontSize: 12.r),
             textAlign: TextAlign.center,
           ),
         ],
@@ -660,7 +661,7 @@ class _MemberSubscriptionDetailPageState
       {required String status, required String role}) {
     final hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
     final child = CircleAvatar(
-      radius: 24,
+      radius: 24.r,
       backgroundColor: const Color(0xFFFFE2CC),
       backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
       child: hasAvatar
@@ -690,16 +691,16 @@ class _MemberSubscriptionDetailPageState
 
   Widget _badge(String text, {required Color color}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 4.r),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.11),
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(7.r),
       ),
       child: Text(
         text,
         style: TextStyle(
           color: color,
-          fontSize: 10,
+          fontSize: 10.r,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -709,9 +710,9 @@ class _MemberSubscriptionDetailPageState
   Widget _sectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         color: Color(0xFF171717),
-        fontSize: 15,
+        fontSize: 15.r,
         fontWeight: FontWeight.w800,
       ),
     );
@@ -720,7 +721,7 @@ class _MemberSubscriptionDetailPageState
   BoxDecoration _boxDecoration() {
     return BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(14.r),
       border: Border.all(color: const Color(0xFFEAEAEA)),
     );
   }
@@ -819,22 +820,21 @@ class _MemberSubscriptionDetailPageState
         backgroundColor: AppColors.brandDark,
         builder: (sheetContext) => SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 14.r),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   children: [
-                    const Icon(Iconsax.receipt_text,
-                        color: Colors.white, size: 19),
-                    const SizedBox(width: 8),
-                    const Expanded(
+                    Icon(Iconsax.receipt_text, color: Colors.white, size: 19.r),
+                    SizedBox(width: 8.r),
+                    Expanded(
                       child: Text(
                         'Official Receipt',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
-                          fontSize: 14,
+                          fontSize: 14.r,
                         ),
                       ),
                     ),
@@ -846,16 +846,16 @@ class _MemberSubscriptionDetailPageState
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10.r),
                 RepaintBoundary(
                   key: _receiptKey,
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: EdgeInsets.symmetric(vertical: 8.r),
                     child: ClipPath(
                       clipper: _ReceiptEdgeClipper(),
                       child: Container(
-                        padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                        padding: EdgeInsets.fromLTRB(18.r, 20.r, 18.r, 18.r),
                         color: Colors.white,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -863,48 +863,49 @@ class _MemberSubscriptionDetailPageState
                             Center(
                               child: Column(
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Dailio',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w900,
-                                      fontSize: 18,
+                                      fontSize: 18.r,
                                     ),
                                   ),
-                                  const SizedBox(height: 3),
+                                  SizedBox(height: 3.r),
                                   Text(
                                     '${preferences.activeOrganizationName ?? 'Dailio'} · ${preferences.activeBranchName ?? 'Branch'}',
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                        color: Color(0xFF777777), fontSize: 10),
+                                    style: TextStyle(
+                                        color: Color(0xFF777777),
+                                        fontSize: 10.r),
                                   ),
                                 ],
                               ),
                             ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 13),
-                              child: Divider(height: 1),
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 13.r),
+                              child: Divider(height: 1.r),
                             ),
                             _receiptLine('RECEIPT NO',
                                 receipt['receipt_number']?.toString()),
                             _receiptLine(
                                 'DATE & TIME', _dateTime(receipt['issued_at'])),
-                            const SizedBox(height: 5),
-                            const Text(
+                            SizedBox(height: 5.r),
+                            Text(
                               'MEMBER & BUYER DETAILS',
                               style: TextStyle(
                                 color: Color(0xFFD95B00),
-                                fontSize: 9,
+                                fontSize: 9.r,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
-                            const SizedBox(height: 7),
+                            SizedBox(height: 7.r),
                             _receiptLine('Member', memberName),
                             _receiptLine('Plan', planName),
                             _receiptLine(
                                 'Payment', payment['method']?.toString()),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8),
-                              child: Divider(height: 1),
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8.r),
+                              child: Divider(height: 1.r),
                             ),
                             _receiptLine(
                               'TOTAL PAID',
@@ -913,21 +914,21 @@ class _MemberSubscriptionDetailPageState
                                   0),
                               emphasize: true,
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12.r),
                             Center(
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 5),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 10.r, vertical: 5.r),
                                 decoration: BoxDecoration(
                                   border: Border.all(
                                       color: const Color(0xFFFF7600)),
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(4.r),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'PAID · CONFIRMED',
                                   style: TextStyle(
                                     color: Color(0xFFD95B00),
-                                    fontSize: 9,
+                                    fontSize: 9.r,
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
@@ -939,22 +940,22 @@ class _MemberSubscriptionDetailPageState
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.r),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: _sharingReceipt ? null : _shareReceipt,
                         icon: _sharingReceipt
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
+                            ? SizedBox(
+                                width: 16.r,
+                                height: 16.r,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                                  strokeWidth: 2.r,
                                   color: Colors.white,
                                 ),
                               )
-                            : const Icon(Iconsax.share, size: 17),
+                            : Icon(Iconsax.share, size: 17.r),
                         label: const Text('Share receipt'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
@@ -962,7 +963,7 @@ class _MemberSubscriptionDetailPageState
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8.r),
                     Expanded(
                       child: FilledButton(
                         onPressed: () => Navigator.pop(sheetContext),
@@ -1026,15 +1027,15 @@ class _MemberSubscriptionDetailPageState
 
   Widget _receiptLine(String label, String? value, {bool emphasize = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: EdgeInsets.only(bottom: 9.r),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 62,
+            width: 62.r,
             child: Text(
               label,
-              style: const TextStyle(color: Color(0xFF777777), fontSize: 12),
+              style: TextStyle(color: Color(0xFF777777), fontSize: 12.r),
             ),
           ),
           Expanded(
@@ -1042,7 +1043,7 @@ class _MemberSubscriptionDetailPageState
               value == null || value.isEmpty ? '—' : value,
               style: TextStyle(
                 fontWeight: emphasize ? FontWeight.w900 : FontWeight.w700,
-                fontSize: emphasize ? 15 : 12,
+                fontSize: emphasize ? 15.r : 12.r,
                 color: emphasize ? const Color(0xFFD95B00) : Colors.black,
               ),
             ),
@@ -1073,7 +1074,7 @@ class _MemberSubscriptionDetailPageState
         title: Row(
           children: [
             const Icon(Iconsax.document_upload, color: Color(0xFFD95B00)),
-            const SizedBox(width: 9),
+            SizedBox(width: 9.r),
             Text(isEditing ? 'Edit payment submission' : 'Submit evidence'),
           ],
         ),
@@ -1084,24 +1085,24 @@ class _MemberSubscriptionDetailPageState
               controller: amountController,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Amount (INR)',
-                prefixIcon: Icon(Iconsax.money_3, size: 18),
+                prefixIcon: Icon(Iconsax.money_3, size: 18.r),
               ),
             ),
             TextField(
               controller: referenceController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Reference / UPI ID',
-                prefixIcon: Icon(Iconsax.receipt_text, size: 18),
+                prefixIcon: Icon(Iconsax.receipt_text, size: 18.r),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.r),
             Text(
               isEditing
                   ? 'Update the details requested by the branch. You can keep the existing receipt or attach a new one.'
                   : 'Add a reference or attach a receipt so staff can verify the request.',
-              style: TextStyle(fontSize: 12, color: Color(0xFF777777)),
+              style: TextStyle(fontSize: 12.r, color: Color(0xFF777777)),
             ),
           ],
         ),

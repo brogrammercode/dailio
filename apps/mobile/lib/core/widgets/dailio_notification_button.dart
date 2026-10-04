@@ -6,6 +6,7 @@ import 'package:iconsax/iconsax.dart';
 import '../network/api_client.dart';
 import '../router/route_names.dart';
 import '../theme/app_colors.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class NotificationBadgeController {
   NotificationBadgeController._();
@@ -79,7 +80,7 @@ class _DailioNotificationButtonState extends State<DailioNotificationButton> {
       builder: (context, count, _) => IconButton(
         tooltip: 'Notifications',
         padding: EdgeInsets.zero,
-        constraints: const BoxConstraints.tightFor(width: 38, height: 38),
+        constraints: BoxConstraints.tightFor(width: 38.r, height: 38.r),
         onPressed: () => context.push(AppRoutes.notifications),
         icon: Badge(
           isLabelVisible: count > 0,
@@ -87,11 +88,11 @@ class _DailioNotificationButtonState extends State<DailioNotificationButton> {
           backgroundColor: AppColors.brandAccent,
           smallSize: 7,
           largeSize: 16,
-          textStyle: const TextStyle(
-            fontSize: 9,
+          textStyle: TextStyle(
+            fontSize: 9.r,
             fontWeight: FontWeight.w700,
           ),
-          child: const Icon(Iconsax.notification, size: 20),
+          child: Icon(Iconsax.notification, size: 20.r),
         ),
       ),
     );

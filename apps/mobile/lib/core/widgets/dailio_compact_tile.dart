@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import 'dailio_overflow_menu.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// The shared two-line roster/ledger row used by Attendance, Fees and Payments.
 class DailioCompactTile extends StatelessWidget {
@@ -44,11 +45,11 @@ class DailioCompactTile extends StatelessWidget {
         onTap: onTap,
         onLongPress: onLongPress,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 9, 8, 9),
+          padding: EdgeInsets.fromLTRB(16.r, 9.r, 8.r, 9.r),
           child: Row(
             children: [
               _avatarWithAction(),
-              const SizedBox(width: 10),
+              SizedBox(width: 10.r),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,15 +62,15 @@ class DailioCompactTile extends StatelessWidget {
                             title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.brandDark,
-                              fontSize: 14,
+                              fontSize: 14.r,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
                         if (titleBadge != null && titleBadge!.isNotEmpty) ...[
-                          const SizedBox(width: 7),
+                          SizedBox(width: 7.r),
                           Flexible(
                             child: _badge(
                               titleBadge!,
@@ -78,7 +79,7 @@ class DailioCompactTile extends StatelessWidget {
                           ),
                         ],
                         if (statusBadge != null && statusBadge!.isNotEmpty) ...[
-                          const SizedBox(width: 5),
+                          SizedBox(width: 5.r),
                           Flexible(
                             child: _badge(
                               statusBadge!,
@@ -88,41 +89,41 @@ class DailioCompactTile extends StatelessWidget {
                         ],
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4.r),
                     Text(
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: subtitleColor,
-                        fontSize: 11,
+                        fontSize: 11.r,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
+              SizedBox(width: 6.r),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 104),
+                    constraints: BoxConstraints(maxWidth: 104.r),
                     child: Text(
                       trailing,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.brandDark,
-                        fontSize: 10,
+                        fontSize: 10.r,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                   SizedBox(
-                    height: 28,
+                    height: 28.r,
                     child: DailioOverflowMenu<String>(
                       items: menuItems,
                       onSelected: onMenuSelected,
@@ -155,10 +156,10 @@ class DailioCompactTile extends StatelessWidget {
 
   Widget _badge(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 7.r, vertical: 3.r),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(5.r),
       ),
       child: Text(
         label,
@@ -166,7 +167,7 @@ class DailioCompactTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: color,
-          fontSize: 9,
+          fontSize: 9.r,
           fontWeight: FontWeight.w600,
         ),
       ),

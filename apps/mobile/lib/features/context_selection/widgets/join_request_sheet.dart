@@ -5,6 +5,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../core/widgets/dailio_onboarding_widgets.dart';
 import '../../auth/controllers/auth_repository.dart';
 import '../models/branch_discovery_model.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class JoinRequestSheet extends StatefulWidget {
   final BranchDiscoveryModel branch;
@@ -98,47 +99,47 @@ class _JoinRequestSheetState extends State<JoinRequestSheet> {
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            padding: EdgeInsets.fromLTRB(16.r, 10.r, 16.r, 16.r),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Center(
                   child: Container(
-                    width: 34,
-                    height: 4,
+                    width: 34.r,
+                    height: 4.r,
                     decoration: BoxDecoration(
                         color: const Color(0xFFD5D5D5),
-                        borderRadius: BorderRadius.circular(99)),
+                        borderRadius: BorderRadius.circular(99.r)),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.r),
                 Text('Join ${widget.branch.name}',
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                const Text('Add only the information needed for admission.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF858585))),
-                const SizedBox(height: 18),
+                    style:
+                        TextStyle(fontSize: 18.r, fontWeight: FontWeight.w800)),
+                SizedBox(height: 4.r),
+                Text('Add only the information needed for admission.',
+                    style: TextStyle(fontSize: 12.r, color: Color(0xFF858585))),
+                SizedBox(height: 18.r),
                 TextFormField(
                   controller: _messageController,
                   maxLines: 2,
                   decoration: dailioOnboardingInput(
                       'Message (optional)', Iconsax.message_text),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10.r),
                 TextFormField(
                   controller: _emergencyNameController,
                   decoration: dailioOnboardingInput(
                       'Emergency contact name', Iconsax.user),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10.r),
                 TextFormField(
                   controller: _emergencyPhoneController,
                   keyboardType: TextInputType.phone,
                   decoration: dailioOnboardingInput(
                       'Emergency contact phone', Iconsax.call),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10.r),
                 TextFormField(
                   controller: _dobController,
                   readOnly: true,
@@ -146,10 +147,10 @@ class _JoinRequestSheetState extends State<JoinRequestSheet> {
                   decoration: dailioOnboardingInput(
                     'Date of birth',
                     Iconsax.calendar_1,
-                    suffixIcon: const Icon(Iconsax.arrow_down_1, size: 17),
+                    suffixIcon: Icon(Iconsax.arrow_down_1, size: 17.r),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.r),
                 DailioOnboardingButton(
                   label: 'Send join request',
                   icon: Iconsax.send_1,
