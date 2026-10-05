@@ -208,6 +208,62 @@ export async function setEntitlement(
       },
       update: { max_servings_per_day: input.max_servings_per_day, is_active: input.is_active },
     });
+    // Meal access is an operational entitlement, not a financial plan term.
+    // Keep price/dates immutable while syncing the meal portion for
+    // subscriptions that can still be used.
+    const mealEntitlements = await tx.planMealEntitlement.findMany({
+      where: {
+        organization_id: organizationId,
+        branch_id: branchId,
+        plan_id: planId,
+        is_active: true,
+      },
+      select: { meal_slot_id: true, max_servings_per_day: true },
+    });
+    const subscriptions = await tx.subscription.findMany({
+      where: {
+        organization_id: organizationId,
+        branch_id: branchId,
+        plan_id: planId,
+        status: { in: ['DRAFT', 'UPCOMING', 'ACTIVE', 'PAUSED'] },
+      },
+      select: { id: true, plan_snapshot: true },
+    });
+    for (const subscription of subscriptions) {
+      const snapshot =
+        subscription.plan_snapshot &&
+        typeof subscription.plan_snapshot === 'object' &&
+        !Array.isArray(subscription.plan_snapshot)
+          ? subscription.plan_snapshot
+          : {};
+      await tx.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          plan_snapshot: {
+            ...(snapshot as Prisma.JsonObject),
+            meal_entitlements: mealEntitlements,
+          } as Prisma.InputJsonValue,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          id: ulid(),
+          organization_id: organizationId,
+          branch_id: branchId,
+          actor_id: actorId,
+          action: 'UPDATE',
+          target_type: 'Subscription',
+          target_id: subscription.id,
+          before_state: {
+            meal_entitlements:
+              (snapshot as Prisma.JsonObject).meal_entitlements ?? null,
+          },
+          after_state: { meal_entitlements: mealEntitlements },
+          reason: 'Meal entitlement configuration synchronized',
+          source: 'API',
+        },
+      });
+    }
     await tx.auditLog.create({
       data: {
         id: ulid(),
@@ -222,10 +278,11 @@ export async function setEntitlement(
           meal_slot_id: slot.id,
           max_servings_per_day: input.max_servings_per_day,
           is_active: input.is_active,
+          synchronized_subscription_ids: subscriptions.map((subscription) => subscription.id),
         },
       },
     });
-    return entitlement;
+    return { ...entitlement, synchronized_subscription_count: subscriptions.length };
   });
   await notifyMealEvent({
     type: 'MEAL_ENTITLEMENT_UPDATED',

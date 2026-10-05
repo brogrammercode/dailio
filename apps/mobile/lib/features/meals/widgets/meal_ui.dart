@@ -33,19 +33,29 @@ class MealUi {
       contentPadding: EdgeInsets.symmetric(horizontal: 14.r, vertical: 13.r),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.r),
-        borderSide: const BorderSide(color: border),
+        borderSide: BorderSide(color: Colors.grey.shade200),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.r),
-        borderSide: const BorderSide(color: border),
+        borderSide: BorderSide(color: Colors.grey.shade200),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.r),
-        borderSide: BorderSide(color: AppColors.brandAccent, width: 1.4.r),
+        borderSide: BorderSide(color: Colors.orange.shade400, width: 1.5.r),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.r),
         borderSide: const BorderSide(color: negative),
+      ),
+    );
+  }
+
+  static Widget fieldLabel(String label) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.r),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 12.r, fontWeight: FontWeight.w500),
       ),
     );
   }

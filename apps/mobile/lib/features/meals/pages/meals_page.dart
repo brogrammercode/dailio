@@ -416,13 +416,14 @@ class _MealsPageState extends State<MealsPage> {
                 onSubmitted: (_) => _searchMembers(),
               ),
               SizedBox(height: 10.r),
+              MealUi.fieldLabel('Member'),
               DailioPickerField<String>(
                 key: ValueKey(_memberId ?? ''),
                 initialValue: _members.any((item) => item['id'] == _memberId)
                     ? _memberId
                     : null,
                 decoration: MealUi.inputDecoration(
-                  label: 'Member',
+                  hint: 'Select member',
                   icon: Iconsax.personalcard,
                 ),
                 items: _members
@@ -442,13 +443,14 @@ class _MealsPageState extends State<MealsPage> {
                 },
               ),
               SizedBox(height: 10.r),
+              MealUi.fieldLabel('Meal window'),
               DailioPickerField<String>(
                 key: ValueKey(_slotId ?? ''),
                 initialValue: activeSlots.any((item) => item['id'] == _slotId)
                     ? _slotId
                     : null,
                 decoration: MealUi.inputDecoration(
-                  label: 'Meal window',
+                  hint: 'Select meal window',
                   icon: Iconsax.cup,
                 ),
                 items: activeSlots
@@ -544,18 +546,19 @@ class _MealsPageState extends State<MealsPage> {
         SizedBox(height: 20.r),
         const MealSectionHeader(
           title: 'Plan entitlements',
-          subtitle: 'Changes apply only to new subscriptions.',
+          subtitle: 'Meal access updates active and future subscriptions.',
         ),
         MealPanel(
           child: Column(
             children: [
+              MealUi.fieldLabel('Plan'),
               DailioPickerField<String>(
                 key: ValueKey(_planId ?? ''),
                 initialValue: _plans.any((item) => item['id'] == _planId)
                     ? _planId
                     : null,
                 decoration: MealUi.inputDecoration(
-                  label: 'Plan',
+                  hint: 'Select plan',
                   icon: Iconsax.card,
                 ),
                 items: _plans
@@ -850,7 +853,7 @@ class _EntitlementSheet extends StatelessWidget {
           onChanged: onActiveChanged,
         ),
         Text(
-          'Only future subscriptions use this entitlement change.',
+          'This meal access change is applied to active and future subscriptions.',
           style: TextStyle(color: MealUi.muted, fontSize: 10.r),
         ),
       ],

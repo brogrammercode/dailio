@@ -336,10 +336,7 @@ export function MealsPage() {
           ) : (
             <section className="card divide-y divide-line">
               {servings.map((serving) => (
-                <div
-                  key={serving.id}
-                  className="meal-setting-row"
-                >
+                <div key={serving.id} className="meal-setting-row">
                   <div>
                     <p className="font-semibold">{serving.meal_slot.name}</p>
                     <p className="text-xs text-slate-600">
@@ -597,8 +594,8 @@ export function MealsPage() {
           <section className="attendance-panel space-y-3">
             <p className="section-title">Plan entitlements</p>
             <p className="text-xs text-slate-600">
-              Changes apply to future subscriptions. Existing snapshots stay
-              unchanged.
+              Meal access updates active and future subscriptions. Financial
+              plan terms remain unchanged.
             </p>
             <PickerField
               label="Plan"
@@ -682,7 +679,7 @@ export function MealsPage() {
                                   selectedPlan,
                                 ),
                               );
-                            }, "Entitlement disabled for future subscriptions.")
+                            }, "Meal access disabled for active and future subscriptions.")
                           }
                         >
                           Remove

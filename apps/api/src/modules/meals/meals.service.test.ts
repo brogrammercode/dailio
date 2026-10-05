@@ -8,16 +8,24 @@ const mocks = vi.hoisted(() => ({
     groupBy: vi.fn(),
     create: vi.fn(),
   },
+  plan: { findFirst: vi.fn() },
+  planMealEntitlement: { findMany: vi.fn(), upsert: vi.fn() },
   member: { findFirst: vi.fn() },
   mealSlot: { findFirst: vi.fn(), findMany: vi.fn() },
   branch: { findFirst: vi.fn() },
-  subscription: { findMany: vi.fn() },
+  subscription: { findMany: vi.fn(), update: vi.fn() },
   auditLog: { create: vi.fn() },
   $transaction: vi.fn(),
 }));
 vi.mock('../../lib/prisma', () => ({ prisma: mocks }));
 
-import { mealWindow, serveMeal, listMealServings, getMealSummary } from './meals.service';
+import {
+  getMealSummary,
+  listMealServings,
+  mealWindow,
+  serveMeal,
+  setEntitlement,
+} from './meals.service';
 import { servingLimitFromSnapshot } from './meals.snapshot';
 import { MealSlotInputSchema, MealEntitlementInputSchema } from './meals.schema';
 
@@ -54,6 +62,53 @@ describe('meal policy', () => {
     expect(() =>
       MealEntitlementInputSchema.parse({ meal_slot_id: 'slot', max_servings_per_day: 11 }),
     ).toThrow();
+  });
+
+  it('synchronizes meal access without changing financial subscription terms', async () => {
+    mocks.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn(mocks),
+    );
+    mocks.plan.findFirst.mockResolvedValue({ id: 'plan-1' });
+    mocks.mealSlot.findFirst.mockResolvedValue({ id: 'slot-1' });
+    mocks.planMealEntitlement.upsert.mockResolvedValue({
+      id: 'entitlement-1',
+      meal_slot_id: 'slot-1',
+      max_servings_per_day: 1,
+      is_active: true,
+      updated_at: new Date('2026-10-05T00:00:00Z'),
+    });
+    mocks.planMealEntitlement.findMany.mockResolvedValue([
+      { meal_slot_id: 'slot-1', max_servings_per_day: 1 },
+    ]);
+    mocks.subscription.findMany.mockResolvedValue([
+      {
+        id: 'subscription-1',
+        plan_snapshot: {
+          amount_minor_unit: 250000,
+          duration_days: 90,
+        },
+      },
+    ]);
+    mocks.subscription.update.mockResolvedValue({});
+
+    await setEntitlement('owner-1', 'org-1', 'branch-1', 'plan-1', {
+      meal_slot_id: 'slot-1',
+      max_servings_per_day: 1,
+      is_active: true,
+    });
+
+    expect(mocks.subscription.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'subscription-1' },
+        data: {
+          plan_snapshot: {
+            amount_minor_unit: 250000,
+            duration_days: 90,
+            meal_entitlements: [{ meal_slot_id: 'slot-1', max_servings_per_day: 1 }],
+          },
+        },
+      }),
+    );
   });
 });
 
