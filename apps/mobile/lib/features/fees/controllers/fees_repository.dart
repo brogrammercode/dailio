@@ -127,6 +127,54 @@ class FeesRepository {
     return Map<String, dynamic>.from(response.data as Map);
   }
 
+  Future<Map<String, dynamic>> createSettlementWaiver(
+    String branchId,
+    String subscriptionId,
+    int amountMinorUnit,
+    String reason,
+  ) async {
+    final response = await apiClient.dio.post(
+      '/branches/$branchId/subscriptions/$subscriptionId/settlement-waivers',
+      data: {'amount_minor_unit': amountMinorUnit, 'reason': reason},
+      options: Options(headers: {
+        'Idempotency-Key':
+            'mobile-waiver-${DateTime.now().toUtc().microsecondsSinceEpoch}'
+      }),
+    );
+    await cache?.clearScope('branch:$branchId');
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
+  Future<Map<String, dynamic>> listSettlementWaivers(
+    String branchId,
+    String subscriptionId, {
+    int page = 1,
+  }) async {
+    final response = await apiClient.dio.get(
+      '/branches/$branchId/subscriptions/$subscriptionId/settlement-waivers',
+      queryParameters: {'page': page, 'limit': 20},
+    );
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
+  Future<Map<String, dynamic>> reverseSettlementWaiver(
+    String branchId,
+    String subscriptionId,
+    String waiverId,
+    String reason,
+  ) async {
+    final response = await apiClient.dio.post(
+      '/branches/$branchId/subscriptions/$subscriptionId/settlement-waivers/$waiverId/reverse',
+      data: {'reason': reason},
+      options: Options(headers: {
+        'Idempotency-Key':
+            'mobile-waiver-reversal-${DateTime.now().toUtc().microsecondsSinceEpoch}'
+      }),
+    );
+    await cache?.clearScope('branch:$branchId');
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
   Future<Map<String, dynamic>> updatePaymentRequest(
     String branchId,
     String requestId,

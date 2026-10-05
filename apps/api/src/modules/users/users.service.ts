@@ -1,8 +1,10 @@
 import { prisma } from '../../lib/prisma';
 import { NotFoundError } from '../../lib/errors';
 import { cloudinary } from '../../lib/cloudinary';
+import { permissionsForMember } from '../authorization/authorization.service';
+import { retryPendingPushDeliveriesForUser } from '../notifications/notifications.service';
 
-import type { UpdateProfileInput } from './users.schema';
+import type { RegisterDeviceTokenInput, UpdateProfileInput } from './users.schema';
 
 export async function updateProfile(user_id: string, data: UpdateProfileInput) {
   const user = await prisma.user.findUnique({ where: { id: user_id } });
@@ -51,15 +53,81 @@ export async function removeDeviceToken(user_id: string, token: string) {
   });
 }
 
+export async function registerDeviceToken(user_id: string, data: RegisterDeviceTokenInput) {
+  const updated = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({ where: { id: user_id } });
+    if (!user) throw new NotFoundError('User');
+
+    // A device token belongs to the currently authenticated user. Clear the
+    // legacy single-token field on a previous account before reassigning it.
+    await tx.user.updateMany({
+      where: { id: { not: user_id }, fcm_token: data.token },
+      data: { fcm_token: null },
+    });
+    await tx.userDeviceToken.upsert({
+      where: { token: data.token },
+      create: {
+        user_id,
+        token: data.token,
+        platform: data.platform,
+        app_version: data.app_version,
+        last_seen_at: new Date(),
+      },
+      update: {
+        user_id,
+        platform: data.platform,
+        app_version: data.app_version,
+        last_seen_at: new Date(),
+      },
+    });
+    return tx.user.update({
+      where: { id: user_id },
+      data: { fcm_token: data.token },
+    });
+  });
+  try {
+    await retryPendingPushDeliveriesForUser(user_id);
+  } catch {
+    // Registration must succeed even if replaying a prior push is unavailable.
+  }
+  return updated;
+}
+
 export async function getUserContexts(user_id: string) {
+  const now = new Date();
   const members = await prisma.member.findMany({
     where: { user_id, status: 'ACTIVE' },
     include: {
       organization: true,
       branch: true,
+      role: { select: { system_key: true, permissions: true } },
+      role_assignments: {
+        where: {
+          effective_from: { lte: now },
+          OR: [{ effective_to: null }, { effective_to: { gt: now } }],
+        },
+        orderBy: [{ priority: 'asc' }, { effective_from: 'desc' }, { id: 'asc' }],
+        select: {
+          organization_id: true,
+          branch_id: true,
+          role: { select: { system_key: true, permissions: true } },
+        },
+      },
     },
   });
-  return members;
+  return members.map((member) => ({
+    ...member,
+    effective_permissions: [
+      ...permissionsForMember({
+        ...member,
+        role_assignments: member.role_assignments.filter(
+          (assignment) =>
+            assignment.organization_id === member.organization_id &&
+            assignment.branch_id === member.branch_id,
+        ),
+      }),
+    ],
+  }));
 }
 
 export async function deleteAccount(user_id: string) {

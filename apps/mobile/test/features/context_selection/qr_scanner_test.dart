@@ -38,6 +38,8 @@ void main() {
   });
 
   test('maps invite membership states to the correct next flow', () {
+    expect(qrInviteFlowState({'purpose': 'MEAL_ATTENDANCE'}),
+        'MEAL_ATTENDANCE');
     expect(qrInviteFlowState({'joinability': 'JOINABLE'}), 'JOINABLE');
     expect(qrInviteFlowState({'joinability': 'ALREADY_PENDING'}), 'PENDING');
     expect(

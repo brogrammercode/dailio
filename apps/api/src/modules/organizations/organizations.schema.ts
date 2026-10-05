@@ -9,7 +9,7 @@ export const CreateOrganizationSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
-  type: z.enum(['GYM', 'COACHING', 'CLINIC', 'OTHER']).optional(),
+  type: z.enum(['GYM', 'COACHING', 'CLINIC', 'FOOD_SERVICE', 'OTHER']).optional(),
   timezone: timezone.default('Asia/Kolkata'),
   currency: z.string().length(3).default('INR'),
   logo_base64: z.string().optional(),

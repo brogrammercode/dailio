@@ -4,12 +4,16 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:dio/dio.dart';
 
 import '../../../core/router/route_names.dart';
 import '../../../core/widgets/confirm_dialog.dart';
+import '../../../core/error/app_exception.dart';
+import '../../../core/error/error_handler.dart';
 import 'package:iconsax/iconsax.dart';
 import '../controllers/branch_repository.dart';
 import '../../attendance/pages/gate_attendance_page.dart';
+import '../../meals/pages/meal_attendance_qr_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 String? extractDailioInviteToken(BarcodeCapture? capture) {
@@ -44,6 +48,7 @@ String? extractDailioInviteToken(BarcodeCapture? capture) {
 }
 
 String qrInviteFlowState(Map<String, dynamic> invite) {
+  if (invite['purpose'] == 'MEAL_ATTENDANCE') return 'MEAL_ATTENDANCE';
   if (invite['purpose'] == 'PLAN_PURCHASE') return 'PLAN_PURCHASE';
   switch (invite['joinability']?.toString()) {
     case 'ALREADY_MEMBER':
@@ -165,6 +170,38 @@ class _QrScannerPageState extends State<QrScannerPage> {
       return;
     }
 
+    if (flowState == 'MEAL_ATTENDANCE') {
+      var mealInvite = invite;
+      final joinability = invite['joinability']?.toString();
+      if (joinability != 'ALREADY_MEMBER') {
+        if (joinability != 'JOINABLE' && joinability != 'ALREADY_PENDING') {
+          _showMessage(
+              'This mess membership is inactive. Contact the branch owner before trying again.');
+          return;
+        }
+        try {
+          await repository.fastJoinFromInvite(
+            token,
+            idempotencyKey:
+                'mobile-meal-join-${DateTime.now().toUtc().microsecondsSinceEpoch}',
+          );
+          mealInvite = await repository.resolveInvite(token);
+        } catch (error) {
+          _showMessage(_inviteErrorMessage(error));
+          return;
+        }
+        if (mealInvite['joinability']?.toString() != 'ALREADY_MEMBER') {
+          _showMessage('The mess membership could not be activated.');
+          return;
+        }
+      }
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => MealAttendanceQrPage(token: token, invite: mealInvite),
+      ));
+      return;
+    }
+
     if (flowState == 'ACTIVE_CLOCK_IN' || flowState == 'ACTIVE_CLOCK_OUT') {
       final branch = (invite['branch'] as Map?)?.cast<String, dynamic>() ?? {};
       await Navigator.of(context).push(MaterialPageRoute(
@@ -245,6 +282,12 @@ class _QrScannerPageState extends State<QrScannerPage> {
     }
     _lastInvalidScanNotice = now;
     _showMessage('That is not a Dailio invite QR.');
+  }
+
+  String _inviteErrorMessage(Object error) {
+    if (error is AppException) return error.message;
+    if (error is DioException) return handleDioException(error).message;
+    return 'We could not activate this QR membership. Please try again.';
   }
 
   void _showMessage(String message) {

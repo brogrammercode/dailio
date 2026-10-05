@@ -10,6 +10,8 @@ import {
   PaymentRequestQuerySchema,
   ReviewPaymentRequestSchema,
   UpdatePaymentRequestSchema,
+  SettlementWaiverSchema,
+  SettlementWaiverQuerySchema,
 } from './payments.schema';
 import * as paymentsService from './payments.service';
 
@@ -143,6 +145,58 @@ export async function correctPayment(req: Request, res: Response, next: NextFunc
       body,
     );
     res.json({ data: entry });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createSettlementWaiver(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = SettlementWaiverSchema.parse(req.body);
+    const result = await paymentsService.createSettlementWaiver(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      req.params.subscription_id,
+      idempotencyKey(req),
+      body,
+    );
+    res.status(201).json({ data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function listSettlementWaivers(req: Request, res: Response, next: NextFunction) {
+  try {
+    const query = SettlementWaiverQuerySchema.parse(req.query);
+    const result = await paymentsService.listSettlementWaivers(
+      req.organization!.id,
+      req.branch!.id,
+      req.params.subscription_id,
+      req.member!.id,
+      req.permissions ?? new Set<string>(),
+      query,
+    );
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function reverseSettlementWaiver(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = SettlementWaiverSchema.pick({ reason: true }).parse(req.body);
+    const result = await paymentsService.reverseSettlementWaiver(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      req.params.subscription_id,
+      req.params.waiver_id,
+      idempotencyKey(req),
+      input.reason,
+    );
+    res.status(201).json({ data: result });
   } catch (error) {
     next(error);
   }

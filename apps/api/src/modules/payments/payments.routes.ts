@@ -73,6 +73,24 @@ router.post(
   requireAnyPermission('PAYMENT_REFUND', 'PAYMENT_VOID'),
   controller.correctPayment,
 );
+router.post(
+  '/branches/:branch_id/subscriptions/:subscription_id/settlement-waivers',
+  ...context,
+  requirePermission('PAYMENT_WAIVE'),
+  controller.createSettlementWaiver,
+);
+router.get(
+  '/branches/:branch_id/subscriptions/:subscription_id/settlement-waivers',
+  ...context,
+  requireAnyPermission('PAYMENT_READ_SELF', 'PAYMENT_READ_ALL', 'PAYMENT_WAIVE'),
+  controller.listSettlementWaivers,
+);
+router.post(
+  '/branches/:branch_id/subscriptions/:subscription_id/settlement-waivers/:waiver_id/reverse',
+  ...context,
+  requirePermission('PAYMENT_WAIVE'),
+  controller.reverseSettlementWaiver,
+);
 router.get(
   '/branches/:branch_id/payment-attempts/:payment_attempt_id/receipt',
   ...context,

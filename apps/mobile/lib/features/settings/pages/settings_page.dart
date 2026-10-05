@@ -50,19 +50,117 @@ class _SettingsPageState extends State<SettingsPage> {
       if (mounted) setState(() => _isLoadingOrg = false);
       return;
     }
+    final repository = context.read<OrganizationRepository>();
     try {
-      final orgs =
-          await context.read<OrganizationRepository>().getMyOrganizations();
-      final match =
-          orgs.where((m) => m['organization']?['id'] == orgId).firstOrNull;
+      // Read the organization directly so a type change made from this
+      // device cannot be masked by an older cached memberships response.
+      final organization = await repository.refreshOrganizationById(orgId);
+      Map<String, dynamic>? membershipEntry;
+      try {
+        final organizations = await repository.getMyOrganizations();
+        final organizationEntry = organizations
+            .where((entry) => entry['organization']?['id'] == orgId)
+            .firstOrNull;
+        final memberships = organizationEntry?['location_memberships'];
+        if (memberships is List && prefs.activeBranchId != null) {
+          for (final rawMembership in memberships) {
+            if (rawMembership is! Map) continue;
+            final location = rawMembership['location'];
+            if (location is Map &&
+                location['id']?.toString() == prefs.activeBranchId) {
+              membershipEntry = Map<String, dynamic>.from(rawMembership);
+              break;
+            }
+          }
+        }
+      } catch (_) {
+        // The direct organization response is still enough to render the
+        // page if the memberships read is temporarily unavailable.
+      }
+      final branchId = prefs.activeBranchId;
+      if (branchId != null) {
+        final location = membershipEntry?['location'];
+        final role = membershipEntry?['role'];
+        final roleMap = role is Map ? Map<String, dynamic>.from(role) : null;
+        final rawPermissions = membershipEntry?['effective_permissions'] ??
+            roleMap?['permissions'];
+        final permissions = rawPermissions is List
+            ? rawPermissions.map((permission) => permission.toString()).toList()
+            : prefs.activePermissions;
+        await prefs.setActiveContext(
+          organizationId: orgId,
+          branchId: branchId,
+          organizationName: organization['name']?.toString(),
+          organizationType: organization['type']?.toString(),
+          branchName: location is Map
+              ? location['name']?.toString()
+              : prefs.activeBranchName,
+          branchTimezone: location is Map
+              ? location['timezone']?.toString()
+              : prefs.activeBranchTimezone,
+          roleSystemKey:
+              roleMap?['system_key']?.toString() ?? prefs.activeRoleSystemKey,
+          permissions: permissions,
+        );
+      }
       if (mounted) {
         setState(() {
-          _orgData = match;
+          _orgData = {'organization': organization};
           _isLoadingOrg = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _isLoadingOrg = false);
+      // Keep the screen usable if the direct organization read is denied or
+      // temporarily unavailable; the memberships response is still a valid
+      // fallback for the organization card and feature flags.
+      try {
+        final orgs = await repository.getMyOrganizations();
+        final match =
+            orgs.where((m) => m['organization']?['id'] == orgId).firstOrNull;
+        final fallbackOrg = match?['organization'];
+        if (fallbackOrg is Map && prefs.activeBranchId != null) {
+          final memberships = match?['location_memberships'];
+          Map<String, dynamic>? activeMembership;
+          if (memberships is List) {
+            for (final rawMembership in memberships) {
+              if (rawMembership is! Map) continue;
+              final location = rawMembership['location'];
+              if (location is Map &&
+                  location['id']?.toString() == prefs.activeBranchId) {
+                activeMembership = Map<String, dynamic>.from(rawMembership);
+                break;
+              }
+            }
+          }
+          final role = activeMembership?['role'];
+          final roleMap = role is Map ? Map<String, dynamic>.from(role) : null;
+          final rawPermissions = activeMembership?['effective_permissions'] ??
+              roleMap?['permissions'];
+          await prefs.setActiveContext(
+            organizationId: orgId,
+            branchId: prefs.activeBranchId!,
+            organizationName: fallbackOrg['name']?.toString(),
+            organizationType: fallbackOrg['type']?.toString(),
+            branchName: prefs.activeBranchName,
+            branchTimezone: prefs.activeBranchTimezone,
+            roleSystemKey:
+                roleMap?['system_key']?.toString() ?? prefs.activeRoleSystemKey,
+            permissions: rawPermissions is List
+                ? rawPermissions
+                    .map((permission) => permission.toString())
+                    .toList()
+                : prefs.activePermissions,
+          );
+        }
+        if (mounted) {
+          setState(() {
+            _orgData = match;
+            _isLoadingOrg = false;
+          });
+        }
+      } catch (_) {
+        if (mounted) setState(() => _isLoadingOrg = false);
+      }
     }
   }
 
@@ -110,6 +208,10 @@ class _SettingsPageState extends State<SettingsPage> {
         final orgName = prefs.activeOrganizationName;
         final branchName = prefs.activeBranchName;
         final orgMap = _orgData?['organization'] as Map<String, dynamic>?;
+        final organizationType =
+            (orgMap?['type']?.toString() ?? prefs.activeOrganizationType ?? '')
+                .trim()
+                .toUpperCase();
         final canReadRoles = prefs.hasPermission('ROLE_READ');
         final canReadMembers = prefs.hasPermission('MEMBER_READ_ALL');
         final canManageBranches = prefs.hasPermission('BRANCH_CREATE') ||
@@ -224,6 +326,17 @@ class _SettingsPageState extends State<SettingsPage> {
                       subtitle: 'Membership tiers, pricing & billing',
                       actionLabel: canManagePlans ? 'Configure' : 'View',
                       onTap: () => context.push(AppRoutes.subscriptionPlans),
+                    ),
+
+                  if (organizationType == 'FOOD_SERVICE' &&
+                      (prefs.hasPermission('MEAL_SERVE') ||
+                          prefs.hasPermission('MEAL_MANAGE')))
+                    _buildModuleCard(
+                      icon: Iconsax.cup,
+                      title: 'Meals',
+                      subtitle: 'Breakfast, lunch, dinner & serving history',
+                      actionLabel: 'Open',
+                      onTap: () => context.push(AppRoutes.meals),
                     ),
 
                   if (canManageShifts)
@@ -535,7 +648,10 @@ class _SettingsPageState extends State<SettingsPage> {
           if (canEdit)
             IconButton(
               tooltip: 'Edit organization',
-              onPressed: () => context.push(AppRoutes.editOrganization),
+              onPressed: () async {
+                await context.push(AppRoutes.editOrganization);
+                if (mounted) await _loadOrgData();
+              },
               icon: Icon(Iconsax.setting_4, size: 18.r),
               color: AppColors.brandDark,
               visualDensity: VisualDensity.compact,

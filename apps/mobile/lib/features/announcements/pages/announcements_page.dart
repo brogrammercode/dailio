@@ -1650,7 +1650,10 @@ class _MediaPlaceholderState extends State<_MediaPlaceholder> {
   void initState() {
     super.initState();
     _url = widget.mediaUrl;
-    if (_url == null || _url!.isEmpty) _load();
+    // Always refresh protected media URLs. Cached announcement payloads may
+    // contain a URL that has expired or was generated before a delivery rule
+    // changed, while the storage key remains the stable authorization handle.
+    _load();
   }
 
   Future<void> _load() async {
@@ -1709,18 +1712,33 @@ class _MediaPlaceholderState extends State<_MediaPlaceholder> {
               width: double.infinity,
               fit: BoxFit.fitWidth,
               placeholder: (_, __) => placeholder,
-              errorWidget: (_, __, ___) => AspectRatio(
-                aspectRatio: 1.65,
-                child: Container(
-                  color: const Color(0xFFF7F7F7),
-                  alignment: Alignment.center,
-                  child: Icon(Iconsax.image,
-                      color: Colors.grey.shade400, size: 20.r),
-                ),
+              errorWidget: (_, __, ___) => _MediaError(
+                onRetry: _load,
               ),
             ),
     );
   }
+}
+
+class _MediaError extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _MediaError({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => AspectRatio(
+        aspectRatio: 1.65,
+        child: Container(
+          color: const Color(0xFFF7F7F7),
+          alignment: Alignment.center,
+          child: IconButton(
+            tooltip: 'Retry image',
+            onPressed: onRetry,
+            icon:
+                Icon(Iconsax.refresh, color: Colors.grey.shade500, size: 20.r),
+          ),
+        ),
+      );
 }
 
 class _AnnouncementSkeleton extends StatelessWidget {

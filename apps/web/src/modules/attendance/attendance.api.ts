@@ -104,3 +104,15 @@ export function requiredAttendanceEvidence(invite: Invite) {
         : Boolean(policy?.location_on_clock_in || policy?.geofence_enabled),
   };
 }
+
+export async function serveMealFromInvite(token: string, mealSlotId: string) {
+  const body = await apiRequest<{ data: Record<string, unknown> }>(
+    `/meal-attendance-invites/${token}/serve`,
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": newIdempotencyKey("web-meal-qr") },
+      body: JSON.stringify({ meal_slot_id: mealSlotId }),
+    },
+  );
+  return body.data;
+}

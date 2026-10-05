@@ -1163,6 +1163,27 @@ Shows members who should renew/pay but do not have valid subscription coverage f
 - Refund/void requires special permission and audit.
 - Receipt number must be unique within selected organization/branch numbering policy.
 
+### 12.6 Partial settlement, dues, and negotiated concessions
+
+- A member may submit a payment request for any positive amount up to the current server-calculated subscription balance. A pending request is not paid; only confirmed payment posts a payment and receipt.
+- Show original charge, confirmed cash paid, owner-approved waiver, and remaining due separately. A zero due is derived from immutable ledger entries; it is not a client-editable `resolved` toggle. A concession is never reported as cash collected.
+- An authorized `PAYMENT_WAIVE` actor records a negotiated concession with amount, mandatory reason, approver, audit event, and an immutable `SETTLEMENT_WAIVER` credit linked to the subscription. The waiver cannot exceed the current due and must be idempotent. The original plan price and subscription snapshot remain unchanged.
+- An authorized `PAYMENT_WAIVE` actor may reverse a mistaken waiver only by posting a linked, reasoned `VOID_REVERSAL` debit and audit event. The original waiver remains visible; fee views show the net waiver and a zero balance cleared by concession as `SETTLED` rather than cash `PAID`.
+- A partial payment leaves the rest due until another confirmed payment or a separate explicit waiver. The next month's plan price is unaffected.
+
+### 12.7 Food-service meal tracking
+
+- Organization owners or authorized organization managers may change the organization type from Organization Settings. Changing to `FOOD_SERVICE` enables the meal-management surfaces for the active context after the saved server value is refreshed; changing away hides those surfaces without deleting meal configuration or history.
+- `FOOD_SERVICE` organizations may configure branch-local meal slots (for example breakfast, lunch, dinner) and attach per-day serving limits to plans. No meal slots or entitlements are silently created for existing organizations.
+- New subscriptions snapshot the plan's branch-specific meal entitlements. Later plan edits affect future subscriptions only. Existing subscriptions without a meal entitlement are not automatically granted one.
+- A staff member with `MEAL_SERVE` confirms a serving for an active branch member. The server checks the active subscription, snapshotted entitlement, branch-local serving date and slot window, and daily limit. Unpaid due is visible but does not itself block a meal after the subscription is active.
+- `MEAL_SERVE` permits member search and current eligibility checks needed to serve, but does not alone grant the branch's historical serving register.
+- Each confirmed serving is branch/organization scoped, timestamped by the server, associated with the member, subscription and slot, and idempotent. An authorized `MEAL_VOID` actor may void it only with a reason and audit history; the record is not deleted.
+- Members see only their own serving history; `MEAL_READ_BRANCH` permits the branch register. Slot/entitlement configuration requires `MEAL_MANAGE`.
+- The register includes a branch-timezone 30-day count per meal slot and supports member-scoped filtering. Summary counts exclude voided servings and never expose other members to a self-only viewer.
+- A `MEAL_ATTENDANCE` permanent QR invite may be printed at the branch counter. An authenticated person scans it; if they are not an active member of another organization, the QR fast-join path automatically activates them for the branch before they select one configured meal slot. The server records the idempotent serving after applying the normal entitlement, window, and daily-limit rules. An active member of another organization receives a clear conflict instead of cross-organization admission.
+- Meal operations use compact profile-aligned fields and geometry-matched loading states. Settings exposes configuration only to meal operators; the branch Attendance screen exposes a secondary `Attendance` / `Meal attendance` switch, with small per-slot marked/unmarked indicators and a 30-day frequency badge.
+
 ---
 
 ## 13. Members, Admissions and Hierarchy Domain
@@ -1419,6 +1440,12 @@ Not every permission requires every scope.
 - `PAYMENT_EVIDENCE_READ`
 - `PAYMENT_REFUND`
 - `PAYMENT_VOID`
+- `PAYMENT_WAIVE`
+- `MEAL_READ_SELF`
+- `MEAL_READ_BRANCH`
+- `MEAL_SERVE`
+- `MEAL_VOID`
+- `MEAL_MANAGE`
 - `FINE_READ_SELF`
 - `FINE_READ_BRANCH`
 - `FINE_MANAGE`
@@ -2150,6 +2177,8 @@ QR plan purchase is also supported: the owner/admin creates a permanent purpose-
 | Currency | INR, paise for first release. |
 | Subscription overlap | Only non-overlapping future renewal by default. |
 | Partial payment | Supported. |
+| Negotiated concession | Explicit audited settlement waiver; original charge remains unchanged. |
+| Food-service servings | Staff-confirmed within configured branch-local slot and snapshotted plan limit; outstanding dues do not auto-block active subscriptions. |
 | QR invite lifetime/reuse | QR join and plan invites are permanent and reusable. No expiry, replacement invalidation, automatic invalidation, or revocation is supported; generating another QR leaves all previous QRs valid. |
 | Overpayment | Reject by default unless account-credit behavior is approved. |
 | Payment evidence | Supported; manual evidence creates Requested state until reviewed. |
@@ -2363,6 +2392,12 @@ A feature is complete only when all applicable items are true:
 | 2026-10-02 | Browser QR links may open a new tab, so the web client persists the access-token cache across same-origin tabs and continues to use the HttpOnly refresh cookie as the durable session authority; logout and rejected tokens clear both stores. | Prevents repeated Google sign-in during normal same-browser QR use while preserving server refresh, expiry, logout, and authorization behavior. |
 | 2026-10-02 | The member web client adopts the supplied Dailio authentication and self-attendance references: dark branded login, compact branch-local attendance time/tabs/action rings/policy/timeline, shared Dailio app bar, and overflow-menu sign-out confirmation on authenticated pages. | Keeps the QR web experience visually aligned with the mobile member experience while preserving server-confirmed attendance and permission boundaries. |
 | 2026-10-02 | QR admission for attendance and plan-purchase links uses an authenticated fast-join command. Users without an active membership in another organization are auto-approved and activated for the scanned branch, then continue to the original QR purpose; users already active in another organization receive a conflict instead. | Removes the unnecessary admin approval step from printed QR onboarding while preserving server-side tenant checks, idempotency, audit history, and the original attendance/financial flow. |
+| 2026-10-04 | Add food-service meal slots, plan-snapshotted meal entitlements, and staff-confirmed per-slot servings; active subscriptions remain meal-eligible despite unpaid dues. Show partial payment, remaining due and owner-authorized settlement waiver as separate facts derived from immutable ledger history. | Supports mess/cafeteria operators and negotiated collection without falsifying cash receipts or changing plan terms. |
+| 2026-10-04 | Add scoped 30-day meal frequency summaries and auditable waiver reversal by compensating debit; a negotiated zero due is `SETTLED`, not cash `PAID`. | Keeps serving counts useful for mess operators and preserves the distinction between collections, concessions, and later corrections. |
+| 2026-10-05 | Organization Settings can edit the organization type. The saved type is synchronized into the active mobile context so switching to `FOOD_SERVICE` immediately exposes meal tools; switching away hides them while retaining existing meal data. | Lets authorized owners adapt an organization’s operating model without recreating the tenant or losing historical records. |
+| 2026-10-05 | Add a permanent branch meal-attendance QR. A person without an active membership in another organization is auto-approved through the existing QR fast-join path, then chooses the meal slot and submits a server-confirmed idempotent serving; staff see compact per-slot marks and 30-day frequency in Attendance, while self-only meal access is not shown as a Settings history screen. | Supports mess counter attendance with one reusable printed QR, removes unnecessary approval for QR admission, and keeps meal history, entitlement enforcement, and operational reporting in the appropriate surfaces. |
+| 2026-10-05 | Extend the central notification contract to meal operations, settlement concessions, and organization-type changes. Register device tokens through a dedicated authenticated endpoint, replay recent push deliveries skipped only for missing tokens after registration, and version/invalidate mobile caches for meal and notification read models. | Keeps new features tenant- and branch-scoped, makes push delivery resilient to first launch/token rotation, and prevents stale meal or notification screens after mutations. |
+| 2026-10-05 | Meal attendance uses the shared compact attendance-row contract: circular avatar count badge, member/title badge, one-sentence last-punch subtitle, and a right-side date/today summary. Meal configuration uses the shared picker bottom sheet, consistent field spacing, circular settings icons, and the same compact visual language on web. | Keeps meal operations recognizable as attendance/settings instead of introducing a separate visual system. |
 
 ---
 

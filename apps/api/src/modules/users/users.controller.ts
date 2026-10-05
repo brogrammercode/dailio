@@ -1,8 +1,13 @@
 import { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 
-import { UpdateProfileSchema } from './users.schema';
-import { updateProfile, getUserContexts, removeDeviceToken } from './users.service';
+import { RegisterDeviceTokenSchema, UpdateProfileSchema } from './users.schema';
+import {
+  getUserContexts,
+  registerDeviceToken,
+  removeDeviceToken,
+  updateProfile,
+} from './users.service';
 
 export async function updateMyProfile(req: Request, res: Response, next: NextFunction) {
   try {
@@ -38,6 +43,16 @@ export async function removeMyDeviceToken(req: Request, res: Response, next: Nex
   try {
     const token = z.string().min(1).max(4096).parse(req.body?.token);
     await removeDeviceToken(req.user!.id, token);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function registerMyDeviceToken(req: Request, res: Response, next: NextFunction) {
+  try {
+    const data = RegisterDeviceTokenSchema.parse(req.body);
+    await registerDeviceToken(req.user!.id, data);
     res.status(204).send();
   } catch (err) {
     next(err);

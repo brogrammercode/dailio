@@ -27,6 +27,7 @@ import '../../features/branch/pages/shift_management_page.dart';
 import '../../features/branch/pages/payroll_management_page.dart';
 import '../../features/fees/pages/subscription_purchase_page.dart';
 import '../../features/fees/pages/buy_subscription_page.dart';
+import '../../features/meals/pages/meals_page.dart';
 import '../../features/holidays/pages/leaves_holiday_page.dart';
 
 import '../../features/profile/pages/profile_page.dart';
@@ -161,6 +162,10 @@ GoRouter buildRouter(
       GoRoute(
         path: AppRoutes.subscriptionPlans,
         builder: (_, __) => const SubscriptionPlansPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.meals,
+        builder: (_, __) => const MealsPage(),
       ),
       GoRoute(
         path: AppRoutes.shiftManagement,
@@ -302,6 +307,8 @@ String? _guardConfigurationRoute(
       ]),
     AppRoutes.roles => preferences.hasPermission('ROLE_READ'),
     AppRoutes.subscriptionPlans => preferences.hasPermission('PLAN_MANAGE'),
+    AppRoutes.meals =>
+      any(['MEAL_READ_SELF', 'MEAL_READ_BRANCH', 'MEAL_SERVE', 'MEAL_MANAGE']),
     AppRoutes.shiftManagement => any(['SHIFT_READ_ALL', 'SHIFT_MANAGE']),
     AppRoutes.payrollManagement =>
       any(['PAYROLL_READ_BRANCH', 'PAYROLL_GENERATE']),

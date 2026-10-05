@@ -3,6 +3,9 @@ import { ulid } from 'ulid';
 
 import { prisma } from '../../lib/prisma';
 import { NotFoundError } from '../../lib/errors';
+import { permissionsForMember } from '../authorization/authorization.service';
+import { ensureDefaultMealSlots } from '../meals/meal.defaults';
+import { notify } from '../notifications/notifications.service';
 
 import type {
   CreateOrganizationInput,
@@ -72,6 +75,12 @@ const SYSTEM_PERMISSIONS = [
   'PAYMENT_EVIDENCE_READ',
   'PAYMENT_REFUND',
   'PAYMENT_VOID',
+  'PAYMENT_WAIVE',
+  'MEAL_READ_SELF',
+  'MEAL_READ_BRANCH',
+  'MEAL_SERVE',
+  'MEAL_VOID',
+  'MEAL_MANAGE',
   'FINE_READ_SELF',
   'FINE_READ_ALL',
   'FINE_MANAGE',
@@ -121,6 +130,7 @@ const MEMBER_PERMISSIONS = [
   'SUBSCRIPTION_READ_SELF',
   'PAYMENT_READ_SELF',
   'PAYMENT_CREATE',
+  'MEAL_READ_SELF',
   'FINE_READ_SELF',
   'REMINDER_READ_SELF',
   'ANNOUNCEMENT_READ',
@@ -167,6 +177,10 @@ const ADMIN_PERMISSIONS = [
   'PAYMENT_CREATE',
   'PAYMENT_REQUEST_REVIEW',
   'PAYMENT_EVIDENCE_READ',
+  'MEAL_READ_BRANCH',
+  'MEAL_SERVE',
+  'MEAL_VOID',
+  'MEAL_MANAGE',
   'FINE_READ_ALL',
   'FINE_MANAGE',
   'REMINDER_READ_ALL',
@@ -366,6 +380,18 @@ export async function getUserOrganizations(user_id: string) {
           permissions: true,
         },
       },
+      role_assignments: {
+        where: {
+          effective_from: { lte: new Date() },
+          OR: [{ effective_to: null }, { effective_to: { gt: new Date() } }],
+        },
+        orderBy: [{ priority: 'asc' }, { effective_from: 'desc' }, { id: 'asc' }],
+        select: {
+          organization_id: true,
+          branch_id: true,
+          role: { select: { system_key: true, permissions: true } },
+        },
+      },
     },
   });
 
@@ -383,12 +409,20 @@ export async function getUserOrganizations(user_id: string) {
       });
     }
     const orgEntry = orgMap.get(m.organization_id);
+    const effectivePermissions = permissionsForMember({
+      role: m.role,
+      role_assignments: m.role_assignments.filter(
+        (assignment) =>
+          assignment.organization_id === m.organization_id && assignment.branch_id === m.branch_id,
+      ),
+    });
     orgEntry.location_memberships.push({
       id: m.id,
       location_id: m.branch_id,
       location: m.branch,
       status: m.status,
       role: m.role,
+      effective_permissions: [...effectivePermissions],
     });
   }
 
@@ -404,10 +438,19 @@ export async function updateOrganization(
     where: { organization_id, user_id, status: 'ACTIVE' },
   });
   if (!membership) throw new NotFoundError('Organization');
-  return prisma.$transaction(async (tx) => {
+  const updateResult = await prisma.$transaction(async (tx) => {
     const before = await tx.organization.findUnique({ where: { id: organization_id } });
     if (!before) throw new NotFoundError('Organization');
     const organization = await tx.organization.update({ where: { id: organization_id }, data });
+    if (organization.type === 'FOOD_SERVICE') {
+      const branches = await tx.branch.findMany({
+        where: { organization_id },
+        select: { id: true },
+      });
+      for (const branch of branches) {
+        await ensureDefaultMealSlots(tx, organization_id, branch.id);
+      }
+    }
     await tx.auditLog.create({
       data: {
         id: ulid(),
@@ -417,14 +460,60 @@ export async function updateOrganization(
         action: 'UPDATE',
         target_type: 'Organization',
         target_id: organization_id,
-        before_state: { name: before.name, timezone: before.timezone, currency: before.currency },
+        before_state: {
+          name: before.name,
+          type: before.type,
+          timezone: before.timezone,
+          currency: before.currency,
+        },
         after_state: {
           name: organization.name,
+          type: organization.type,
           timezone: organization.timezone,
           currency: organization.currency,
         },
       },
     });
-    return organization;
+    return { organization, beforeType: before.type };
   });
+  const { organization, beforeType } = updateResult;
+
+  if (organization.type !== beforeType) {
+    try {
+      const members = await prisma.member.findMany({
+        where: { organization_id, status: 'ACTIVE' },
+        select: { branch_id: true, user_id: true },
+      });
+      const recipientsByBranch = new Map<string, string[]>();
+      for (const member of members) {
+        const recipients = recipientsByBranch.get(member.branch_id) ?? [];
+        recipients.push(member.user_id);
+        recipientsByBranch.set(member.branch_id, recipients);
+      }
+      await Promise.all(
+        [...recipientsByBranch.entries()].map(([branchId, recipientUserIds]) =>
+          notify({
+            type: 'ORGANIZATION_TYPE_CHANGED',
+            organizationId: organization_id,
+            branchId,
+            actorUserId: user_id,
+            entityType: 'Organization',
+            entityId: organization_id,
+            recipientUserIds,
+            title: 'Organization type updated',
+            body: `This organization is now configured as ${organization.type.toLowerCase().replace('_', ' ')}.`,
+            data: {
+              organization_id,
+              branch_id: branchId,
+              entity_id: organization_id,
+            },
+            dedupeKey: `organization:${organization_id}:type:${organization.updated_at.toISOString()}`,
+          }),
+        ),
+      );
+    } catch {
+      // Notification delivery must not undo a committed organization update.
+    }
+  }
+  return organization;
 }

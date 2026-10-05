@@ -11,6 +11,7 @@ class PreferencesStorage extends ChangeNotifier {
   static const _organizationIdKey = 'active_organization_id';
   static const _branchIdKey = 'active_branch_id';
   static const _organizationNameKey = 'active_organization_name';
+  static const _organizationTypeKey = 'active_organization_type';
   static const _branchNameKey = 'active_branch_name';
   static const _branchTimezoneKey = 'active_branch_timezone';
   static const _roleSystemKey = 'active_role_system_key';
@@ -19,6 +20,7 @@ class PreferencesStorage extends ChangeNotifier {
   String? get activeOrganizationId => _prefs.getString(_organizationIdKey);
   String? get activeBranchId => _prefs.getString(_branchIdKey);
   String? get activeOrganizationName => _prefs.getString(_organizationNameKey);
+  String? get activeOrganizationType => _prefs.getString(_organizationTypeKey);
   String? get activeBranchName => _prefs.getString(_branchNameKey);
   String? get activeBranchTimezone => _prefs.getString(_branchTimezoneKey);
   String? get activeRoleSystemKey => _prefs.getString(_roleSystemKey);
@@ -47,12 +49,14 @@ class PreferencesStorage extends ChangeNotifier {
 
   bool hasPermission(String permission) =>
       activePermissions.contains('ALL') ||
+      activeRoleSystemKey == 'OWNER' ||
       activePermissions.contains(permission);
 
   Future<void> setActiveContext({
     required String organizationId,
     required String branchId,
     String? organizationName,
+    String? organizationType,
     String? branchName,
     String? branchTimezone,
     String? roleSystemKey,
@@ -62,6 +66,9 @@ class PreferencesStorage extends ChangeNotifier {
     await _prefs.setString(_branchIdKey, branchId);
     if (organizationName != null) {
       await _prefs.setString(_organizationNameKey, organizationName);
+    }
+    if (organizationType != null) {
+      await _prefs.setString(_organizationTypeKey, organizationType);
     }
     if (branchName != null) {
       await _prefs.setString(_branchNameKey, branchName);
@@ -82,6 +89,7 @@ class PreferencesStorage extends ChangeNotifier {
     await _prefs.remove(_organizationIdKey);
     await _prefs.remove(_branchIdKey);
     await _prefs.remove(_organizationNameKey);
+    await _prefs.remove(_organizationTypeKey);
     await _prefs.remove(_branchNameKey);
     await _prefs.remove(_branchTimezoneKey);
     await _prefs.remove(_roleSystemKey);

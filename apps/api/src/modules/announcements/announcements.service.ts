@@ -149,7 +149,7 @@ export function createAnnouncementMediaDownloadUrl(
   requestedFormat?: string,
 ) {
   const parts = storageKey.split('/');
-  const validPath =
+  const branchScopedPath =
     parts.length > 5 &&
     parts[0] === 'organizations' &&
     parts[1] === organizationId &&
@@ -157,6 +157,15 @@ export function createAnnouncementMediaDownloadUrl(
     parts[3].length > 0 &&
     parts[4] === 'announcements' &&
     parts.slice(5).join('/').length > 0;
+  // Keep previously stored organization-level media readable after the
+  // branch-scoped media layout was introduced.
+  const legacyOrganizationPath =
+    parts.length > 3 &&
+    parts[0] === 'organizations' &&
+    parts[1] === organizationId &&
+    parts[2] === 'announcements' &&
+    parts.slice(3).join('/').length > 0;
+  const validPath = branchScopedPath || legacyOrganizationPath;
   if (!validPath) {
     throw new ValidationError('Announcement media scope is invalid');
   }
@@ -164,12 +173,11 @@ export function createAnnouncementMediaDownloadUrl(
     requestedFormat?.toLowerCase() ||
     (storageKey.includes('.') ? (storageKey.split('.').pop() ?? 'jpg') : 'jpg');
   return {
-    url: cloudinary.url(storageKey, {
+    url: cloudinary.utils.private_download_url(storageKey, extension, {
       resource_type: 'image',
       type: 'authenticated',
-      format: extension,
-      secure: true,
-      sign_url: true,
+      expires_at: Math.floor(Date.now() / 1000) + 300,
+      attachment: false,
     }),
   };
 }

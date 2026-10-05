@@ -27,6 +27,7 @@ enum OrganizationType {
   GYM
   COACHING
   CLINIC
+  FOOD_SERVICE
   OTHER
 }
 
@@ -103,6 +104,12 @@ enum LedgerEntryCategory {
   VOID_REVERSAL
   MANUAL_DEBIT
   MANUAL_CREDIT
+  SETTLEMENT_WAIVER
+}
+
+enum MealServingStatus {
+  CONFIRMED
+  VOID
 }
 
 enum PaymentAttemptStatus {
@@ -123,6 +130,7 @@ enum PaymentRequestStatus {
 enum InvitePurpose {
   BRANCH_JOIN
   PLAN_PURCHASE
+  MEAL_ATTENDANCE
 }
 
 enum AnnouncementStatus {
@@ -219,6 +227,8 @@ enum AuditAction {
   CORRECT
   VOID
   PAYMENT_POST
+  SETTLEMENT_WAIVER
+  SERVE
   REFUND
   EXPORT
   LOGIN
@@ -294,6 +304,7 @@ model Member {
   ledger_entries      LedgerEntry[]
   payment_requests    PaymentRequest[]
   payment_attempts    PaymentAttempt[]
+  meal_servings        MealServing[]
 
   join_requests           JoinRequest[]
   leave_requests          LeaveRequest[]
@@ -354,6 +365,10 @@ model Organization {
   payment_requests       PaymentRequest[]
   invite_tokens          InviteToken[]
   attendanceStreaks      AttendanceStreak[]
+  meal_slots             MealSlot[]
+  meal_entitlements      PlanMealEntitlement[]
+  meal_servings          MealServing[]
+  financial_adjustments FinancialAdjustment[]
 
   @@map("organizations")
 }
@@ -406,6 +421,10 @@ model Branch {
   payment_requests       PaymentRequest[]
   invite_tokens          InviteToken[]
   notifications          Notification[]
+  meal_slots             MealSlot[]
+  meal_entitlements      PlanMealEntitlement[]
+  meal_servings          MealServing[]
+  financial_adjustments FinancialAdjustment[]
 
   @@index([organization_id])
   @@map("branches")
@@ -748,10 +767,82 @@ model Plan {
   branch        Branch?        @relation(fields: [branch_id], references: [id])
   subscriptions Subscription[]
   invite_tokens InviteToken[]
+  meal_entitlements PlanMealEntitlement[]
 
   @@index([organization_id])
   @@index([organization_id, branch_id, created_at])
   @@map("plans")
+}
+
+model MealSlot {
+  id                 String   @id @default(cuid())
+  organization_id    String
+  branch_id          String
+  code               String
+  name               String
+  starts_at_local    String
+  ends_at_local      String
+  is_active          Boolean  @default(true)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  branch       Branch @relation(fields: [branch_id], references: [id])
+  entitlements PlanMealEntitlement[]
+  servings     MealServing[]
+
+  @@unique([organization_id, branch_id, code])
+  @@index([organization_id, branch_id, is_active])
+  @@map("meal_slots")
+}
+
+model PlanMealEntitlement {
+  id                   String   @id @default(cuid())
+  organization_id      String
+  branch_id            String
+  plan_id              String
+  meal_slot_id         String
+  max_servings_per_day Int      @default(1)
+  is_active            Boolean  @default(true)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  branch       Branch @relation(fields: [branch_id], references: [id])
+  plan         Plan @relation(fields: [plan_id], references: [id])
+  meal_slot    MealSlot @relation(fields: [meal_slot_id], references: [id])
+
+  @@unique([organization_id, branch_id, plan_id, meal_slot_id], map: "plan_meal_entitlements_organization_id_branch_id_plan_id_meal_s")
+  @@index([organization_id, branch_id, meal_slot_id], map: "plan_meal_entitlements_organization_id_branch_id_meal_slot_id_i")
+  @@map("plan_meal_entitlements")
+}
+
+model MealServing {
+  id              String @id @default(cuid())
+  organization_id String
+  branch_id       String
+  member_id       String
+  subscription_id String
+  meal_slot_id    String
+  local_date      DateTime @db.Date
+  serving_number  Int
+  status          MealServingStatus @default(CONFIRMED)
+  served_at       DateTime @default(now())
+  served_by       String
+  voided_at       DateTime?
+  voided_by       String?
+  void_reason     String?
+  idempotency_key String @unique
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  branch       Branch @relation(fields: [branch_id], references: [id])
+  member       Member @relation(fields: [member_id], references: [id])
+  subscription Subscription @relation(fields: [subscription_id], references: [id])
+  meal_slot    MealSlot @relation(fields: [meal_slot_id], references: [id])
+
+  @@index([organization_id, branch_id, member_id, local_date], map: "meal_servings_organization_id_branch_id_member_id_local_date_id")
+  @@index([organization_id, branch_id, meal_slot_id, local_date, status], map: "meal_servings_organization_id_branch_id_meal_slot_id_local_date")
+  @@map("meal_servings")
 }
 
 model InviteToken {
@@ -806,6 +897,8 @@ model Subscription {
   plan             Plan             @relation(fields: [plan_id], references: [id])
   ledger_entries   LedgerEntry[]
   payment_requests PaymentRequest[]
+  meal_servings     MealServing[]
+  financial_adjustments FinancialAdjustment[]
 
   @@index([organization_id, branch_id])
   @@index([organization_id, branch_id, member_id, status, end_date])
@@ -829,7 +922,7 @@ model LedgerEntry {
   description       String?
   due_date          DateTime?
   created_by        String?
-  reversed_by_id    String?             @unique // links to compensating entry
+  reversed_by_id    String?             @unique // on a compensating entry, references the original ledger entry
   idempotency_key   String?             @unique
   created_at        DateTime            @default(now())
 
@@ -837,11 +930,35 @@ model LedgerEntry {
   member       Member?             @relation(fields: [member_id], references: [id])
   subscription Subscription?       @relation(fields: [subscription_id], references: [id])
   allocations  PaymentAllocation[]
+  financial_adjustment FinancialAdjustment?
 
   @@index([organization_id, branch_id])
   @@index([organization_id, branch_id, member_id, subscription_id])
   @@index([member_id])
   @@map("ledger_entries")
+}
+
+model FinancialAdjustment {
+  id              String @id @default(cuid())
+  organization_id String
+  branch_id       String
+  member_id       String
+  subscription_id String
+  ledger_entry_id String @unique
+  amount_minor_unit Int
+  currency        String
+  reason          String
+  approved_by     String
+  created_at      DateTime @default(now())
+  idempotency_key String @unique
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  branch       Branch @relation(fields: [branch_id], references: [id])
+  subscription Subscription @relation(fields: [subscription_id], references: [id])
+  ledger_entry LedgerEntry @relation(fields: [ledger_entry_id], references: [id])
+
+  @@index([organization_id, branch_id, member_id, subscription_id], map: "financial_adjustments_organization_id_branch_id_member_id_subsc")
+  @@map("financial_adjustments")
 }
 
 model PaymentAttempt {

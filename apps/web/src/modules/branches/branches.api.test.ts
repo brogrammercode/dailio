@@ -9,7 +9,8 @@ const active = {
   organization_id: "org-a",
   branch_id: "branch-a",
   status: "ACTIVE",
-  organization: { id: "org-a", name: "Gym A", status: "ACTIVE" },
+  organization: { id: "org-a", name: "Gym A", type: "GYM", status: "ACTIVE" },
+  effective_permissions: ["MEAL_READ_SELF"],
   branch: {
     id: "branch-a",
     organization_id: "org-a",
@@ -40,6 +41,8 @@ describe("member context restoration", () => {
       {
         organizationId: "org-a",
         organizationName: "Gym A",
+        organizationType: "GYM",
+        permissions: ["MEAL_READ_SELF"],
         branchId: "branch-a",
         branchName: "Main",
         timezone: "Asia/Kolkata",

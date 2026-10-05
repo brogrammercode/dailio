@@ -39,7 +39,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     super.initState();
     _api = context.read<ApiClient>();
     _cache = context.read<JsonCacheStore>();
-    NotificationRuntime.setInboxRefresh(_load);
+    NotificationRuntime.setInboxRefresh(_refreshFromPush);
     _load(markAllRead: true);
   }
 
@@ -107,6 +107,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
   void _updateUnreadCount(List<Map<String, dynamic>> items) {
     NotificationBadgeController.setCount(
         items.where((item) => item['read_at'] == null).length);
+  }
+
+  Future<void> _refreshFromPush() async {
+    await _cache.clearKey(_cache.scopedKey('notifications'));
+    if (mounted) await _load();
   }
 
   Future<void> _markRead(int index) async {

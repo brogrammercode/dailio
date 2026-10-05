@@ -56,10 +56,13 @@ class _ContextSwitcherPageState extends State<ContextSwitcherPage> {
       organizationId: organization['id'],
       branchId: branch['id'],
       organizationName: organization['name'],
+      organizationType: organization['type']?.toString(),
       branchName: branch['name'],
       branchTimezone: branch['timezone']?.toString(),
       roleSystemKey: role?['system_key']?.toString(),
-      permissions: (role?['permissions'] as List?)?.cast<String>(),
+      permissions: ((membership['effective_permissions'] as List?) ??
+              (role?['permissions'] as List?))
+          ?.cast<String>(),
     );
     if (mounted) context.go(AppRoutes.home);
   }

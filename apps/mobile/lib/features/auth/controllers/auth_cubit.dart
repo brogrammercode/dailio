@@ -22,7 +22,10 @@ class AuthCubit extends Cubit<AuthState> {
     Object? lastError;
     for (var attempt = 1; attempt <= 3; attempt++) {
       try {
-        await _repository.updateProfile(fcmToken: token);
+        await _repository.registerFcmToken(
+          token,
+          platform: defaultTargetPlatform.name,
+        );
         debugPrint('[Dailio.NOTIFICATIONS] FCM token synced');
         return;
       } catch (error) {

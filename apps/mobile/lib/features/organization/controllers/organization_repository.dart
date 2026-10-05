@@ -61,6 +61,15 @@ class OrganizationRepository {
     );
   }
 
+  /// Fetches the organization after invalidating its cached read model.
+  /// Organization type controls feature availability, so settings must not
+  /// display a stale type after a successful update.
+  Future<Map<String, dynamic>> refreshOrganizationById(String orgId) async {
+    await cache?.clearScope('organization:$orgId');
+    await cache?.clearScope('user');
+    return getOrganizationById(orgId);
+  }
+
   Future<Map<String, dynamic>> updateOrganization(
       String orgId, Map<String, dynamic> data) async {
     final response =

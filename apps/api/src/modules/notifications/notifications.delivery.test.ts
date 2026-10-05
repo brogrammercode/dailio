@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const prismaMock = vi.hoisted(() => ({
   user: { findMany: vi.fn(), findUnique: vi.fn() },
   notification: { upsert: vi.fn() },
-  notificationDelivery: { upsert: vi.fn(), update: vi.fn() },
+  notificationDelivery: { findMany: vi.fn(), upsert: vi.fn(), update: vi.fn() },
 }));
 
 const sendPushMock = vi.hoisted(() => vi.fn());
@@ -18,7 +18,7 @@ vi.mock('./email.service', () => ({
   isEmailConfigured: emailConfiguredMock,
 }));
 
-import { notify } from './notifications.service';
+import { notify, retryPendingPushDeliveriesForUser } from './notifications.service';
 
 describe('central notification delivery', () => {
   beforeEach(() => {
@@ -38,6 +38,7 @@ describe('central notification delivery', () => {
       status: 'PENDING',
     });
     prismaMock.notificationDelivery.update.mockResolvedValue({});
+    prismaMock.notificationDelivery.findMany.mockResolvedValue([]);
     sendPushMock.mockResolvedValue({ messageId: 'push-message-a' });
     sendEmailMock.mockResolvedValue({ messageId: 'email-message-a' });
     emailConfiguredMock.mockReturnValue(true);
@@ -155,6 +156,45 @@ describe('central notification delivery', () => {
           last_error_code: 'PREFERENCE_DISABLED',
         }),
       }),
+    );
+  });
+
+  it('replays recent no-token push deliveries after a device registers', async () => {
+    prismaMock.notificationDelivery.findMany.mockResolvedValue([
+      {
+        id: 'delivery-a',
+        status: 'SKIPPED',
+        notification: {
+          id: 'notification-a',
+          event_type: 'MEAL_SERVING_CONFIRMED',
+          organization_id: 'org-a',
+          branch_id: 'branch-a',
+          entity_type: 'MealServing',
+          entity_id: 'serving-a',
+          title: 'Meal attendance recorded',
+          body: 'Breakfast attendance was recorded.',
+          data: { route: '/home/attendance' },
+          dedupe_key: 'meal-serving:serving-a:confirmed:user:user-a',
+        },
+        user: {
+          id: 'user-a',
+          email: null,
+          fcm_token: 'token-a',
+          status: 'ACTIVE',
+          device_tokens: [],
+          notification_preferences: [],
+        },
+      },
+    ]);
+
+    const result = await retryPendingPushDeliveriesForUser('user-a');
+
+    expect(result).toEqual({ scanned: 1, retried: 1 });
+    expect(prismaMock.notificationDelivery.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: 'PENDING', last_error_code: null } }),
+    );
+    expect(sendPushMock).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-a', tokens: ['token-a'] }),
     );
   });
 });

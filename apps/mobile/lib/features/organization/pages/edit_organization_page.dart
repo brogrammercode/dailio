@@ -33,6 +33,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
 
   String _currency = 'INR';
   String _timezone = 'Asia/Kolkata';
+  String _organizationType = 'OTHER';
 
   File? _pickedLogo;
   bool _isSubmitting = false;
@@ -43,6 +44,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
   String _originalPhone = '';
   String _originalCurrency = 'INR';
   String _originalTimezone = 'Asia/Kolkata';
+  String _originalOrganizationType = 'OTHER';
 
   bool get _isDirty {
     return _nameCtrl.text.trim() != _originalName ||
@@ -50,6 +52,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
         _phoneCtrl.text.trim() != _originalPhone ||
         _currency != _originalCurrency ||
         _timezone != _originalTimezone ||
+        _organizationType != _originalOrganizationType ||
         _pickedLogo != null;
   }
 
@@ -103,12 +106,14 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
     _originalPhone = org['phone'] ?? '';
     _originalCurrency = org['currency'] ?? 'INR';
     _originalTimezone = org['timezone'] ?? 'Asia/Kolkata';
+    _originalOrganizationType = org['type']?.toString() ?? 'OTHER';
 
     _nameCtrl.text = _originalName;
     _emailCtrl.text = _originalEmail;
     _phoneCtrl.text = _originalPhone;
     _currency = _originalCurrency;
     _timezone = _originalTimezone;
+    _organizationType = _originalOrganizationType;
     _pickedLogo = null;
   }
 
@@ -171,6 +176,9 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
       }
       if (_currency != _originalCurrency) data['currency'] = _currency;
       if (_timezone != _originalTimezone) data['timezone'] = _timezone;
+      if (_organizationType != _originalOrganizationType) {
+        data['type'] = _organizationType;
+      }
 
       if (_pickedLogo != null) {
         final bytes = await _pickedLogo!.readAsBytes();
@@ -181,13 +189,56 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
 
       final updatedOrg = await repo.updateOrganization(orgId, data);
 
-      // Update the prefs if name changed
-      if (name != _originalName) {
+      // Keep the active context in sync so feature-gated modules (for example
+      // Meals for food-service organizations) appear immediately after save.
+      final branchId = prefs.activeBranchId;
+      if (branchId != null) {
+        String? roleSystemKey = prefs.activeRoleSystemKey;
+        List<String> permissions = prefs.activePermissions;
+        String? branchName = prefs.activeBranchName;
+        String? branchTimezone = prefs.activeBranchTimezone;
+        try {
+          final organizations = await repo.getMyOrganizations();
+          final entry = organizations
+              .where((item) => item['organization']?['id'] == orgId)
+              .firstOrNull;
+          final memberships = entry?['location_memberships'];
+          if (memberships is List) {
+            for (final rawMembership in memberships) {
+              if (rawMembership is! Map) continue;
+              final location = rawMembership['location'];
+              if (location is! Map || location['id']?.toString() != branchId) {
+                continue;
+              }
+              final role = rawMembership['role'];
+              final roleMap = role is Map
+                  ? Map<String, dynamic>.from(role)
+                  : <String, dynamic>{};
+              final rawPermissions = roleMap['permissions'];
+              if (rawPermissions is List) {
+                permissions = rawPermissions
+                    .map((permission) => permission.toString())
+                    .toList();
+              }
+              roleSystemKey = roleMap['system_key']?.toString();
+              branchName = location['name']?.toString();
+              branchTimezone = location['timezone']?.toString();
+              break;
+            }
+          }
+        } catch (_) {
+          // The organization update is already complete; retain the current
+          // context if the optional membership refresh is unavailable.
+        }
         await prefs.setActiveContext(
           organizationId: orgId,
-          branchId: prefs.activeBranchId ?? '',
+          branchId: branchId,
           organizationName: name,
-          branchName: prefs.activeBranchName,
+          organizationType: updatedOrg['type']?.toString(),
+          branchName: branchName,
+          branchTimezone: branchTimezone,
+          roleSystemKey: roleSystemKey,
+          permissions: permissions,
         );
       }
 
@@ -389,6 +440,70 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
                                     'Used for member invites & public references.',
                                     style: TextStyle(
                                         fontSize: 11.r, color: Colors.grey)),
+                              ],
+                            ),
+                          ),
+                          _buildFormSection(
+                            title: 'Organization Type',
+                            badge: 'FEATURES',
+                            badgeColor: Colors.orange.shade50,
+                            badgeTextColor: Colors.orange.shade800,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                DailioPickerField<String>(
+                                  key: ValueKey(_organizationType),
+                                  initialValue: _organizationType,
+                                  decoration: InputDecoration(
+                                    prefixIcon: Icon(Iconsax.category_2,
+                                        size: 16.r, color: Colors.grey),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 14.r, vertical: 13.r),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10.r),
+                                      borderSide: BorderSide(
+                                          color: Colors.grey.shade200),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10.r),
+                                      borderSide: BorderSide(
+                                          color: Colors.grey.shade200),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10.r),
+                                      borderSide: BorderSide(
+                                          color: Colors.orange.shade400,
+                                          width: 1.5.r),
+                                    ),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                        value: 'GYM', child: Text('Gym')),
+                                    DropdownMenuItem(
+                                        value: 'FOOD_SERVICE',
+                                        child: Text('Mess / cafeteria')),
+                                    DropdownMenuItem(
+                                        value: 'COACHING',
+                                        child: Text('Coaching')),
+                                    DropdownMenuItem(
+                                        value: 'CLINIC', child: Text('Clinic')),
+                                    DropdownMenuItem(
+                                        value: 'OTHER', child: Text('Other')),
+                                  ],
+                                  onChanged: (value) {
+                                    if (value != null) {
+                                      setState(() => _organizationType = value);
+                                    }
+                                  },
+                                ),
+                                SizedBox(height: 7.r),
+                                Text(
+                                  'Food-service organizations unlock meal slots, serving records, and meal frequency tools.',
+                                  style: TextStyle(
+                                      fontSize: 11.r, color: Colors.grey),
+                                ),
                               ],
                             ),
                           ),

@@ -50,6 +50,9 @@ vi.mock("../modules/attendance/MemberAttendancePage", () => ({
 vi.mock("../modules/attendance/QrAttendancePage", () => ({
   QrAttendancePage: () => <p>QR attendance loaded</p>,
 }));
+vi.mock("../modules/attendance/MealAttendancePage", () => ({
+  MealAttendancePage: () => <p>Meal attendance loaded</p>,
+}));
 vi.mock("../modules/subscriptions/PurchasePage", () => ({
   PurchasePage: () => <p>Plan purchase loaded</p>,
 }));
@@ -145,7 +148,54 @@ describe("web member authentication and QR routing", () => {
     await settle();
     expect(mocks.resolveInvite).toHaveBeenCalledWith(token);
     expect(host.textContent).toContain("Plan purchase loaded");
-    expect(mocks.getMemberContexts).not.toHaveBeenCalled();
+    expect(mocks.getMemberContexts).toHaveBeenCalledOnce();
+  });
+
+  it("opens the meal attendance screen for a meal QR", async () => {
+    mocks.resolveInvite.mockResolvedValue({
+      ...invite,
+      purpose: "MEAL_ATTENDANCE",
+      meal_slots: [
+        {
+          id: "slot-1",
+          name: "Lunch",
+          code: "lunch",
+          starts_at_local: "12:00",
+          ends_at_local: "15:00",
+        },
+      ],
+    });
+    window.history.replaceState({}, "", `/invite#token=${token}`);
+    await renderApp();
+    expect(host.textContent).toContain("Meal attendance loaded");
+  });
+
+  it("auto-joins an eligible member before opening meal attendance", async () => {
+    const mealInvite = {
+      ...invite,
+      purpose: "MEAL_ATTENDANCE" as const,
+      meal_slots: [
+        {
+          id: "slot-1",
+          name: "Lunch",
+          code: "lunch",
+          starts_at_local: "12:00",
+          ends_at_local: "15:00",
+        },
+      ],
+    };
+    mocks.resolveInvite
+      .mockResolvedValueOnce({ ...mealInvite, joinability: "JOINABLE" })
+      .mockResolvedValueOnce({ ...mealInvite, joinability: "ALREADY_MEMBER" });
+    mocks.fastJoinFromInvite.mockResolvedValue({});
+    window.history.replaceState({}, "", `/invite#token=${token}`);
+    await renderApp();
+    expect(mocks.fastJoinFromInvite).toHaveBeenCalledWith(
+      token,
+      expect.any(String),
+    );
+    expect(mocks.resolveInvite).toHaveBeenCalledTimes(2);
+    expect(host.textContent).toContain("Meal attendance loaded");
   });
 
   it("auto-joins an eligible member before opening the scanned plan", async () => {

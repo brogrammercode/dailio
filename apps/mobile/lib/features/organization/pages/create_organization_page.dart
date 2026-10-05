@@ -131,11 +131,10 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
                 items: const [
                   DropdownMenuItem(value: 'GYM', child: Text('Gym')),
                   DropdownMenuItem(
-                      value: 'YOGA_STUDIO', child: Text('Yoga studio')),
-                  DropdownMenuItem(
-                      value: 'MARTIAL_ARTS', child: Text('Martial arts')),
-                  DropdownMenuItem(
-                      value: 'DANCE_STUDIO', child: Text('Dance studio')),
+                      value: 'FOOD_SERVICE', child: Text('Mess / cafeteria')),
+                  DropdownMenuItem(value: 'COACHING', child: Text('Coaching')),
+                  DropdownMenuItem(value: 'CLINIC', child: Text('Clinic')),
+                  DropdownMenuItem(value: 'OTHER', child: Text('Other')),
                 ],
                 onChanged: (value) => setState(() => _orgType = value ?? 'GYM'),
               ),

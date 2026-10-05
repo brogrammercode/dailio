@@ -10,9 +10,11 @@ import {
   submitJoinRequest,
 } from "../modules/invites/invites.api";
 import { QrAttendancePage } from "../modules/attendance/QrAttendancePage";
+import { MealAttendancePage } from "../modules/attendance/MealAttendancePage";
 import { MemberAttendancePage } from "../modules/attendance/MemberAttendancePage";
 import { PurchasePage } from "../modules/subscriptions/PurchasePage";
 import { MemberFeesPage } from "../modules/payments/MemberFeesPage";
+import { MealsPage } from "../modules/meals/MealsPage";
 import {
   contextFromInvite,
   getMemberContexts,
@@ -121,6 +123,19 @@ export function App() {
       .then((invite) => {
         setInviteState({ token, invite });
         setContext(contextFromInvite(invite));
+        void getMemberContexts()
+          .then((contexts) => {
+            const selected = contexts.find(
+              (item) =>
+                item.organizationId === invite.organization.id &&
+                item.branchId === invite.branch.id,
+            );
+            if (selected) {
+              setContext(selected);
+              setInviteState((current) => (current ? { ...current } : current));
+            }
+          })
+          .catch(() => {});
       })
       .catch((cause) => {
         rememberQrIntent(token);
@@ -172,7 +187,7 @@ export function App() {
   const context = getContext();
   const authenticatedShell = (
     children: ReactNode,
-    active: "attendance" | "fees" = "attendance",
+    active: "attendance" | "fees" | "meals" = "attendance",
   ) => (
     <AppShell
       user={user}
@@ -284,6 +299,11 @@ export function App() {
         />,
         "fees",
       );
+    if (invite.purpose === "MEAL_ATTENDANCE")
+      return authenticatedShell(
+        <MealAttendancePage token={token} invite={invite} />,
+        "attendance",
+      );
     return authenticatedShell(
       <QrAttendancePage
         token={token}
@@ -300,9 +320,15 @@ export function App() {
         message="Use the branch gate QR for attendance or a plan QR to start a subscription request."
       />,
     );
-  const active = location.pathname.includes("fees") ? "fees" : "attendance";
+  const active = location.pathname.includes("meals")
+    ? "meals"
+    : location.pathname.includes("fees")
+      ? "fees"
+      : "attendance";
   const content =
-    active === "fees" ? (
+    active === "meals" ? (
+      <MealsPage />
+    ) : active === "fees" ? (
       <MemberFeesPage
         onBuy={() =>
           setResult({

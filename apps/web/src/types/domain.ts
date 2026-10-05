@@ -12,7 +12,9 @@ export type TenantContext = {
   branchId: string;
   branchName?: string;
   organizationName?: string;
+  organizationType?: string;
   timezone?: string;
+  permissions?: string[];
 };
 
 export type AttendancePolicy = {
@@ -37,7 +39,7 @@ export type AttendancePolicy = {
 
 export type Invite = {
   id: string;
-  purpose: "BRANCH_JOIN" | "PLAN_PURCHASE";
+  purpose: "BRANCH_JOIN" | "PLAN_PURCHASE" | "MEAL_ATTENDANCE";
   organization: { id: string; name: string };
   branch: {
     id: string;
@@ -64,6 +66,13 @@ export type Invite = {
   attendance_available?: boolean;
   active_session_id?: string | null;
   attendance_policy?: AttendancePolicy | null;
+  meal_slots?: {
+    id: string;
+    name: string;
+    code: string;
+    starts_at_local: string;
+    ends_at_local: string;
+  }[];
 };
 
 export type AttendanceSession = {
@@ -106,6 +115,9 @@ export type FeeCard = Record<string, unknown> & {
   };
   amount_minor_unit?: number;
   balance_minor_unit?: number;
+  charged_amount_minor_unit?: number;
+  paid_amount_minor_unit?: number;
+  waived_amount_minor_unit?: number;
   currency?: string;
 };
 

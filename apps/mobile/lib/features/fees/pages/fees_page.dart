@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../core/utils/money_input.dart';
 import 'package:provider/provider.dart';
 import 'package:iconsax/iconsax.dart';
 
@@ -259,6 +260,7 @@ class _FeesPageState extends State<FeesPage> {
         tabs: const [
           DailioTabItem(value: 'ALL', label: 'All'),
           DailioTabItem(value: 'PAID', label: 'Paid'),
+          DailioTabItem(value: 'SETTLED', label: 'Settled'),
           DailioTabItem(value: 'REQUESTED', label: 'Requested'),
           DailioTabItem(value: 'PENDING', label: 'Pending'),
           DailioTabItem(value: 'PARTIALLY_PAID', label: 'Partial'),
@@ -272,20 +274,20 @@ class _FeesPageState extends State<FeesPage> {
   Widget _buildCard(FeeCardModel card) {
     final color = _statusColor(card.status);
     final roleLabel = card.memberRoleName ?? 'Member';
-    final amount = NumberFormat.currency(
-            locale: 'en_IN', symbol: '\u20B9', decimalDigits: 0)
-        .format((card.paidAmountMinorUnit > 0
-                ? card.paidAmountMinorUnit
-                : card.balanceMinorUnit) /
-            100);
+    final amount = formatMoneyMinor(card.balanceMinorUnit);
+    final paid = formatMoneyMinor(card.paidAmountMinorUnit);
+    final concession = card.waivedAmountMinorUnit > 0
+        ? ' · ${formatMoneyMinor(card.waivedAmountMinorUnit)} waived'
+        : '';
     final event = switch (card.status) {
       'PAID' =>
-        'Paid $amount${card.paymentMethod == null ? '' : ' · ${card.paymentMethod}'}',
+        'Paid $paid$concession${card.paymentMethod == null ? '' : ' · ${card.paymentMethod}'}',
+      'SETTLED' => 'Settled · Paid $paid$concession',
       'REQUESTED' => 'Payment requested · $amount',
       'EXPIRING_SOON' =>
         'Expires in ${card.remainingDays ?? 0} days · $amount due',
       'EXPIRED' => 'Expired · $amount due',
-      'PARTIALLY_PAID' => 'Partially paid · $amount',
+      'PARTIALLY_PAID' => 'Paid $paid · $amount due$concession',
       _ => card.remainingDays == null
           ? 'No active coverage · $amount due'
           : '${card.remainingDays} days remaining · $amount due',

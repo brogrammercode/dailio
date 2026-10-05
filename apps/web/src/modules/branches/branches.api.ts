@@ -18,7 +18,8 @@ type MemberContext = {
   organization_id: string;
   branch_id: string;
   status: string;
-  organization: { id: string; name: string; status: string };
+  effective_permissions?: string[];
+  organization: { id: string; name: string; status: string; type: string };
   branch: {
     id: string;
     organization_id: string;
@@ -43,9 +44,11 @@ export async function getMemberContexts(): Promise<TenantContext[]> {
     .map((member) => ({
       organizationId: member.organization_id,
       organizationName: member.organization.name,
+      organizationType: member.organization.type,
       branchId: member.branch_id,
       branchName: member.branch!.name,
       timezone: member.branch!.timezone,
+      permissions: member.effective_permissions ?? [],
     }));
 }
 

@@ -64,10 +64,15 @@ class _PendingJoinPageState extends State<PendingJoinPage> {
               organizationId: firstOrganization['organization']['id'],
               branchId: branch['id'],
               organizationName: firstOrganization['organization']['name'],
+              organizationType:
+                  firstOrganization['organization']['type']?.toString(),
               branchName: branch['name'],
               branchTimezone: branch['timezone']?.toString(),
               roleSystemKey: role?['system_key']?.toString(),
-              permissions: (role?['permissions'] as List?)?.cast<String>(),
+              permissions:
+                  ((firstMembership['effective_permissions'] as List?) ??
+                          (role?['permissions'] as List?))
+                      ?.cast<String>(),
             );
           }
         }

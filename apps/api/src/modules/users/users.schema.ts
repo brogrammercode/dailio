@@ -10,4 +10,11 @@ export const UpdateProfileSchema = z.object({
   fcm_token: z.string().optional(),
 });
 
+export const RegisterDeviceTokenSchema = z.object({
+  token: z.string().min(1).max(4096),
+  platform: z.string().min(1).max(32).optional(),
+  app_version: z.string().min(1).max(64).optional(),
+});
+
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
+export type RegisterDeviceTokenInput = z.infer<typeof RegisterDeviceTokenSchema>;

@@ -9,6 +9,8 @@ import { prisma } from '../../lib/prisma';
 import * as attendanceService from '../attendance/attendance.service';
 import * as admissionsService from '../admissions/admissions.service';
 import type { QrPunchInput } from '../attendance/attendance.schema';
+import * as mealsService from '../meals/meals.service';
+import { snapshotPlanWithMeals } from '../meals/meals.snapshot';
 
 import type {
   CreateDirectSubscriptionDraftInput,
@@ -115,7 +117,7 @@ async function createInvite(
   actorId: string,
   organizationId: string,
   branchId: string,
-  purpose: 'BRANCH_JOIN' | 'PLAN_PURCHASE',
+  purpose: 'BRANCH_JOIN' | 'PLAN_PURCHASE' | 'MEAL_ATTENDANCE',
   planId: string | null,
 ) {
   const rawToken = createOpaqueInviteToken();
@@ -143,7 +145,10 @@ async function createInvite(
         organization_id: organizationId,
         branch_id: branchId,
         plan_id: planId,
-        purpose,
+        // The generated client is refreshed during deployment; keeping this
+        // cast local lets the API compile while a long-running dev process
+        // still has the previous Prisma client loaded.
+        purpose: purpose as never,
         token_hash: hashInviteToken(rawToken),
         expires_at: null,
         created_by: actorId,
@@ -164,7 +169,7 @@ async function createInvite(
     });
     return created;
   }, inviteTransactionOptions);
-  return inviteResponse(invite, rawToken);
+  return inviteResponse(invite as unknown as InviteResponseInput, rawToken);
 }
 
 export function createBranchInvite(actorId: string, organizationId: string, branchId: string) {
@@ -178,6 +183,14 @@ export function createPlanInvite(
   planId: string,
 ) {
   return createInvite(actorId, organizationId, branchId, 'PLAN_PURCHASE', planId);
+}
+
+export function createMealAttendanceInvite(
+  actorId: string,
+  organizationId: string,
+  branchId: string,
+) {
+  return createInvite(actorId, organizationId, branchId, 'MEAL_ATTENDANCE', null);
 }
 
 async function findActiveInvite(rawToken: string) {
@@ -197,6 +210,24 @@ async function findActiveInvite(rawToken: string) {
 
 export async function resolveInvite(userId: string, rawToken: string) {
   const invite = await findActiveInvite(rawToken);
+  const mealSlots =
+    (invite.purpose as string) === 'MEAL_ATTENDANCE'
+      ? await prisma.mealSlot.findMany({
+          where: {
+            organization_id: invite.organization_id,
+            branch_id: invite.branch_id,
+            is_active: true,
+          },
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            starts_at_local: true,
+            ends_at_local: true,
+          },
+          orderBy: { starts_at_local: 'asc' },
+        })
+      : [];
   const member = await prisma.member.findFirst({
     where: {
       user_id: userId,
@@ -251,6 +282,7 @@ export async function resolveInvite(userId: string, rawToken: string) {
   } | null;
   return {
     ...inviteResponse(invite),
+    meal_slots: mealSlots,
     joinability:
       member?.status === 'ACTIVE'
         ? 'ALREADY_MEMBER'
@@ -384,6 +416,33 @@ export async function punchAttendanceFromInvite(
     },
   });
   return session;
+}
+
+export async function serveMealFromInvite(
+  userId: string,
+  rawToken: string,
+  idempotencyKey: string,
+  mealSlotId: string,
+) {
+  const invite = await findActiveInvite(rawToken);
+  if ((invite.purpose as string) !== 'MEAL_ATTENDANCE') {
+    throw new ConflictError('This QR code is not a meal attendance QR');
+  }
+
+  const member = await prisma.member.findFirst({
+    where: {
+      user_id: userId,
+      organization_id: invite.organization_id,
+      branch_id: invite.branch_id,
+      status: 'ACTIVE',
+    },
+  });
+  if (!member) throw new ForbiddenError('An active branch membership is required');
+
+  return mealsService.serveMeal(userId, invite.organization_id, invite.branch_id, idempotencyKey, {
+    member_id: member.id,
+    meal_slot_id: mealSlotId,
+  });
 }
 
 export async function submitJoinRequestFromInvite(
@@ -590,7 +649,12 @@ export async function createSubscriptionDraftFromInvite(
           branch_id: invite.branch_id,
           member_id: member.id,
           plan_id: plan.id,
-          plan_snapshot: plan as Prisma.InputJsonValue,
+          plan_snapshot: await snapshotPlanWithMeals(
+            tx,
+            plan,
+            invite.organization_id,
+            invite.branch_id,
+          ),
           status: 'DRAFT',
           start_date: startDate,
           end_date: endDate,
@@ -747,7 +811,7 @@ export async function createDirectSubscriptionDraft(
           branch_id: branchId,
           member_id: member.id,
           plan_id: plan.id,
-          plan_snapshot: plan as Prisma.InputJsonValue,
+          plan_snapshot: await snapshotPlanWithMeals(tx, plan, organizationId, branchId),
           status: 'DRAFT',
           start_date: startDate,
           end_date: endDate,

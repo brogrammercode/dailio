@@ -50,6 +50,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           organizationId: activeMembership.organizationId,
           branchId: activeMembership.branchId,
           organizationName: activeMembership.organizationName,
+          organizationType: activeMembership.organizationType,
           branchName: activeMembership.branchName,
           branchTimezone: activeMembership.branchTimezone,
           roleSystemKey: activeMembership.roleSystemKey,
@@ -92,11 +93,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
         }
         final role = rawMembership['role'];
         final roleMap = role is Map ? Map<String, dynamic>.from(role) : null;
-        final rawPermissions = roleMap?['permissions'];
+        final rawPermissions =
+            rawMembership['effective_permissions'] ?? roleMap?['permissions'];
         return _ActiveMembership(
           organizationId: organizationId,
           branchId: branchId,
           organizationName: organization['name']?.toString(),
+          organizationType: organization['type']?.toString(),
           branchName: location['name']?.toString(),
           branchTimezone: location['timezone']?.toString(),
           roleSystemKey: roleMap?['system_key']?.toString(),
@@ -143,6 +146,7 @@ class _ActiveMembership {
     required this.organizationId,
     required this.branchId,
     this.organizationName,
+    this.organizationType,
     this.branchName,
     this.branchTimezone,
     this.roleSystemKey,
@@ -152,6 +156,7 @@ class _ActiveMembership {
   final String organizationId;
   final String branchId;
   final String? organizationName;
+  final String? organizationType;
   final String? branchName;
   final String? branchTimezone;
   final String? roleSystemKey;

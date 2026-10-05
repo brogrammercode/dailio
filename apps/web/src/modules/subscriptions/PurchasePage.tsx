@@ -3,6 +3,7 @@ import { Amount } from "../../components/data-display/Amount";
 import { StateCard } from "../../components/feedback/StateCard";
 import { safeMessage } from "../../lib/errors";
 import { newIdempotencyKey } from "../../lib/idempotency";
+import { formatMinorInput, parseMinorInput } from "../../lib/money";
 import {
   createPaymentRequest,
   createEvidenceUploadSignature,
@@ -32,6 +33,7 @@ export function PurchasePage({
   const [method, setMethod] = useState("UPI");
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
+  const [paidAmount, setPaidAmount] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,11 +42,17 @@ export function PurchasePage({
     setBusy(true);
     setError(null);
     try {
-      setDraft(
-        await createSubscriptionDraft(
-          token,
-          newIdempotencyKey("web-subscription-draft"),
-          `${startDate}T00:00:00.000Z`,
+      const prepared = await createSubscriptionDraft(
+        token,
+        newIdempotencyKey("web-subscription-draft"),
+        `${startDate}T00:00:00.000Z`,
+      );
+      setDraft(prepared);
+      setPaidAmount(
+        formatMinorInput(
+          prepared.agreed_amount_minor +
+            plan!.joining_fee_minor -
+            (prepared.discount_minor ?? 0),
         ),
       );
     } catch (cause) {
@@ -59,6 +67,17 @@ export function PurchasePage({
     if (!file && !reference.trim()) {
       setError(
         "Add a payment reference or upload payment evidence before submitting.",
+      );
+      return;
+    }
+    const totalMinor =
+      draft.agreed_amount_minor +
+      plan.joining_fee_minor -
+      (draft.discount_minor ?? 0);
+    const paidMinor = parseMinorInput(paidAmount);
+    if (paidMinor === null || paidMinor > totalMinor) {
+      setError(
+        "Enter a payment amount greater than zero and no more than the plan total.",
       );
       return;
     }
@@ -87,14 +106,10 @@ export function PurchasePage({
           note: note || undefined,
         });
       }
-      const totalMinor =
-        draft.agreed_amount_minor +
-        plan.joining_fee_minor -
-        (draft.discount_minor ?? 0);
       onDone(
         await createPaymentRequest(invite.branch.id, {
           subscription_id: draft.id,
-          amount_minor_unit: totalMinor,
+          amount_minor_unit: paidMinor,
           currency: draft.currency,
           method,
           reference: reference || undefined,
@@ -200,6 +215,32 @@ export function PurchasePage({
               </strong>
             </p>
           </div>
+          <label className="block text-sm font-semibold">
+            Amount paid now ({draft.currency})
+            <input
+              className="field mt-2"
+              type="text"
+              inputMode="decimal"
+              value={paidAmount}
+              onChange={(event) => setPaidAmount(event.target.value)}
+              placeholder="0.00"
+              aria-describedby="payment-balance-help"
+            />
+          </label>
+          <p id="payment-balance-help" className="text-xs text-slate-600">
+            Remaining due after confirmation:{" "}
+            <Amount
+              minor={Math.max(
+                0,
+                draft.agreed_amount_minor +
+                  plan.joining_fee_minor -
+                  (draft.discount_minor ?? 0) -
+                  (parseMinorInput(paidAmount) ?? 0),
+              )}
+              currency={draft.currency}
+            />
+            . A request is not paid until the branch confirms it.
+          </p>
           <label className="block text-sm font-semibold">
             Payment method
             <select

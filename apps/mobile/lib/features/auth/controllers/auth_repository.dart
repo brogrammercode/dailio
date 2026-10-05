@@ -122,4 +122,18 @@ class AuthRepository {
       // Logout remains best-effort if the device is offline.
     }
   }
+
+  Future<void> registerFcmToken(String token, {String? platform}) async {
+    try {
+      await _apiClient.dio.post(
+        '/users/me/device-token',
+        data: {
+          'token': token,
+          if (platform != null) 'platform': platform,
+        },
+      );
+    } on DioException catch (e) {
+      throw handleDioException(e);
+    }
+  }
 }

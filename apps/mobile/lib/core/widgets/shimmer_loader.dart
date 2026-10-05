@@ -223,6 +223,66 @@ class ShimmerLoader extends StatelessWidget {
     );
   }
 
+  /// Geometry-matched loading state for the Meals workspace: page heading,
+  /// secondary context line, local tab strip, and the compact form/row shapes
+  /// used by Serve and Configure.
+  static Widget meals() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: ListView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 100.r),
+        children: [
+          SizedBox(width: 90.r, height: 18.r, child: const ColoredBox(color: Colors.white)),
+          SizedBox(height: 6.r),
+          SizedBox(width: 120.r, height: 11.r, child: const ColoredBox(color: Colors.white)),
+          SizedBox(height: 14.r),
+          Container(
+            height: 44.r,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: Row(
+              children: [
+                SizedBox(width: 70.r, height: 14.r, child: const ColoredBox(color: Colors.white)),
+                SizedBox(width: 22.r),
+                SizedBox(width: 90.r, height: 14.r, child: const ColoredBox(color: Colors.white)),
+              ],
+            ),
+          ),
+          SizedBox(height: 18.r),
+          SizedBox(width: 90.r, height: 14.r, child: const ColoredBox(color: Colors.white)),
+          SizedBox(height: 8.r),
+          Container(
+            height: 54.r,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+          ),
+          SizedBox(height: 12.r),
+          Container(
+            height: 54.r,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+          ),
+          SizedBox(height: 18.r),
+          Container(
+            height: 108.r,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Skeleton for the compact plan editor. The branch selector is rendered by
   /// [BranchFilterTabs], so this starts with plan tabs and mirrors the form.
   static Widget planEditor() {

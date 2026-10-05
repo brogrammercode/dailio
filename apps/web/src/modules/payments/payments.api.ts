@@ -81,3 +81,61 @@ export async function listPaymentRequests(branchId: string) {
   );
   return body.data;
 }
+
+export async function createSettlementWaiver(
+  branchId: string,
+  subscriptionId: string,
+  amountMinorUnit: number,
+  reason: string,
+) {
+  return apiRequest<{ data: { id: string } }>(
+    `/branches/${branchId}/subscriptions/${subscriptionId}/settlement-waivers`,
+    {
+      method: "POST",
+      headers: {
+        "Idempotency-Key": newIdempotencyKey("web-settlement-waiver"),
+      },
+      body: JSON.stringify({ amount_minor_unit: amountMinorUnit, reason }),
+    },
+  );
+}
+
+export interface SettlementWaiver {
+  id: string;
+  amount_minor_unit: number;
+  currency: string;
+  reason: string;
+  approved_by: string;
+  created_at: string;
+  reversal_id: string | null;
+  reversed_at: string | null;
+}
+
+export async function listSettlementWaivers(
+  branchId: string,
+  subscriptionId: string,
+  page = 1,
+) {
+  return apiRequest<{
+    data: SettlementWaiver[];
+    meta: { page: number; limit: number; total: number };
+  }>(
+    `/branches/${branchId}/subscriptions/${subscriptionId}/settlement-waivers?page=${page}&limit=20`,
+  );
+}
+
+export async function reverseSettlementWaiver(
+  branchId: string,
+  subscriptionId: string,
+  waiverId: string,
+  reason: string,
+) {
+  return apiRequest<{ data: { id: string } }>(
+    `/branches/${branchId}/subscriptions/${subscriptionId}/settlement-waivers/${waiverId}/reverse`,
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": newIdempotencyKey("web-waiver-reversal") },
+      body: JSON.stringify({ reason }),
+    },
+  );
+}

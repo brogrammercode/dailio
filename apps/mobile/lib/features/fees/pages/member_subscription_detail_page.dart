@@ -12,6 +12,8 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/network/interceptors/logging_interceptor.dart';
+import '../../../core/utils/money_input.dart';
+import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/storage/json_cache_store.dart';
 import '../../../core/storage/preferences_storage.dart';
 import '../../../core/theme/app_colors.dart';
@@ -48,6 +50,12 @@ class _MemberSubscriptionDetailPageState
   List<PaymentRequestModel> _paymentRequests = [];
   final GlobalKey _receiptKey = GlobalKey();
   bool _sharingReceipt = false;
+  bool _waiversOpen = false;
+  bool _waiversLoading = false;
+  String? _waiversError;
+  List<Map<String, dynamic>> _waivers = [];
+  int _waiverPage = 1;
+  int _waiverTotal = 0;
 
   @override
   void initState() {
@@ -83,6 +91,7 @@ class _MemberSubscriptionDetailPageState
       if (!mounted) return;
       _applySubscription(response);
       setState(() => _loading = false);
+      if (_waiversOpen) await _loadWaivers();
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -213,6 +222,41 @@ class _MemberSubscriptionDetailPageState
       (sum, entry) =>
           sum + ((entry['amount_minor_unit'] as num?)?.toInt() ?? 0),
     );
+    final paid = entries
+        .where((entry) => entry['category'] == 'PAYMENT')
+        .fold<int>(
+            0,
+            (sum, entry) =>
+                sum - ((entry['amount_minor_unit'] as num?)?.toInt() ?? 0));
+    final waived = entries
+        .where((entry) => entry['category'] == 'SETTLEMENT_WAIVER')
+        .fold<int>(
+            0,
+            (sum, entry) =>
+                sum - ((entry['amount_minor_unit'] as num?)?.toInt() ?? 0));
+    final waiverLedgerIds = entries
+        .where((entry) => entry['category'] == 'SETTLEMENT_WAIVER')
+        .map((entry) => entry['id']?.toString())
+        .toSet();
+    final reversedWaivers = entries
+        .where((entry) =>
+            entry['category'] == 'VOID_REVERSAL' &&
+            waiverLedgerIds.contains(entry['reversed_by_id']?.toString()))
+        .fold<int>(
+            0,
+            (sum, entry) =>
+                sum + ((entry['amount_minor_unit'] as num?)?.toInt() ?? 0));
+    final charged = entries
+        .where((entry) => const {
+              'SUBSCRIPTION_CHARGE',
+              'JOINING_FEE',
+              'FINE',
+              'MANUAL_DEBIT'
+            }.contains(entry['category']))
+        .fold<int>(
+            0,
+            (sum, entry) =>
+                sum + ((entry['amount_minor_unit'] as num?)?.toInt() ?? 0));
 
     final planName = plan?['name']?.toString() ?? 'Subscription';
     return Column(
@@ -320,16 +364,32 @@ class _MemberSubscriptionDetailPageState
         ),
         Row(
           children: [
-            Expanded(child: _summaryValue('Outstanding', _money(outstanding))),
+            Expanded(child: _summaryValue('Charged', _money(charged))),
             Expanded(
-              child: _summaryValue(
-                'Requests',
-                '${_paymentRequests.length}',
-                alignEnd: true,
-              ),
-            ),
+                child: _summaryValue('Paid', _money(paid), alignEnd: true)),
           ],
         ),
+        SizedBox(height: 12.r),
+        Row(children: [
+          Expanded(
+              child: _summaryValue('Waived', _money(waived - reversedWaivers))),
+          Expanded(
+              child: _summaryValue('Due', _money(outstanding.clamp(0, 1 << 60)),
+                  alignEnd: true)),
+        ]),
+        if (context.read<PreferencesStorage>().hasPermission('PAYMENT_WAIVE') &&
+            outstanding > 0) ...[
+          SizedBox(height: 12.r),
+          SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _showWaiverForm(outstanding),
+                icon: Icon(Iconsax.receipt_text, size: 17.r),
+                label: const Text('Approve settlement waiver'),
+              )),
+        ],
+        SizedBox(height: 10.r),
+        _waiverHistory(),
         SizedBox(height: 24.r),
         _sectionTitle(_isOwnSubscription ? 'Payments' : 'Payment requests'),
         SizedBox(height: 8.r),
@@ -1053,17 +1113,254 @@ class _MemberSubscriptionDetailPageState
     );
   }
 
+  Future<void> _loadWaivers() async {
+    final branchId = context.read<PreferencesStorage>().activeBranchId;
+    final subscriptionId = widget.subscriptionId;
+    if (branchId == null || subscriptionId == null) return;
+    setState(() {
+      _waiversLoading = true;
+      _waiversError = null;
+    });
+    try {
+      final response = await context
+          .read<FeesRepository>()
+          .listSettlementWaivers(branchId, subscriptionId, page: _waiverPage);
+      if (!mounted) return;
+      final raw = response['data'] as List? ?? [];
+      final meta = response['meta'] as Map?;
+      setState(() {
+        _waivers = raw
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+        _waiverTotal = (meta?['total'] as num?)?.toInt() ?? 0;
+      });
+    } catch (error) {
+      if (mounted) setState(() => _waiversError = error.toString());
+    } finally {
+      if (mounted) setState(() => _waiversLoading = false);
+    }
+  }
+
+  Widget _waiverHistory() {
+    final prefs = context.read<PreferencesStorage>();
+    if (!prefs.hasPermission('PAYMENT_READ_SELF') &&
+        !prefs.hasPermission('PAYMENT_READ_ALL') &&
+        !prefs.hasPermission('PAYMENT_WAIVE')) {
+      return const SizedBox.shrink();
+    }
+    final canReverse = prefs.hasPermission('PAYMENT_WAIVE');
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      TextButton.icon(
+        onPressed: () {
+          setState(() => _waiversOpen = !_waiversOpen);
+          if (_waiversOpen) _loadWaivers();
+        },
+        icon: Icon(Iconsax.receipt_text, size: 17.r),
+        label:
+            Text(_waiversOpen ? 'Hide waiver history' : 'View waiver history'),
+      ),
+      if (_waiversOpen) ...[
+        if (_waiversLoading) const Center(child: CircularProgressIndicator()),
+        if (_waiversError != null)
+          TextButton(
+            onPressed: _loadWaivers,
+            child: const Text('Could not load waivers. Try again'),
+          ),
+        if (!_waiversLoading && _waiversError == null && _waivers.isEmpty)
+          const Text('No waivers recorded.'),
+        ..._waivers.map((waiver) => Card(
+              child: Padding(
+                  padding: EdgeInsets.all(12.r),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Expanded(
+                            child: Text(
+                                _money((waiver['amount_minor_unit'] as num?)
+                                        ?.toInt() ??
+                                    0),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700))),
+                        Text(waiver['reversal_id'] == null
+                            ? 'Posted'
+                            : 'Reversed'),
+                      ]),
+                      SizedBox(height: 5.r),
+                      Text(waiver['reason']?.toString() ?? ''),
+                      SizedBox(height: 5.r),
+                      Text(_dateTime(waiver['created_at']),
+                          style: TextStyle(
+                              color: const Color(0xFF777777), fontSize: 12.r)),
+                      if (canReverse && waiver['reversal_id'] == null)
+                        TextButton.icon(
+                          onPressed: () =>
+                              _reverseWaiver(waiver['id'].toString()),
+                          icon: Icon(Iconsax.undo, size: 16.r),
+                          label: const Text('Reverse waiver'),
+                        ),
+                    ],
+                  )),
+            )),
+        if (_waiverTotal > 20)
+          Row(children: [
+            TextButton(
+                onPressed: _waiverPage <= 1
+                    ? null
+                    : () {
+                        setState(() => _waiverPage--);
+                        _loadWaivers();
+                      },
+                child: const Text('Previous')),
+            Text('Page $_waiverPage'),
+            TextButton(
+                onPressed: _waiverPage * 20 >= _waiverTotal
+                    ? null
+                    : () {
+                        setState(() => _waiverPage++);
+                        _loadWaivers();
+                      },
+                child: const Text('Next')),
+          ]),
+      ],
+    ]);
+  }
+
+  Future<void> _reverseWaiver(String waiverId) async {
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+              title: const Text('Reverse this waiver?'),
+              content: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text(
+                    'A new ledger charge will restore the due. The original waiver stays in history.'),
+                TextField(
+                    controller: controller,
+                    maxLength: 1000,
+                    decoration: const InputDecoration(labelText: 'Reason')),
+              ]),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text('Cancel')),
+                FilledButton(
+                    onPressed: () =>
+                        Navigator.pop(dialogContext, controller.text.trim()),
+                    child: const Text('Continue')),
+              ],
+            ));
+    controller.dispose();
+    if (!mounted || reason == null) return;
+    if (reason.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Enter a reason of at least 10 characters.')));
+      return;
+    }
+    final confirmed = await showConfirmDialog(context,
+        title: 'Restore the due?',
+        message:
+            'This will post a new debit for the waived amount and retain the original record.',
+        confirmLabel: 'Reverse waiver',
+        icon: Iconsax.undo);
+    if (confirmed != true || !mounted) return;
+    final branchId = context.read<PreferencesStorage>().activeBranchId;
+    if (branchId == null || widget.subscriptionId == null) return;
+    try {
+      await context.read<FeesRepository>().reverseSettlementWaiver(
+          branchId, widget.subscriptionId!, waiverId, reason);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Waiver reversed. Due restored in the ledger.')));
+      await _load();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not reverse waiver: $error')));
+      }
+    }
+  }
+
+  Future<void> _showWaiverForm(int outstandingMinorUnit) async {
+    final amountController =
+        TextEditingController(text: formatMoneyInput(outstandingMinorUnit));
+    final reasonController = TextEditingController();
+    final result = await showDialog<Map<String, String>>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+              title: const Text('Settlement waiver'),
+              content: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text(
+                    'This reduces the due but is not cash received. The original charge remains in history.',
+                    style: TextStyle(fontSize: 12)),
+                TextField(
+                    controller: amountController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                        labelText: 'Waiver amount (INR)')),
+                TextField(
+                    controller: reasonController,
+                    maxLength: 1000,
+                    decoration: const InputDecoration(
+                        labelText: 'Reason (at least 10 characters)')),
+              ]),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text('Cancel')),
+                FilledButton(
+                    onPressed: () => Navigator.pop(dialogContext, {
+                          'amount': amountController.text,
+                          'reason': reasonController.text.trim(),
+                        }),
+                    child: const Text('Continue'))
+              ],
+            ));
+    amountController.dispose();
+    reasonController.dispose();
+    if (result == null || !mounted) return;
+    final amount = parseMoneyMinor(result['amount'] ?? '');
+    final reason = result['reason']?.trim() ?? '';
+    if (amount == null || amount > outstandingMinorUnit || reason.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Enter a valid amount up to the due and a reason of at least 10 characters.')));
+      return;
+    }
+    final confirmed = await showConfirmDialog(context,
+        title: 'Approve this concession?',
+        message:
+            'The branch ledger will record a separate waiver of ${_money(amount)}. It will not count as cash paid.',
+        confirmLabel: 'Post waiver',
+        icon: Iconsax.receipt_text);
+    if (confirmed != true || !mounted) return;
+    final branchId = context.read<PreferencesStorage>().activeBranchId;
+    if (branchId == null || widget.subscriptionId == null) return;
+    try {
+      await context.read<FeesRepository>().createSettlementWaiver(
+          branchId, widget.subscriptionId!, amount, reason);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Waiver posted; due recalculated from the ledger.')));
+      await _load();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not post waiver: $error')));
+      }
+    }
+  }
+
   Future<void> _showPaymentRequestForm(
     int outstandingMinorUnit, {
     PaymentRequestModel? existingRequest,
   }) async {
     final isEditing = existingRequest != null;
     final amountController = TextEditingController(
-      text: ((isEditing
-                  ? existingRequest.amountMinorUnit
-                  : outstandingMinorUnit) /
-              100)
-          .toStringAsFixed(2),
+      text: formatMoneyInput(
+          isEditing ? existingRequest.amountMinorUnit : outstandingMinorUnit),
     );
     final referenceController = TextEditingController(
       text: existingRequest?.reference ?? '',
@@ -1124,10 +1421,18 @@ class _MemberSubscriptionDetailPageState
     amountController.dispose();
     referenceController.dispose();
     if (result == null || !mounted) return;
-    final amount = double.tryParse(result['amount'] ?? '') ?? 0;
+    final amount = parseMoneyMinor(result['amount'] ?? '');
     final branchId = context.read<PreferencesStorage>().activeBranchId;
     final subscriptionId = widget.subscriptionId;
-    if (branchId == null || subscriptionId == null || amount <= 0) return;
+    if (branchId == null ||
+        subscriptionId == null ||
+        amount == null ||
+        amount > outstandingMinorUnit) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content:
+              Text('Enter a valid payment amount no greater than the due.')));
+      return;
+    }
     try {
       final repository = context.read<FeesRepository>();
       final evidence = await _uploadEvidence(repository, branchId);
@@ -1148,7 +1453,7 @@ class _MemberSubscriptionDetailPageState
           branchId,
           existingRequest.id,
           {
-            'amount_minor_unit': (amount * 100).round(),
+            'amount_minor_unit': amount,
             'method': existingRequest.method,
             'reference': reference.isEmpty ? null : reference,
             if (evidence != null) 'evidence': evidencePayload,
@@ -1159,7 +1464,7 @@ class _MemberSubscriptionDetailPageState
           branchId,
           {
             'subscription_id': subscriptionId,
-            'amount_minor_unit': (amount * 100).round(),
+            'amount_minor_unit': amount,
             'currency': 'INR',
             'method': 'UPI',
             if (reference.isNotEmpty) 'reference': reference,
@@ -1235,9 +1540,7 @@ class _MemberSubscriptionDetailPageState
           };
   }
 
-  String _money(int minor) =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(minor / 100);
+  String _money(int minor) => formatMoneyMinor(minor);
 
   String _date(dynamic value) {
     final parsed = value == null ? null : DateTime.tryParse(value.toString());

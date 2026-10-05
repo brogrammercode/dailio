@@ -83,6 +83,15 @@ describe('fee period calculation', () => {
         balanceMinorUnit: 0,
       }),
     ).toBe('PAID');
+    expect(
+      deriveFeeStatus({
+        ...base,
+        hasPendingRequest: false,
+        remainingDays: 20,
+        balanceMinorUnit: 0,
+        waivedMinorUnit: 300,
+      }),
+    ).toBe('SETTLED');
   });
 
   it('orders the fee directory by expiry urgency', () => {

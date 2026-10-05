@@ -7,6 +7,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/interceptors/logging_interceptor.dart';
+import '../../../core/utils/money_input.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_picker_field.dart';
@@ -27,6 +28,7 @@ class SubscriptionPurchasePage extends StatefulWidget {
 class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
   final _referenceController = TextEditingController();
   final _noteController = TextEditingController();
+  late final TextEditingController _paidAmountController;
   final _requestKey =
       'mobile-purchase-${DateTime.now().toUtc().millisecondsSinceEpoch}';
   String _method = 'UPI';
@@ -54,6 +56,17 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
   bool get _isDirectPurchase => widget.invite['direct_plan'] == true;
 
   @override
+  void initState() {
+    super.initState();
+    _paidAmountController =
+        TextEditingController(text: formatMoneyInput(_total));
+  }
+
+  int? _parsePaidAmount(String value) {
+    return parseMoneyMinor(value);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final name = _plan['name']?.toString() ?? 'Subscription plan';
     final currency = _plan['currency']?.toString() ?? 'INR';
@@ -78,6 +91,28 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
           _summary(name, currency),
           SizedBox(height: 22.r),
           _sectionLabel('PAYMENT DETAILS', 'Submit proof for verification'),
+          SizedBox(height: 10.r),
+          TextField(
+            controller: _paidAmountController,
+            enabled: !_submitting,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: _inputDecoration(
+                'Amount paid now ($currency)', Iconsax.money_3),
+          ),
+          SizedBox(height: 6.r),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _paidAmountController,
+            builder: (_, value, __) {
+              final paid = _parsePaidAmount(value.text);
+              final due =
+                  paid == null ? _total : (_total - paid).clamp(0, _total);
+              return Text(
+                'Estimated due after confirmation: ${_money(due, currency)}',
+                style:
+                    TextStyle(color: const Color(0xFF6B6B6B), fontSize: 11.r),
+              );
+            },
+          ),
           SizedBox(height: 10.r),
           DailioPickerField<String>(
             initialValue: _method,
@@ -430,6 +465,13 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
           content: Text('Add a reference ID or payment evidence.')));
       return;
     }
+    final paidAmount = _parsePaidAmount(_paidAmountController.text);
+    if (paidAmount == null || paidAmount > _total) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Enter an amount greater than zero and no more than the plan total.')));
+      return;
+    }
     setState(() => _submitting = true);
     try {
       final branchRepository = context.read<BranchRepository>();
@@ -452,13 +494,18 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
       if (subscriptionId == null || subscriptionId.isEmpty) {
         throw Exception('The subscription draft was not created');
       }
+      final actualTotal =
+          (draft['total_minor_unit'] as num?)?.toInt() ?? _total;
+      if (paidAmount > actualTotal) {
+        throw Exception(
+            'The plan total changed. Review the price and try again.');
+      }
       final evidence = await _uploadEvidence(branchId);
       await feesRepository.createPaymentRequest(
         branchId,
         {
           'subscription_id': subscriptionId,
-          'amount_minor_unit':
-              (draft['total_minor_unit'] as num?)?.toInt() ?? _total,
+          'amount_minor_unit': paidAmount,
           'currency': _plan['currency'] ?? 'INR',
           'method': _method,
           if (_referenceController.text.trim().isNotEmpty)
@@ -488,6 +535,7 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
   void dispose() {
     _referenceController.dispose();
     _noteController.dispose();
+    _paidAmountController.dispose();
     super.dispose();
   }
 }

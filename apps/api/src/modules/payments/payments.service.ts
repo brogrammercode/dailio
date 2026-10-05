@@ -13,6 +13,7 @@ import type {
   PaymentRequestPeriod,
   ReviewPaymentRequestInput,
   UpdatePaymentRequestInput,
+  SettlementWaiverInput,
 } from './payments.schema';
 
 type DbClient = Prisma.TransactionClient | typeof prisma;
@@ -25,7 +26,7 @@ export function calculateOutstandingBalance(entries: Array<{ amount_minor_unit: 
 }
 
 export type FeeStatus =
-  'PAID' | 'REQUESTED' | 'PENDING' | 'PARTIALLY_PAID' | 'EXPIRING_SOON' | 'EXPIRED';
+  'PAID' | 'SETTLED' | 'REQUESTED' | 'PENDING' | 'PARTIALLY_PAID' | 'EXPIRING_SOON' | 'EXPIRED';
 
 /** Operational fee directory order: act before expiry, then expired, then healthy coverage. */
 export function feeStatusPriority(status: FeeStatus, remainingDays?: number | null) {
@@ -42,12 +43,14 @@ export function deriveFeeStatus(input: {
   remainingDays: number | null;
   balanceMinorUnit: number;
   hasConfirmedPayment: boolean;
+  waivedMinorUnit?: number;
   warningDays: number;
 }): FeeStatus {
   if (input.hasPendingRequest) return 'REQUESTED';
   if (!input.hasSubscription) return 'PENDING';
   if (input.remainingDays !== null && input.remainingDays < 0) return 'EXPIRED';
   if (input.balanceMinorUnit > 0) return input.hasConfirmedPayment ? 'PARTIALLY_PAID' : 'PENDING';
+  if ((input.waivedMinorUnit ?? 0) > 0) return 'SETTLED';
   if (input.remainingDays !== null && input.remainingDays <= input.warningDays)
     return 'EXPIRING_SOON';
   return 'PAID';
@@ -931,6 +934,351 @@ export async function correctPayment(
   return corrected;
 }
 
+/** A concession is a credit, never a fake payment or a change to the agreed plan price. */
+export async function createSettlementWaiver(
+  actorId: string,
+  organizationId: string,
+  branchId: string,
+  subscriptionId: string,
+  idempotencyKey: string,
+  data: SettlementWaiverInput,
+) {
+  let waiver;
+  try {
+    waiver = await prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.financialAdjustment.findUnique({
+          where: { idempotency_key: idempotencyKey },
+        });
+        if (existing) {
+          if (
+            existing.organization_id !== organizationId ||
+            existing.branch_id !== branchId ||
+            existing.subscription_id !== subscriptionId ||
+            existing.amount_minor_unit !== data.amount_minor_unit ||
+            existing.reason !== data.reason ||
+            existing.approved_by !== actorId
+          )
+            throw new ConflictError('Idempotency key was already used for another waiver');
+          return existing;
+        }
+        const subscription = await tx.subscription.findFirst({
+          where: { id: subscriptionId, organization_id: organizationId, branch_id: branchId },
+        });
+        if (!subscription) throw new NotFoundError('Subscription');
+        if (subscription.status === 'CANCELLED')
+          throw new ConflictError('A cancelled subscription cannot receive a waiver');
+        const { balance } = await getMemberBalance(
+          tx,
+          organizationId,
+          branchId,
+          subscription.member_id,
+          subscriptionId,
+        );
+        if (data.amount_minor_unit > balance)
+          throw new UnprocessableError('Waiver exceeds the outstanding subscription balance');
+        const ledgerEntry = await tx.ledgerEntry.create({
+          data: {
+            id: ulid(),
+            organization_id: organizationId,
+            branch_id: branchId,
+            member_id: subscription.member_id,
+            subscription_id: subscriptionId,
+            category: 'SETTLEMENT_WAIVER',
+            amount_minor_unit: -data.amount_minor_unit,
+            currency: subscription.currency,
+            description: 'Owner-approved settlement waiver',
+            created_by: actorId,
+            idempotency_key: `settlement-waiver:${idempotencyKey}`,
+          },
+        });
+        const adjustment = await tx.financialAdjustment.create({
+          data: {
+            id: ulid(),
+            organization_id: organizationId,
+            branch_id: branchId,
+            member_id: subscription.member_id,
+            subscription_id: subscriptionId,
+            ledger_entry_id: ledgerEntry.id,
+            amount_minor_unit: data.amount_minor_unit,
+            currency: subscription.currency,
+            reason: data.reason,
+            approved_by: actorId,
+            idempotency_key: idempotencyKey,
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            id: ulid(),
+            organization_id: organizationId,
+            branch_id: branchId,
+            actor_id: actorId,
+            action: 'SETTLEMENT_WAIVER',
+            target_type: 'Subscription',
+            target_id: subscriptionId,
+            reason: data.reason,
+            after_state: {
+              adjustment_id: adjustment.id,
+              amount_minor_unit: data.amount_minor_unit,
+              balance_minor_unit: balance - data.amount_minor_unit,
+            },
+          },
+        });
+        return adjustment;
+      },
+      { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 30_000 },
+    );
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code !== 'P2002' && code !== 'P2034') throw error;
+    const prior = await prisma.financialAdjustment.findUnique({
+      where: { idempotency_key: idempotencyKey },
+    });
+    if (prior) {
+      if (
+        prior.organization_id !== organizationId ||
+        prior.branch_id !== branchId ||
+        prior.subscription_id !== subscriptionId ||
+        prior.amount_minor_unit !== data.amount_minor_unit ||
+        prior.reason !== data.reason ||
+        prior.approved_by !== actorId
+      )
+        throw new ConflictError('Idempotency key was already used for another waiver');
+      return prior;
+    }
+    throw new ConflictError('Subscription balance changed concurrently. Refresh and try again');
+  }
+  try {
+    const subscription = await prisma.subscription.findFirst({
+      where: { id: subscriptionId, organization_id: organizationId, branch_id: branchId },
+      select: { member: { select: { user_id: true } } },
+    });
+    if (subscription?.member?.user_id) {
+      await notify({
+        type: 'SETTLEMENT_WAIVER_APPLIED',
+        organizationId,
+        branchId,
+        actorUserId: actorId,
+        entityType: 'Subscription',
+        entityId: subscriptionId,
+        recipientUserIds: [subscription.member.user_id],
+        title: 'Subscription balance updated',
+        body: 'An approved settlement concession was applied to your subscription balance.',
+        data: {
+          organization_id: organizationId,
+          branch_id: branchId,
+          entity_id: subscriptionId,
+          adjustment_id: waiver.id,
+        },
+        dedupeKey: `settlement-waiver:${waiver.id}:applied`,
+      });
+    }
+  } catch {
+    // Notification delivery must not undo a committed financial correction.
+  }
+  return waiver;
+}
+
+export async function listSettlementWaivers(
+  organizationId: string,
+  branchId: string,
+  subscriptionId: string,
+  viewerMemberId: string,
+  permissions: Set<string>,
+  query: { page: number; limit: number },
+) {
+  const canReadAll =
+    permissions.has('ALL') ||
+    permissions.has('PAYMENT_READ_ALL') ||
+    permissions.has('PAYMENT_WAIVE');
+  const subscription = await prisma.subscription.findFirst({
+    where: {
+      id: subscriptionId,
+      organization_id: organizationId,
+      branch_id: branchId,
+      ...(canReadAll ? {} : { member_id: viewerMemberId }),
+    },
+    select: { id: true },
+  });
+  if (!subscription) throw new NotFoundError('Subscription');
+  const where = {
+    organization_id: organizationId,
+    branch_id: branchId,
+    subscription_id: subscriptionId,
+  };
+  const [adjustments, total] = await Promise.all([
+    prisma.financialAdjustment.findMany({
+      where,
+      orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
+    }),
+    prisma.financialAdjustment.count({ where }),
+  ]);
+  if (adjustments.length === 0)
+    return { data: [], meta: { page: query.page, limit: query.limit, total } };
+  const reversals = await prisma.ledgerEntry.findMany({
+    where: {
+      organization_id: organizationId,
+      branch_id: branchId,
+      reversed_by_id: { in: adjustments.map((item) => item.ledger_entry_id) },
+      category: 'VOID_REVERSAL',
+    },
+    select: { id: true, reversed_by_id: true, created_at: true },
+  });
+  const reversed = new Map(reversals.map((item) => [item.reversed_by_id, item]));
+  const data = adjustments.map((item) => ({
+    id: item.id,
+    amount_minor_unit: item.amount_minor_unit,
+    currency: item.currency,
+    reason: item.reason,
+    approved_by: item.approved_by,
+    created_at: item.created_at,
+    reversal_id: reversed.get(item.ledger_entry_id)?.id ?? null,
+    reversed_at: reversed.get(item.ledger_entry_id)?.created_at ?? null,
+  }));
+  return { data, meta: { page: query.page, limit: query.limit, total } };
+}
+
+export async function reverseSettlementWaiver(
+  actorId: string,
+  organizationId: string,
+  branchId: string,
+  subscriptionId: string,
+  waiverId: string,
+  idempotencyKey: string,
+  reason: string,
+) {
+  const reversalKey = `settlement-waiver-reversal:${idempotencyKey}`;
+  const description = `Waiver reversal: ${reason}`;
+  let reversal;
+  try {
+    reversal = await prisma.$transaction(
+      async (tx) => {
+        const waiver = await tx.financialAdjustment.findFirst({
+          where: {
+            id: waiverId,
+            organization_id: organizationId,
+            branch_id: branchId,
+            subscription_id: subscriptionId,
+          },
+        });
+        if (!waiver) throw new NotFoundError('Settlement waiver');
+        const existing = await tx.ledgerEntry.findFirst({
+          where: {
+            reversed_by_id: waiver.ledger_entry_id,
+            organization_id: organizationId,
+            branch_id: branchId,
+            category: 'VOID_REVERSAL',
+          },
+        });
+        if (existing) {
+          if (
+            existing.idempotency_key !== reversalKey ||
+            existing.description !== description ||
+            existing.created_by !== actorId
+          )
+            throw new ConflictError('This waiver has already been reversed');
+          return existing;
+        }
+        const entry = await tx.ledgerEntry.create({
+          data: {
+            id: ulid(),
+            organization_id: organizationId,
+            branch_id: branchId,
+            member_id: waiver.member_id,
+            subscription_id: subscriptionId,
+            category: 'VOID_REVERSAL',
+            amount_minor_unit: waiver.amount_minor_unit,
+            currency: waiver.currency,
+            description,
+            created_by: actorId,
+            reversed_by_id: waiver.ledger_entry_id,
+            idempotency_key: reversalKey,
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            id: ulid(),
+            organization_id: organizationId,
+            branch_id: branchId,
+            actor_id: actorId,
+            action: 'VOID',
+            target_type: 'FinancialAdjustment',
+            target_id: waiver.id,
+            reason,
+            after_state: {
+              reversal_ledger_entry_id: entry.id,
+              amount_minor_unit: waiver.amount_minor_unit,
+            },
+          },
+        });
+        return entry;
+      },
+      { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 30_000 },
+    );
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code !== 'P2002' && code !== 'P2034') throw error;
+    const waiver = await prisma.financialAdjustment.findFirst({
+      where: {
+        id: waiverId,
+        organization_id: organizationId,
+        branch_id: branchId,
+        subscription_id: subscriptionId,
+      },
+    });
+    if (!waiver) throw new NotFoundError('Settlement waiver');
+    const prior = await prisma.ledgerEntry.findFirst({
+      where: {
+        reversed_by_id: waiver.ledger_entry_id,
+        organization_id: organizationId,
+        branch_id: branchId,
+        category: 'VOID_REVERSAL',
+      },
+    });
+    if (
+      prior &&
+      prior.idempotency_key === reversalKey &&
+      prior.description === description &&
+      prior.created_by === actorId
+    ) {
+      reversal = prior;
+    } else {
+      throw new ConflictError('Waiver reversal changed concurrently. Refresh and try again');
+    }
+  }
+  try {
+    const subscription = await prisma.subscription.findFirst({
+      where: { id: subscriptionId, organization_id: organizationId, branch_id: branchId },
+      select: { member: { select: { user_id: true } } },
+    });
+    if (subscription?.member?.user_id) {
+      await notify({
+        type: 'SETTLEMENT_WAIVER_REVERSED',
+        organizationId,
+        branchId,
+        actorUserId: actorId,
+        entityType: 'Subscription',
+        entityId: subscriptionId,
+        recipientUserIds: [subscription.member.user_id],
+        title: 'Subscription balance updated',
+        body: 'A settlement concession was reversed and returned to your outstanding balance.',
+        data: {
+          organization_id: organizationId,
+          branch_id: branchId,
+          entity_id: subscriptionId,
+          reversal_id: reversal.id,
+        },
+        dedupeKey: `settlement-waiver:${waiverId}:reversed`,
+      });
+    }
+  } catch {
+    // Notification delivery must not undo a committed financial correction.
+  }
+  return reversal;
+}
+
 export async function getReceipt(
   organizationId: string,
   branchId: string,
@@ -990,13 +1338,23 @@ export async function getEvidenceDownloadUrl(
   const resourceType = evidence.content_type === 'application/pdf' ? 'raw' : 'image';
   const extension =
     evidence.content_type === 'application/pdf' ? 'pdf' : evidence.content_type.split('/')[1];
+  const url =
+    resourceType === 'image'
+      ? cloudinary.url(evidence.storage_key, {
+          resource_type: 'image',
+          type: 'authenticated',
+          format: extension,
+          secure: true,
+          sign_url: true,
+        })
+      : cloudinary.utils.private_download_url(evidence.storage_key, extension, {
+          resource_type: resourceType,
+          type: 'authenticated',
+          expires_at: Math.floor(Date.now() / 1000) + 300,
+          attachment: false,
+        });
   return {
-    url: cloudinary.utils.private_download_url(evidence.storage_key, extension, {
-      resource_type: resourceType,
-      type: 'authenticated',
-      expires_at: Math.floor(Date.now() / 1000) + 300,
-      attachment: false,
-    }),
+    url,
     expires_at: new Date(Date.now() + 300_000),
     content_type: evidence.content_type,
   };
@@ -1069,26 +1427,41 @@ export async function listFees(
         member_id: string;
         subscription_id: string | null;
         total_due: number;
+        charged_amount: number;
         paid_amount: number;
+        waived_amount: number;
         has_confirmed_payment: boolean;
       }>
     >(Prisma.sql`
-      SELECT
-        le.member_id,
-        le.subscription_id,
+      WITH scoped_entries AS (
+        SELECT id, member_id, subscription_id, amount_minor_unit, category, reversed_by_id
+        FROM ledger_entries
+        WHERE organization_id = ${organizationId}
+          AND branch_id = ${branchId}
+          AND member_id IN (${Prisma.join(memberIds)})
+      ), confirmed_allocations AS (
+        SELECT allocation.ledger_entry_id,
+          SUM(allocation.allocated_amount)::int AS paid_amount
+        FROM payment_allocations allocation
+        JOIN payment_attempts pa ON pa.id = allocation.payment_attempt_id
+          AND pa.organization_id = ${organizationId}
+          AND pa.branch_id = ${branchId}
+          AND pa.status = 'SUCCESS'
+        WHERE allocation.ledger_entry_id IN (SELECT id FROM scoped_entries)
+        GROUP BY allocation.ledger_entry_id
+      )
+      SELECT le.member_id, le.subscription_id,
         COALESCE(SUM(le.amount_minor_unit), 0)::int AS total_due,
-        COALESCE(SUM(
-          CASE WHEN pa.status = 'SUCCESS' THEN allocation.allocated_amount ELSE 0 END
-        ), 0)::int AS paid_amount,
-        COALESCE(BOOL_OR(pa.status = 'SUCCESS'), false) AS has_confirmed_payment
-      FROM ledger_entries le
-      LEFT JOIN payment_allocations allocation
-        ON allocation.ledger_entry_id = le.id
-      LEFT JOIN payment_attempts pa
-        ON pa.id = allocation.payment_attempt_id
-      WHERE le.organization_id = ${organizationId}
-        AND le.branch_id = ${branchId}
-        AND le.member_id IN (${Prisma.join(memberIds)})
+        COALESCE(SUM(CASE WHEN le.category IN ('SUBSCRIPTION_CHARGE', 'JOINING_FEE', 'FINE', 'MANUAL_DEBIT') THEN le.amount_minor_unit ELSE 0 END), 0)::int AS charged_amount,
+        COALESCE(SUM(a.paid_amount), 0)::int AS paid_amount,
+        COALESCE(SUM(CASE
+          WHEN le.category = 'SETTLEMENT_WAIVER' THEN -le.amount_minor_unit
+          WHEN le.category = 'VOID_REVERSAL' AND original.category = 'SETTLEMENT_WAIVER' THEN -le.amount_minor_unit
+          ELSE 0 END), 0)::int AS waived_amount,
+        COALESCE(BOOL_OR(a.paid_amount > 0), false) AS has_confirmed_payment
+      FROM scoped_entries le
+      LEFT JOIN confirmed_allocations a ON a.ledger_entry_id = le.id
+      LEFT JOIN scoped_entries original ON original.id = le.reversed_by_id
       GROUP BY le.member_id, le.subscription_id
     `),
     prisma.paymentRequest.findMany({
@@ -1157,6 +1530,8 @@ export async function listFees(
           (!subscription || request.subscription_id === subscription.id),
       );
       const paidAmount = relevantEntries.reduce((sum, entry) => sum + entry.paid_amount, 0);
+      const waivedAmount = relevantEntries.reduce((sum, entry) => sum + entry.waived_amount, 0);
+      const chargedAmount = relevantEntries.reduce((sum, entry) => sum + entry.charged_amount, 0);
       const endDate = subscription?.end_date;
       const remainingDays = endDate ? branchLocalRemainingDays(endDate, branchTimezone) : null;
       const status = deriveFeeStatus({
@@ -1165,6 +1540,7 @@ export async function listFees(
         remainingDays,
         balanceMinorUnit: balance,
         hasConfirmedPayment: memberLedger.some((entry) => entry.has_confirmed_payment),
+        waivedMinorUnit: waivedAmount,
         warningDays,
       });
       return {
@@ -1189,6 +1565,8 @@ export async function listFees(
         status,
         balance_minor_unit: balance,
         paid_amount_minor_unit: paidAmount,
+        waived_amount_minor_unit: waivedAmount,
+        charged_amount_minor_unit: chargedAmount,
         currency: subscription?.currency ?? 'INR',
         remaining_days: remainingDays,
         pending_request_id: pendingRequest?.id ?? null,

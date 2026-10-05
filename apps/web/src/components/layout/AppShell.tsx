@@ -13,8 +13,8 @@ export function AppShell({
 }: {
   user: User;
   context: TenantContext | null;
-  active: "attendance" | "fees";
-  onNavigate: (route: "attendance" | "fees") => void;
+  active: "attendance" | "fees" | "meals";
+  onNavigate: (route: "attendance" | "fees" | "meals") => void;
   onSignOut: () => void;
   onBack?: () => void;
   children: ReactNode;
@@ -112,6 +112,28 @@ export function AppShell({
                 >
                   <Icon name="fees" size={18} /> Fees
                 </button>
+                {context?.organizationType === "FOOD_SERVICE" &&
+                  (context?.permissions?.includes("ALL") ||
+                    context?.permissions?.some((permission) =>
+                      [
+                        "MEAL_READ_SELF",
+                        "MEAL_READ_BRANCH",
+                        "MEAL_SERVE",
+                        "MEAL_MANAGE",
+                      ].includes(permission),
+                    )) && (
+                    <button
+                      className={`app-menu-item ${active === "meals" ? "text-brand" : ""}`}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onNavigate("meals");
+                      }}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <Icon name="meals" size={18} /> Meals
+                    </button>
+                  )}
                 <button
                   className="app-menu-item border-t border-line text-red-600"
                   onClick={requestSignOut}

@@ -56,7 +56,8 @@ Future<bool> _restoreActiveContext(
       final role = entry['role'] is Map
           ? Map<String, dynamic>.from(entry['role'] as Map)
           : null;
-      final rawPermissions = role?['permissions'];
+      final rawPermissions =
+          entry['effective_permissions'] ?? role?['permissions'];
       final permissions = rawPermissions is List
           ? rawPermissions.map((permission) => permission.toString()).toList()
           : <String>[];
@@ -66,6 +67,8 @@ Future<bool> _restoreActiveContext(
         branchId: branchId,
         organizationName:
             organizationEntry['organization']?['name']?.toString(),
+        organizationType:
+            organizationEntry['organization']?['type']?.toString(),
         branchName: location['name']?.toString(),
         branchTimezone: location['timezone']?.toString(),
         roleSystemKey: role?['system_key']?.toString(),
@@ -89,7 +92,11 @@ void main() async {
 
   // Initialize storage
   final prefs = await SharedPreferences.getInstance();
-  final secureStorage = SecureStorage(const FlutterSecureStorage());
+  final secureStorage = SecureStorage(
+    const FlutterSecureStorage(
+      aOptions: AndroidOptions(resetOnError: true),
+    ),
+  );
   final preferencesStorage = PreferencesStorage(prefs);
   final cacheStore = JsonCacheStore();
 

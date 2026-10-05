@@ -83,6 +83,35 @@ class BranchRepository {
       },
       options: Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
+    await cache?.clearScope('user');
+    return Map<String, dynamic>.from(response.data['data'] as Map);
+  }
+
+  Future<Map<String, dynamic>> fastJoinFromInvite(
+    String token, {
+    required String idempotencyKey,
+  }) async {
+    final response = await apiClient.dio.post(
+      '/join-invites/$token/fast-join',
+      data: const <String, dynamic>{},
+      options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+    );
+    await cache?.clearScope('user');
+    return Map<String, dynamic>.from(response.data['data'] as Map);
+  }
+
+  Future<Map<String, dynamic>> serveMealFromInvite(
+    String token,
+    String mealSlotId, {
+    String? branchId,
+    required String idempotencyKey,
+  }) async {
+    final response = await apiClient.dio.post(
+      '/meal-attendance-invites/$token/serve',
+      data: {'meal_slot_id': mealSlotId},
+      options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+    );
+    if (branchId != null) await cache?.clearScope('branch:$branchId');
     return Map<String, dynamic>.from(response.data['data'] as Map);
   }
 

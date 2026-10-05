@@ -4,6 +4,7 @@ import { ulid } from 'ulid';
 import { prisma } from '../../lib/prisma';
 import { AppError, ConflictError, NotFoundError, UnprocessableError } from '../../lib/errors';
 import { notify } from '../notifications/notifications.service';
+import { snapshotPlanWithMeals } from '../meals/meals.snapshot';
 
 import type {
   AssignSubscriptionInput,
@@ -134,7 +135,7 @@ export async function assignSubscription(
           branch_id,
           member_id,
           plan_id: plan.id,
-          plan_snapshot: plan as unknown as Prisma.InputJsonValue,
+          plan_snapshot: await snapshotPlanWithMeals(tx, plan, organization_id, branch_id),
           status: 'ACTIVE',
           start_date: startDate,
           end_date: endDate,

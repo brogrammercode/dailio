@@ -12,7 +12,9 @@ class DailioCompactTile extends StatelessWidget {
   final String? statusBadge;
   final Color? statusBadgeColor;
   final String subtitle;
+  final Widget? subtitleWidget;
   final String trailing;
+  final Widget? trailingWidget;
   final List<DailioMenuItem<String>> menuItems;
   final ValueChanged<String> onMenuSelected;
   final VoidCallback? onTap;
@@ -28,7 +30,9 @@ class DailioCompactTile extends StatelessWidget {
     this.statusBadge,
     this.statusBadgeColor,
     required this.subtitle,
+    this.subtitleWidget,
     required this.trailing,
+    this.trailingWidget,
     required this.menuItems,
     required this.onMenuSelected,
     this.onTap,
@@ -90,16 +94,17 @@ class DailioCompactTile extends StatelessWidget {
                       ],
                     ),
                     SizedBox(height: 4.r),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: subtitleColor,
-                        fontSize: 11.r,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    subtitleWidget ??
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: subtitleColor,
+                            fontSize: 11.r,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                   ],
                 ),
               ),
@@ -110,25 +115,27 @@ class DailioCompactTile extends StatelessWidget {
                 children: [
                   ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: 104.r),
-                    child: Text(
-                      trailing,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        color: AppColors.brandDark,
-                        fontSize: 10.r,
-                        fontWeight: FontWeight.w600,
+                    child: trailingWidget ??
+                        Text(
+                          trailing,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            color: AppColors.brandDark,
+                            fontSize: 10.r,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                  ),
+                  if (menuItems.isNotEmpty)
+                    SizedBox(
+                      height: 28.r,
+                      child: DailioOverflowMenu<String>(
+                        items: menuItems,
+                        onSelected: onMenuSelected,
                       ),
                     ),
-                  ),
-                  SizedBox(
-                    height: 28.r,
-                    child: DailioOverflowMenu<String>(
-                      items: menuItems,
-                      onSelected: onMenuSelected,
-                    ),
-                  ),
                 ],
               ),
             ],

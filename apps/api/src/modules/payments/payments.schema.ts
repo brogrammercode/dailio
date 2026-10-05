@@ -68,12 +68,22 @@ export const PaymentCorrectionSchema = z.object({
   reason: z.string().trim().min(1).max(1000),
 });
 
+export const SettlementWaiverSchema = z.object({
+  amount_minor_unit: z.number().int().positive().max(2_147_483_647),
+  reason: z.string().trim().min(10).max(1000),
+});
+
+export const SettlementWaiverQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+});
+
 export const FeeQuerySchema = z.object({
   period: z.enum(['this_month', 'last_month', 'custom']).default('this_month'),
   from: z.string().date().optional(),
   to: z.string().date().optional(),
   status: z
-    .enum(['PAID', 'REQUESTED', 'PENDING', 'PARTIALLY_PAID', 'EXPIRING_SOON', 'EXPIRED'])
+    .enum(['PAID', 'SETTLED', 'REQUESTED', 'PENDING', 'PARTIALLY_PAID', 'EXPIRING_SOON', 'EXPIRED'])
     .optional(),
   member_id: z.string().optional(),
   page: z.coerce.number().int().positive().default(1),
@@ -87,4 +97,5 @@ export type PaymentRequestQuery = z.infer<typeof PaymentRequestQuerySchema>;
 export type PaymentRequestPeriod = z.infer<typeof PaymentRequestPeriodSchema>;
 export type PaymentEvidenceUploadInput = z.infer<typeof PaymentEvidenceUploadSchema>;
 export type PaymentCorrectionInput = z.infer<typeof PaymentCorrectionSchema>;
+export type SettlementWaiverInput = z.infer<typeof SettlementWaiverSchema>;
 export type FeeQuery = z.infer<typeof FeeQuerySchema>;

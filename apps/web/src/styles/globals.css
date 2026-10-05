@@ -57,6 +57,12 @@ button:disabled {
   .field {
     @apply min-h-12 w-full rounded-lg border border-line bg-white px-4 py-3 text-ink placeholder:text-slate-400;
   }
+  .picker-label {
+    @apply mb-2 block text-sm font-semibold text-ink;
+  }
+  .picker-field {
+    @apply flex min-h-12 w-full items-center justify-between rounded-lg border border-line bg-white px-4 py-3 text-left text-sm text-ink transition hover:border-brand disabled:cursor-not-allowed disabled:opacity-55;
+  }
   .section-title {
     @apply text-sm font-semibold uppercase tracking-[.12em] text-slate-500;
   }
@@ -84,6 +90,22 @@ button:disabled {
 
 .confirm-dialog {
   @apply w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl;
+}
+
+.picker-backdrop {
+  @apply fixed inset-0 z-50 flex items-end justify-center bg-slate-950/35 px-0 sm:items-center sm:px-5;
+}
+
+.picker-sheet {
+  @apply w-full max-w-[520px] rounded-t-2xl bg-white p-4 shadow-2xl sm:rounded-2xl;
+}
+
+.picker-handle {
+  @apply mx-auto mb-4 h-1 w-9 rounded-full bg-slate-300 sm:hidden;
+}
+
+.picker-option {
+  @apply flex min-h-12 w-full items-center justify-between border-b border-line px-1 text-left text-sm text-ink transition last:border-b-0 hover:bg-brand-soft;
 }
 
 .loading-spinner {
@@ -221,4 +243,28 @@ button:disabled {
 
 .attendance-record-row {
   @apply flex items-center justify-between rounded-xl border border-line bg-white p-4;
+}
+
+.meal-option {
+  @apply flex w-full items-center gap-3 rounded-xl border border-line bg-white p-3 text-left transition hover:border-brand hover:bg-brand-soft;
+}
+
+.meal-option.selected {
+  @apply border-brand bg-brand-soft;
+}
+
+.meal-option-icon {
+  @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand;
+}
+
+.meal-option-check {
+  @apply inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line text-slate-400;
+}
+
+.meal-option-check.selected {
+  @apply border-brand bg-brand text-white;
+}
+
+.meal-setting-row {
+  @apply flex items-center justify-between gap-3 border-b border-line px-1 py-3 text-sm last:border-b-0;
 }

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { prisma } from '../../lib/prisma';
+import { ensureDefaultMealSlots } from '../meals/meal.defaults';
 
 import type {
   DiscoverBranchesQuery,
@@ -42,9 +43,16 @@ export async function createBranch(
   actorId: string,
 ) {
   return prisma.$transaction(async (tx) => {
+    const organization = await tx.organization.findUnique({
+      where: { id: organizationId },
+      select: { type: true },
+    });
     const branch = await tx.branch.create({
       data: { ...data, organization_id: organizationId },
     });
+    if (organization?.type === 'FOOD_SERVICE') {
+      await ensureDefaultMealSlots(tx, organizationId, branch.id);
+    }
     await tx.auditLog.create({
       data: {
         id: randomUUID(),

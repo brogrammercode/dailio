@@ -62,7 +62,10 @@ export async function findBranchRecipientUserIds(
         ...member.role_assignments.map((assignment) => assignment.role),
       ].filter((role): role is BranchRecipientRole => role != null);
       return roles.some(
-        (role) => role.system_key === 'OWNER' || role.permissions.includes(permission),
+        (role) =>
+          role.system_key === 'OWNER' ||
+          role.permissions.includes('ALL') ||
+          role.permissions.includes(permission),
       );
     })
     .map((member) => member.user_id);
@@ -171,8 +174,17 @@ async function emailContent(event: NotificationEvent) {
 
 function defaultRoute(event: NotificationEvent) {
   if (!event.entityId) return undefined;
+  if (event.type.startsWith('MEAL_') || event.entityType === 'MealServing') {
+    return '/home/attendance';
+  }
   if (event.type.startsWith('ATTENDANCE_') || event.entityType === 'AttendanceSession') {
     return `/home/attendance/${event.entityId}`;
+  }
+  if (event.type.startsWith('SETTLEMENT_') || event.entityType === 'FinancialAdjustment') {
+    return '/home/fees';
+  }
+  if (event.type.startsWith('ORGANIZATION_') || event.entityType === 'Organization') {
+    return '/home';
   }
   if (event.type.startsWith('SUBSCRIPTION_') || event.entityType === 'Subscription') {
     return `/home/fees/${event.entityId}`;
@@ -392,6 +404,89 @@ export async function retryFailedNotificationDeliveries(now = new Date(), limit 
             : undefined,
         dedupeKey: delivery.notification.dedupe_key ?? delivery.notification.id,
         channels: [delivery.channel as 'PUSH' | 'EMAIL'],
+      },
+      delivery.notification.id,
+      delivery.user,
+    );
+    retried += 1;
+  }
+  return { scanned: deliveries.length, retried };
+}
+
+/**
+ * A device can register after an event was created (first launch, reinstall,
+ * or token rotation). Requeue recent no-token deliveries so they are not lost
+ * permanently just because the user had not opened the app yet.
+ */
+export async function retryPendingPushDeliveriesForUser(userId: string, limit = 50) {
+  const since = new Date(Date.now() - 24 * 60 * 60_000);
+  const deliveries = await prisma.notificationDelivery.findMany({
+    where: {
+      user_id: userId,
+      channel: 'PUSH',
+      created_at: { gte: since },
+      OR: [
+        { status: 'FAILED', attempt_count: { lt: 3 } },
+        { status: 'SKIPPED', last_error_code: 'NO_FCM_TOKEN' },
+      ],
+    },
+    take: limit,
+    orderBy: { created_at: 'asc' },
+    include: {
+      notification: {
+        select: {
+          id: true,
+          event_type: true,
+          organization_id: true,
+          branch_id: true,
+          entity_type: true,
+          entity_id: true,
+          title: true,
+          body: true,
+          data: true,
+          dedupe_key: true,
+        },
+      },
+      user: {
+        select: {
+          id: true,
+          email: true,
+          fcm_token: true,
+          status: true,
+          device_tokens: { select: { token: true } },
+          notification_preferences: {
+            select: { event_type: true, channel: true, enabled: true },
+          },
+        },
+      },
+    },
+  });
+
+  let retried = 0;
+  for (const delivery of deliveries) {
+    if (delivery.user.status !== 'ACTIVE') continue;
+    if (delivery.status === 'SKIPPED') {
+      await prisma.notificationDelivery.update({
+        where: { id: delivery.id },
+        data: { status: 'PENDING', last_error_code: null },
+      });
+    }
+    await deliverNotification(
+      {
+        type: delivery.notification.event_type ?? 'NOTIFICATION',
+        organizationId: delivery.notification.organization_id ?? undefined,
+        branchId: delivery.notification.branch_id ?? undefined,
+        entityType: delivery.notification.entity_type ?? undefined,
+        entityId: delivery.notification.entity_id ?? undefined,
+        recipientUserIds: [delivery.user.id],
+        title: delivery.notification.title,
+        body: delivery.notification.body,
+        data:
+          delivery.notification.data && typeof delivery.notification.data === 'object'
+            ? (delivery.notification.data as Record<string, string>)
+            : undefined,
+        dedupeKey: delivery.notification.dedupe_key ?? delivery.notification.id,
+        channels: ['PUSH'],
       },
       delivery.notification.id,
       delivery.user,

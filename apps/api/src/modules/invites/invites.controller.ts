@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 
 import { ValidationError } from '../../lib/errors';
 import { QrPunchSchema } from '../attendance/attendance.schema';
+import { MealServeInputSchema } from '../meals/meals.schema';
 
 import {
   CreateDirectSubscriptionDraftSchema,
@@ -42,6 +43,19 @@ export async function createPlanInvite(req: Request, res: Response, next: NextFu
       req.organization!.id,
       req.branch!.id,
       req.params.plan_id,
+    );
+    res.status(201).json({ data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createMealAttendanceInvite(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await service.createMealAttendanceInvite(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
     );
     res.status(201).json({ data: result });
   } catch (error) {
@@ -97,6 +111,21 @@ export async function punchAttendanceFromInvite(req: Request, res: Response, nex
       body.token,
       idempotency,
       body,
+    );
+    res.status(201).json({ data: result, server_time: new Date().toISOString() });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function serveMealFromInvite(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = MealServeInputSchema.pick({ meal_slot_id: true }).parse(req.body);
+    const result = await service.serveMealFromInvite(
+      req.user!.id,
+      token(req),
+      idempotencyKey(req),
+      input.meal_slot_id,
     );
     res.status(201).json({ data: result, server_time: new Date().toISOString() });
   } catch (error) {

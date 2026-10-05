@@ -90,6 +90,32 @@ const List<Map<String, dynamic>> availablePermissions = [
         'title': 'Authorize ledger rollbacks and merchant account returns',
         'restricted': true
       },
+      {
+        'key': 'PAYMENT_WAIVE',
+        'title':
+            'Approve a negotiated settlement waiver with a mandatory reason',
+        'restricted': true
+      },
+    ]
+  },
+  {
+    'group': 'Meals',
+    'subtitle': 'Food-service serving and plan entitlements',
+    'icon': Iconsax.cup,
+    'color': Colors.orange,
+    'perms': [
+      {'key': 'MEAL_READ_SELF', 'title': 'View own meal servings'},
+      {'key': 'MEAL_READ_BRANCH', 'title': 'View branch meal register'},
+      {'key': 'MEAL_SERVE', 'title': 'Confirm a meal was served to a member'},
+      {
+        'key': 'MEAL_VOID',
+        'title': 'Void a serving with a reason',
+        'restricted': true
+      },
+      {
+        'key': 'MEAL_MANAGE',
+        'title': 'Configure meal slots and plan entitlements'
+      },
     ]
   }
 ];

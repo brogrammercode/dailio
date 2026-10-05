@@ -7,7 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter/services.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/storage/preferences_storage.dart';
+import '../../../core/storage/json_cache_store.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/branch_time.dart';
 import '../../../core/widgets/shimmer_loader.dart';
 import '../../../core/widgets/app_shell_toast.dart';
@@ -25,6 +28,8 @@ import '../attendance_ui.dart';
 import '../models/attendance_models.dart';
 import '../../branch/controllers/members_repository.dart';
 import '../../organization/controllers/organization_repository.dart';
+import '../../meals/controllers/meals_repository.dart';
+import '../../meals/widgets/meal_ui.dart';
 import 'attendance_detail_page.dart';
 import 'self_attendance_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -41,6 +46,7 @@ class _AttendancePageState extends State<AttendancePage>
   late final AttendanceRepository _repository;
   late final MembersRepository _membersRepository;
   late final OrganizationRepository _orgRepository;
+  late final MealsRepository _mealsRepository;
   late final String _locationId;
   late final String _orgId;
   late final String _branchTimezone;
@@ -59,6 +65,7 @@ class _AttendancePageState extends State<AttendancePage>
   late final bool _canCreateManual;
   late final bool _canCorrect;
   late final bool _canDelete;
+  late final bool _canReadMeals;
 
   List<AttendanceSessionModel> _sessions = [];
   bool _isLoading = false;
@@ -67,6 +74,12 @@ class _AttendancePageState extends State<AttendancePage>
   Timer? _refreshTimer;
   String? _nextCursor;
   bool _isLoadingMore = false;
+  String _section = 'attendance';
+  bool _isMealLoading = false;
+  String? _mealError;
+  List<Map<String, dynamic>> _mealSlots = [];
+  List<Map<String, dynamic>> _mealMembers = [];
+  List<Map<String, dynamic>> _mealServings = [];
 
   @override
   void initState() {
@@ -74,6 +87,10 @@ class _AttendancePageState extends State<AttendancePage>
     _repository = context.read<AttendanceRepository>();
     _membersRepository = context.read<MembersRepository>();
     _orgRepository = context.read<OrganizationRepository>();
+    _mealsRepository = MealsRepository(
+      context.read<ApiClient>(),
+      cache: context.read<JsonCacheStore?>(),
+    );
     final prefs = context.read<PreferencesStorage>();
     _locationId = prefs.activeBranchId!;
     _orgId = prefs.activeOrganizationId!;
@@ -82,11 +99,20 @@ class _AttendancePageState extends State<AttendancePage>
     _canCorrect = prefs.hasPermission('ATTENDANCE_UPDATE');
     _canDelete = prefs.hasPermission('ATTENDANCE_VOID') ||
         prefs.hasPermission('ATTENDANCE_DELETE');
+    _canReadMeals = prefs.activeOrganizationType == 'FOOD_SERVICE' &&
+        (prefs.hasPermission('MEAL_READ_BRANCH') ||
+            prefs.hasPermission('MEAL_SERVE') ||
+            prefs.hasPermission('MEAL_MANAGE'));
 
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleTabChange);
     _refreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted) _loadSessions(_periods[_tabController.index]);
+      if (!mounted) return;
+      if (_section == 'meal') {
+        _loadMealAttendance();
+      } else {
+        _loadSessions(_periods[_tabController.index]);
+      }
     });
 
     _loadRoles();
@@ -103,7 +129,7 @@ class _AttendancePageState extends State<AttendancePage>
   }
 
   void _handleTabChange() {
-    if (!_tabController.indexIsChanging) {
+    if (!_tabController.indexIsChanging && _section == 'attendance') {
       _loadSessions(_periods[_tabController.index]);
     }
   }
@@ -193,6 +219,56 @@ class _AttendancePageState extends State<AttendancePage>
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadMealAttendance() async {
+    if (_isMealLoading) return;
+    setState(() {
+      _isMealLoading = true;
+      _mealError = null;
+    });
+    try {
+      final today = BranchTime.now(_branchTimezone);
+      final fromDate = DateTime(today.year, today.month, today.day)
+          .subtract(const Duration(days: 29));
+      String date(DateTime value) =>
+          '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+      final from = date(fromDate);
+      final to = date(today);
+      final results = await Future.wait([
+        _mealsRepository.slots(_locationId),
+        _mealsRepository.members(_locationId, ''),
+        _mealsRepository.servings(_locationId, from: from, to: to, limit: 100),
+      ]);
+      if (!mounted) return;
+      final servingBody = results[2] as Map<String, dynamic>;
+      setState(() {
+        _mealSlots = (results[0] as List<Map<String, dynamic>>)
+            .where((slot) => slot['is_active'] == true)
+            .toList();
+        _mealMembers = results[1] as List<Map<String, dynamic>>;
+        _mealServings = ((servingBody['data'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((row) => Map<String, dynamic>.from(row))
+            .where((row) => row['status'] == 'CONFIRMED')
+            .toList();
+      });
+    } catch (error) {
+      if (mounted) setState(() => _mealError = '$error');
+    } finally {
+      if (mounted) setState(() => _isMealLoading = false);
+    }
+  }
+
+  void _selectSection(String value) {
+    if (!_canReadMeals && value == 'meal') return;
+    if (_section == value) return;
+    setState(() => _section = value);
+    if (value == 'meal') {
+      _loadMealAttendance();
+    } else {
+      _loadSessions(_periods[_tabController.index]);
     }
   }
 
@@ -319,56 +395,76 @@ class _AttendancePageState extends State<AttendancePage>
       ),
       body: Column(
         children: [
-          _buildRoleFilters(),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.r, 10.r, 16.r, 2.r),
+            child: DailioTabStrip<String>(
+              tabs: _canReadMeals
+                  ? const [
+                      DailioTabItem(value: 'attendance', label: 'Attendance'),
+                      DailioTabItem(value: 'meal', label: 'Meal attendance'),
+                    ]
+                  : const [
+                      DailioTabItem(value: 'attendance', label: 'Attendance'),
+                    ],
+              selected: _section,
+              onChanged: _selectSection,
+            ),
+          ),
+          if (_section == 'attendance') _buildRoleFilters(),
           Expanded(
-            child: _isLoading && _sessions.isEmpty
-                ? ShimmerLoader.compactList()
-                : _error != null && _sessions.isEmpty
-                    ? Center(child: Text('Error: $_error'))
-                    : _sessions.isEmpty
-                        ? _buildEmptyState()
-                        : TabBarView(
-                            controller: _tabController,
-                            children: _periods.map((period) {
-                              return RefreshIndicator(
-                                onRefresh: () => _loadSessions(period),
-                                child: NotificationListener<ScrollNotification>(
-                                  onNotification: (notification) {
-                                    if (notification.metrics.pixels >=
-                                        notification.metrics.maxScrollExtent -
-                                            300) {
-                                      _loadMoreSessions();
-                                    }
-                                    return false;
-                                  },
-                                  child: ListView.separated(
-                                    physics:
-                                        const AlwaysScrollableScrollPhysics(),
-                                    padding: EdgeInsets.only(
-                                      top: 12.r,
-                                      bottom: 92.r,
+            child: _section == 'meal'
+                ? _buildMealAttendanceBody()
+                : _isLoading && _sessions.isEmpty
+                    ? ShimmerLoader.compactList()
+                    : _error != null && _sessions.isEmpty
+                        ? Center(child: Text('Error: $_error'))
+                        : _sessions.isEmpty
+                            ? _buildEmptyState()
+                            : TabBarView(
+                                controller: _tabController,
+                                children: _periods.map((period) {
+                                  return RefreshIndicator(
+                                    onRefresh: () => _loadSessions(period),
+                                    child: NotificationListener<
+                                        ScrollNotification>(
+                                      onNotification: (notification) {
+                                        if (notification.metrics.pixels >=
+                                            notification
+                                                    .metrics.maxScrollExtent -
+                                                300) {
+                                          _loadMoreSessions();
+                                        }
+                                        return false;
+                                      },
+                                      child: ListView.separated(
+                                        physics:
+                                            const AlwaysScrollableScrollPhysics(),
+                                        padding: EdgeInsets.only(
+                                          top: 12.r,
+                                          bottom: 92.r,
+                                        ),
+                                        itemCount: _sessions.length +
+                                            (_isLoadingMore ? 1 : 0),
+                                        separatorBuilder: (_, __) =>
+                                            SizedBox(height: 8.r),
+                                        itemBuilder: (context, index) {
+                                          if (index >= _sessions.length) {
+                                            return Center(
+                                              child: Padding(
+                                                padding: EdgeInsets.all(12.r),
+                                                child:
+                                                    CircularProgressIndicator(),
+                                              ),
+                                            );
+                                          }
+                                          return _buildAttendanceCard(
+                                              _sessions[index]);
+                                        },
+                                      ),
                                     ),
-                                    itemCount: _sessions.length +
-                                        (_isLoadingMore ? 1 : 0),
-                                    separatorBuilder: (_, __) =>
-                                        SizedBox(height: 8.r),
-                                    itemBuilder: (context, index) {
-                                      if (index >= _sessions.length) {
-                                        return Center(
-                                          child: Padding(
-                                            padding: EdgeInsets.all(12.r),
-                                            child: CircularProgressIndicator(),
-                                          ),
-                                        );
-                                      }
-                                      return _buildAttendanceCard(
-                                          _sessions[index]);
-                                    },
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
+                                  );
+                                }).toList(),
+                              ),
           ),
         ],
       ),
@@ -386,6 +482,163 @@ class _AttendancePageState extends State<AttendancePage>
           child: Icon(Iconsax.finger_scan, size: 27.r),
         ),
       ),
+    );
+  }
+
+  Widget _buildMealAttendanceBody() {
+    if (_isMealLoading && _mealMembers.isEmpty) {
+      return ShimmerLoader.compactList();
+    }
+    if (_mealError != null && _mealMembers.isEmpty) {
+      return Center(child: Text('Error: $_mealError'));
+    }
+    if (_mealMembers.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _loadMealAttendance,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(height: 140.r),
+            Center(child: Text('No active meal members yet.')),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _loadMealAttendance,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.only(top: 10.r, bottom: 92.r),
+        itemCount: _mealMembers.length,
+        separatorBuilder: (_, __) => SizedBox(height: 8.r),
+        itemBuilder: (_, index) =>
+            _buildMealAttendanceCard(_mealMembers[index]),
+      ),
+    );
+  }
+
+  Widget _buildMealAttendanceCard(Map<String, dynamic> member) {
+    final id = member['id']?.toString();
+    final user = (member['user'] as Map?)?.cast<String, dynamic>() ?? {};
+    final name = user['name']?.toString() ?? 'Member';
+    final image = user['avatar_url']?.toString();
+    final rows =
+        _mealServings.where((row) => row['member_id']?.toString() == id);
+    final today = BranchTime.now(_branchTimezone);
+    final todayKey =
+        '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final todayRows = rows.where(
+        (row) => row['local_date']?.toString().startsWith(todayKey) == true);
+    final markedIds =
+        todayRows.map((row) => row['meal_slot_id']?.toString()).toSet();
+    final initials = name.isEmpty ? '?' : name[0].toUpperCase();
+    final monthCount = rows.length;
+    final todayCount = markedIds.length;
+    final latestRow = rows.isEmpty ? null : rows.first;
+    final latestPunch = latestRow?['served_at']?.toString();
+    DateTime? latestInstant;
+    if (latestPunch != null) latestInstant = DateTime.tryParse(latestPunch);
+    final latestLocal = latestInstant == null
+        ? null
+        : BranchTime.toBranch(latestInstant, _branchTimezone);
+    return DailioCompactTile(
+      avatar: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          CircleAvatar(
+            radius: 25.r,
+            backgroundColor: MealUi.positive.withValues(alpha: .12),
+            backgroundImage:
+                image == null || image.isEmpty ? null : NetworkImage(image),
+            child: image == null || image.isEmpty
+                ? Text(initials,
+                    style: TextStyle(
+                        color: MealUi.positive,
+                        fontSize: 16.r,
+                        fontWeight: FontWeight.bold))
+                : null,
+          ),
+          Positioned(
+            right: (-4).r,
+            bottom: (-3).r,
+            child: Container(
+              width: 20.r,
+              height: 20.r,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: MealUi.positive,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2.r),
+              ),
+              child: Text(
+                '$monthCount',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 8.r,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      title: name,
+      titleBadge: member['member_number']?.toString(),
+      subtitle:
+          '$todayCount/${_mealSlots.length} today · $monthCount in 30 days',
+      /* subtitleWidget: Row(
+        children: [
+          ..._mealSlots.take(4).map((slot) => MealSlotMark(
+                label: slot['name']?.toString() ?? 'Meal',
+                marked: markedIds.contains(slot['id']?.toString()),
+                compact: true,
+              )),
+          Flexible(
+            child: Text(
+              '$todayCount/${_mealSlots.length} today · $monthCount in 30 days',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: MealUi.muted, fontSize: 10.r),
+            ),
+          ),
+        ],
+      ),
+      trailing: _mealSlots.isEmpty ? '—' : '$todayCount/${_mealSlots.length}',
+      */
+      subtitleWidget: Text(
+        latestLocal == null
+            ? 'No meal attendance punched yet'
+            : 'Last punched at ${DateFormat('hh:mm a').format(latestLocal)}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: MealUi.muted, fontSize: 11.r),
+      ),
+      trailing: '',
+      trailingWidget: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            latestLocal == null
+                ? 'No punches'
+                : DateFormat('dd MMM').format(latestLocal),
+            style: TextStyle(
+              color: AppColors.brandDark,
+              fontSize: 10.r,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 3.r),
+          Text(
+            '$todayCount/${_mealSlots.length} today',
+            style: TextStyle(color: MealUi.muted, fontSize: 9.r),
+          ),
+        ],
+      ),
+      menuItems: const [],
+      onMenuSelected: (_) {},
+      onTap: null,
+      subtitleColor: MealUi.muted,
     );
   }
 

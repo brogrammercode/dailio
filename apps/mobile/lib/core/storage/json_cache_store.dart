@@ -52,11 +52,14 @@ class JsonCacheRecord {
 /// This store intentionally has no token or authorization behavior. It only
 /// persists JSON payloads supplied by repositories after successful GETs.
 class JsonCacheStore extends ChangeNotifier {
-  static const int currentVersion = 1;
+  // Bump this when a read model gains fields or its privacy/ownership shape
+  // changes. Old files are ignored and rebuilt from the server.
+  static const int currentVersion = 2;
   static const String _directoryName = 'dailio_json_cache';
 
   final Set<String> _refreshing = <String>{};
   final Map<String, int> _invalidationVersions = <String, int>{};
+  final Map<String, int> _scopeInvalidationVersions = <String, int>{};
   final Future<Directory> Function()? _directoryProvider;
   Future<Directory>? _directoryFuture;
   String? _userId;
@@ -168,12 +171,14 @@ class JsonCacheStore extends ChangeNotifier {
   }) {
     if (!_refreshing.add(key)) return;
     final refreshVersion = _invalidationVersions[key] ?? 0;
+    final refreshScopeVersion = _scopeInvalidationVersions[scope] ?? 0;
     unawaited(() async {
       try {
         final payload = await fetch();
         // A mutation may have invalidated this key while the refresh was in
         // flight. Never let that old response recreate stale JSON on disk.
-        if ((_invalidationVersions[key] ?? 0) == refreshVersion) {
+        if ((_invalidationVersions[key] ?? 0) == refreshVersion &&
+            (_scopeInvalidationVersions[scope] ?? 0) == refreshScopeVersion) {
           await write(key, cacheTransform?.call(payload) ?? payload,
               scope: scope);
           onFresh?.call(decode(payload));
@@ -188,6 +193,8 @@ class JsonCacheStore extends ChangeNotifier {
 
   Future<void> clearScope(String scope) async {
     try {
+      _scopeInvalidationVersions[scope] =
+          (_scopeInvalidationVersions[scope] ?? 0) + 1;
       final directory = await _directory();
       if (!await directory.exists()) return;
       await for (final entity in directory.list()) {
@@ -224,6 +231,8 @@ class JsonCacheStore extends ChangeNotifier {
       if (await directory.exists()) await directory.delete(recursive: true);
       _directoryFuture = null;
       _refreshing.clear();
+      _invalidationVersions.clear();
+      _scopeInvalidationVersions.clear();
       notifyListeners();
     } catch (_) {}
   }

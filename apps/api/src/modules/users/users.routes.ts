@@ -6,6 +6,7 @@ import {
   updateMyProfile,
   getMyContexts,
   deleteMyAccount,
+  registerMyDeviceToken,
   removeMyDeviceToken,
 } from './users.controller';
 
@@ -15,6 +16,7 @@ router.use(authenticate);
 router.patch('/me', updateMyProfile);
 router.get('/me/contexts', getMyContexts);
 router.delete('/me', deleteMyAccount);
+router.post('/me/device-token', registerMyDeviceToken);
 router.delete('/me/device-token', removeMyDeviceToken);
 
 export { router as usersRouter };

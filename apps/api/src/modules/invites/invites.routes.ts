@@ -29,6 +29,12 @@ router.post(
   controller.createPlanInvite,
 );
 router.post(
+  '/branches/:branch_id/meal-attendance-invites',
+  ...context,
+  requirePermission('MEAL_MANAGE'),
+  controller.createMealAttendanceInvite,
+);
+router.post(
   '/branches/:branch_id/plans/:plan_id/purchase-invites/:invite_id/revoke',
   ...context,
   requirePermission('PLAN_MANAGE'),
@@ -48,6 +54,12 @@ router.post(
   authenticate,
   qrPunchRateLimiter,
   controller.punchAttendanceFromInvite,
+);
+router.post(
+  '/meal-attendance-invites/:token/serve',
+  authenticate,
+  qrPunchRateLimiter,
+  controller.serveMealFromInvite,
 );
 router.post(
   '/purchase-invites/:token/subscription-drafts',

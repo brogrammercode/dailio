@@ -14,6 +14,8 @@ class FeeCardModel {
   final DateTime? endDate;
   final int balanceMinorUnit;
   final int paidAmountMinorUnit;
+  final int chargedAmountMinorUnit;
+  final int waivedAmountMinorUnit;
   final String currency;
   final int? remainingDays;
   final String? pendingRequestId;
@@ -37,6 +39,8 @@ class FeeCardModel {
     this.endDate,
     required this.balanceMinorUnit,
     this.paidAmountMinorUnit = 0,
+    this.chargedAmountMinorUnit = 0,
+    this.waivedAmountMinorUnit = 0,
     required this.currency,
     this.remainingDays,
     this.pendingRequestId,
@@ -68,6 +72,10 @@ class FeeCardModel {
       balanceMinorUnit: (json['balance_minor_unit'] as num?)?.toInt() ?? 0,
       paidAmountMinorUnit:
           (json['paid_amount_minor_unit'] as num?)?.toInt() ?? 0,
+      chargedAmountMinorUnit:
+          (json['charged_amount_minor_unit'] as num?)?.toInt() ?? 0,
+      waivedAmountMinorUnit:
+          (json['waived_amount_minor_unit'] as num?)?.toInt() ?? 0,
       currency: json['currency']?.toString() ?? 'INR',
       remainingDays: (json['remaining_days'] as num?)?.toInt(),
       pendingRequestId: json['pending_request_id']?.toString(),
