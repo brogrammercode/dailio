@@ -37,7 +37,10 @@ export async function refreshToken(req: Request, res: Response, next: NextFuncti
 const browserCookieOptions = {
   httpOnly: true,
   secure: env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  // The deployed web client and API use different origins. Production
+  // browsers require SameSite=None for the refresh cookie to accompany the
+  // credentialed fetch used when a QR link opens in a new tab.
+  sameSite: env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
   path: '/api/v1/auth/browser',
   maxAge: 30 * 24 * 60 * 60 * 1000,
 };
