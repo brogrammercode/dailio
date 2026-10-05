@@ -292,6 +292,9 @@ class _FeesPageState extends State<FeesPage> {
           ? 'No active coverage · $amount due'
           : '${card.remainingDays} days remaining · $amount due',
     };
+    final subtitleAmount = card.status == 'PAID'
+        ? formatMoneyMinor(card.paidAmountMinorUnit)
+        : amount;
     final preferences = context.read<PreferencesStorage>();
     final canReview = preferences.canReviewPayments;
     final canReadPaymentDetails = preferences.canReadAllPayments;
@@ -338,7 +341,7 @@ class _FeesPageState extends State<FeesPage> {
       titleBadge: roleLabel,
       statusBadge: statusBadge,
       statusBadgeColor: statusBadgeColor,
-      subtitle: _feeSubtitle(card, amount, event),
+      subtitle: _feeSubtitle(card, subtitleAmount, event),
       trailing: card.planName ?? 'No plan',
       subtitleColor: color,
       onTap: openDetails,
