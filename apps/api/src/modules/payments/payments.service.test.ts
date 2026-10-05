@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateOutstandingBalance,
   deriveFeeStatus,
+  feeLedgerEntriesForSubscription,
   feeStatusPriority,
   getPeriod,
 } from './payments.service';
@@ -43,6 +44,19 @@ describe('fee period calculation', () => {
       ]),
     ).toBe(6000);
     expect(calculateOutstandingBalance([{ amount_minor_unit: -100 }])).toBe(0);
+  });
+
+  it('does not attach unassigned ledger charges to the latest subscription', () => {
+    const entries = [
+      { subscription_id: null, amount_minor_unit: 110000 },
+      { subscription_id: 'current-subscription', amount_minor_unit: 250000 },
+      { subscription_id: 'current-subscription', amount_minor_unit: -250000 },
+    ];
+    expect(feeLedgerEntriesForSubscription(entries, 'current-subscription')).toEqual([
+      entries[1],
+      entries[2],
+    ]);
+    expect(feeLedgerEntriesForSubscription(entries)).toEqual([entries[0]]);
   });
 
   it('derives urgency and payment states from server-side facts', () => {

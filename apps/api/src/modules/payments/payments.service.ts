@@ -25,6 +25,14 @@ export function calculateOutstandingBalance(entries: Array<{ amount_minor_unit: 
   );
 }
 
+export function feeLedgerEntriesForSubscription<T extends { subscription_id: string | null }>(
+  entries: T[],
+  subscriptionId?: string,
+) {
+  if (subscriptionId) return entries.filter((entry) => entry.subscription_id === subscriptionId);
+  return entries.filter((entry) => entry.subscription_id === null);
+}
+
 export type FeeStatus =
   'PAID' | 'SETTLED' | 'REQUESTED' | 'PENDING' | 'PARTIALLY_PAID' | 'EXPIRING_SOON' | 'EXPIRED';
 
@@ -1511,10 +1519,7 @@ export async function listFees(
       // including an expired one when it is the member's latest record.
       const subscription = member.subscriptions[0];
       const memberLedger = ledgerByMember.get(member.id) ?? [];
-      const relevantEntries = memberLedger.filter(
-        (entry) =>
-          !subscription || !entry.subscription_id || entry.subscription_id === subscription.id,
-      );
+      const relevantEntries = feeLedgerEntriesForSubscription(memberLedger, subscription?.id);
       const totalDue = relevantEntries.reduce((sum, entry) => sum + entry.total_due, 0);
       const balance = Math.max(totalDue, 0);
       const memberRequests = requestsByMember.get(member.id) ?? [];

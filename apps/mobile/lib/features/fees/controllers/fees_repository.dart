@@ -12,11 +12,12 @@ class FeesRepository {
 
   Future<Map<String, dynamic>> _getContext(String branchId, String path,
       {Map<String, dynamic>? query,
+      String? cachePath,
       void Function(Map<String, dynamic> freshData)? onFresh}) async {
     final queryKey = query == null
         ? ''
         : query.entries.map((entry) => '${entry.key}=${entry.value}').join('&');
-    final key = 'branch:$branchId:$path:$queryKey';
+    final key = 'branch:$branchId:${cachePath ?? path}:$queryKey';
     if (cache == null) {
       final response = await apiClient.dio
           .get('/branches/$branchId/$path', queryParameters: query);
@@ -66,7 +67,10 @@ class FeesRepository {
       return cards;
     }
 
+    // v2 prevents stale cached fee cards from showing balances calculated by
+    // the old member-wide/unassigned-ledger aggregation.
     final data = await _getContext(branchId, 'fees',
+        cachePath: 'fees:v2',
         query: {
           'period': period,
           if (from != null) 'from': _dateOnly(from),
