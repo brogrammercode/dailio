@@ -321,6 +321,12 @@ flowchart LR
 - Continue with Google.
 - Open Terms/Privacy only if required.
 
+**Account selection and logout:**
+
+- Every explicit Continue with Google attempt clears the previous Google account selection before opening interactive sign-in, so the user can select another account. Cancelling does not sign the previous account back in.
+- App logout clears the Dailio session and Google's selected-account session. Provider or notification cleanup failure must not prevent local logout; the next explicit login retries the Google reset.
+- Normal app startup restores a valid backend session without opening the Google account chooser.
+
 **Backend behavior:**
 
 - Verify Google token server-side.
@@ -2266,6 +2272,7 @@ QR plan purchase is also supported: the owner/admin creates a permanent purpose-
 ### Auth/onboarding
 
 - Google callback retry cannot duplicate user.
+- After logout, Continue with Google allows a different account; cancelling the chooser cannot reuse the previous account. Valid app sessions still restore without prompting.
 - User can discover/search organization, inspect branches and submit one valid branch join request.
 - Owner creation cannot produce an active ownerless organization.
 - Multi-context switch never leaks previous tenant data.
@@ -2399,6 +2406,7 @@ A feature is complete only when all applicable items are true:
 | 2026-10-05 | Extend the central notification contract to meal operations, settlement concessions, and organization-type changes. Register device tokens through a dedicated authenticated endpoint, replay recent push deliveries skipped only for missing tokens after registration, and version/invalidate mobile caches for meal and notification read models. | Keeps new features tenant- and branch-scoped, makes push delivery resilient to first launch/token rotation, and prevents stale meal or notification screens after mutations. |
 | 2026-10-05 | Meal attendance uses the shared compact attendance-row contract: circular avatar count badge, member/title badge, one-sentence last-punch subtitle, and a right-side date/today summary. Meal configuration uses the shared picker bottom sheet, consistent field spacing, circular settings icons, and the same compact visual language on web. | Keeps meal operations recognizable as attendance/settings instead of introducing a separate visual system. |
 | 2026-10-05 | Meal entitlements are operational access rules: changing a plan's meal inclusion synchronizes the meal-entitlement portion of active, upcoming, paused, and draft subscription snapshots while preserving immutable financial terms, dates, and payment history. | Ensures a saved meal entitlement is usable by current members without rewriting the subscription's financial agreement. |
+| 2026-10-16 | Explicit mobile Google login resets the previous account selection, and logout clears both the Dailio and Google selected-account sessions; normal backend session restoration remains automatic. | Fixes the reported inability to sign in with another account while keeping cancellation and logout cleanup safe. |
 
 ---
 

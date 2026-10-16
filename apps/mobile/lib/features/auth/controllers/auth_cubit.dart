@@ -13,9 +13,34 @@ import '../../../core/error/app_exception.dart';
 @injectable
 class AuthCubit extends Cubit<AuthState> {
   final AuthRepository _repository;
+  GoogleSignIn? _googleSignIn;
 
-  AuthCubit(this._repository) : super(const AuthInitial()) {
+  AuthCubit(this._repository, {@ignoreParam GoogleSignIn? googleSignIn})
+      : _googleSignIn = googleSignIn,
+        super(const AuthInitial()) {
     NotificationRuntime.setTokenSync(_syncFcmToken);
+  }
+
+  GoogleSignIn get _googleClient {
+    if (_googleSignIn != null) return _googleSignIn!;
+
+    final serverClientId = dotenv.env['GOOGLE_SERVER_CLIENT_ID']?.trim();
+    if (serverClientId == null || serverClientId.isEmpty) {
+      throw const AppException(
+        code: 'GOOGLE_NOT_CONFIGURED',
+        message: 'Google sign-in is not configured for this build.',
+      );
+    }
+    return _googleSignIn = GoogleSignIn(serverClientId: serverClientId);
+  }
+
+  Future<void> _signOutGoogle() async {
+    try {
+      await _googleClient.signOut();
+    } catch (_) {
+      // Provider cleanup must not prevent clearing the Dailio session. The
+      // next interactive sign-in retries this reset before choosing an account.
+    }
   }
 
   Future<void> _syncFcmToken(String token) async {
@@ -65,21 +90,11 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> signInWithGoogle() async {
     emit(const AuthLoading());
     try {
-      final serverClientId = dotenv.env['GOOGLE_SERVER_CLIENT_ID']?.trim();
-      if (serverClientId == null || serverClientId.isEmpty) {
-        throw const AppException(
-          code: 'GOOGLE_NOT_CONFIGURED',
-          message: 'Google sign-in is not configured for this build.',
-        );
-      }
-
-      final googleSignIn = GoogleSignIn(
-        serverClientId: serverClientId,
-      );
-
-      // Keep Google's native session intact. Signing out on every attempt
-      // made authentication unreliable on some devices and defeated session
-      // persistence. Account switching can still be done through Google.
+      final googleSignIn = _googleClient;
+      // An explicit login must let the user choose an account, including after
+      // an expired session or failed login. App startup restores Dailio tokens
+      // through checkSession() and does not reset Google's selected account.
+      await googleSignIn.signOut();
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         emit(const AuthUnauthenticated()); // User canceled
@@ -96,6 +111,7 @@ class AuthCubit extends Cubit<AuthState> {
 
       final result = await _repository.signInWithGoogle(idToken);
 
+      NotificationRuntime.setTokenSync(_syncFcmToken);
       // Attempt to register FCM token silently
       try {
         final fcmToken = await NotificationRuntime.getToken();
@@ -145,6 +161,8 @@ class AuthCubit extends Cubit<AuthState> {
     emit(const AuthLoading());
     try {
       await _repository.deleteAccount();
+      NotificationRuntime.clearTokenSync();
+      await _signOutGoogle();
       emit(const AuthUnauthenticated());
     } catch (e) {
       emit(AuthError(accountErrorMessage(
@@ -154,12 +172,17 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> signOut() async {
     emit(const AuthLoading());
+    NotificationRuntime.clearTokenSync();
     try {
-      final token = await NotificationRuntime.getToken();
-      if (token != null) await _repository.unregisterFcmToken(token);
-      NotificationRuntime.clearTokenSync();
+      try {
+        final token = await NotificationRuntime.getToken();
+        if (token != null) await _repository.unregisterFcmToken(token);
+      } catch (_) {
+        // Notification cleanup must not leave the app session signed in.
+      }
       await _repository.signOut();
     } finally {
+      await _signOutGoogle();
       emit(const AuthUnauthenticated());
     }
   }
