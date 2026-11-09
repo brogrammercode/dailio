@@ -14,6 +14,29 @@ void main() {
     root = await Directory.systemTemp.createTemp('dailio-json-cache-test-');
   });
 
+  test(
+      'profile invalidation rejects an in-flight old refresh and notifies mounted pages',
+      () async {
+    final store = JsonCacheStore(directoryProvider: () async => root);
+    final stale = Completer<String>();
+    var calls = 0;
+    var onFreshCalled = false;
+    Future<String> load() => store.load<String>(
+        key: 'member',
+        scope: 'branch:a',
+        decode: (value) => value as String,
+        fetch: () async => ++calls == 1 ? 'original' : stale.future,
+        onFresh: (_) => onFreshCalled = true);
+    await load();
+    await load();
+    await store.invalidateProfiles();
+    stale.complete('old photo');
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    expect(store.profileRevision, 1);
+    expect(await store.read('member'), isNull);
+    expect(onFreshCalled, isFalse);
+  });
+
   tearDown(() async {
     if (await root.exists()) await root.delete(recursive: true);
   });

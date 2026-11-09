@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../features/branch/controllers/members_repository.dart';
+import '../../features/profile/pages/profile_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
@@ -49,7 +50,7 @@ Future<void> showDailioMemberProfileSheet(
     barrierLabel: 'Close profile',
     barrierColor: const Color(0xCC000000),
     transitionDuration: const Duration(milliseconds: 220),
-    pageBuilder: (_, __, ___) => _DailioMemberProfileSurface(
+    pageBuilder: (_, __, ___) => _MemberProfileLoader(
       member: member,
       parentContext: context,
     ),
@@ -58,6 +59,70 @@ Future<void> showDailioMemberProfileSheet(
       child: child,
     ),
   );
+}
+
+class _MemberProfileLoader extends StatefulWidget {
+  const _MemberProfileLoader(
+      {required this.member, required this.parentContext});
+  final DailioMemberPreview member;
+  final BuildContext parentContext;
+  @override
+  State<_MemberProfileLoader> createState() => _MemberProfileLoaderState();
+}
+
+class _MemberProfileLoaderState extends State<_MemberProfileLoader> {
+  late Future<DailioMemberPreview> _profile = _load();
+  Future<DailioMemberPreview> _load() async {
+    final parent = widget.parentContext;
+    final branch = parent.read<PreferencesStorage>().activeBranchId;
+    if (branch == null) throw StateError('No active branch');
+    final response = await parent
+        .read<MembersRepository>()
+        .apiClient
+        .dio
+        .get('/branches/$branch/members/${widget.member.memberId}');
+    final data = response.data['data'] as Map;
+    final user = data['user'] as Map;
+    return DailioMemberPreview(
+        memberId: widget.member.memberId,
+        name: user['name'] as String,
+        phone: user['phone'] as String?,
+        email: user['email'] as String?,
+        avatarUrl: user['avatar_url'] as String?,
+        role: widget.member.role,
+        status: data['status'] as String,
+        membershipNumber: widget.member.membershipNumber,
+        subscriptionLabel: widget.member.subscriptionLabel);
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<DailioMemberPreview>(
+      future: _profile,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return _DailioMemberProfileSurface(
+              member: snapshot.data!, parentContext: widget.parentContext);
+        }
+        return Material(
+            color: const Color(0xFF0B0E12),
+            child: SafeArea(
+                child: Column(children: [
+              Align(
+                  alignment: Alignment.topLeft,
+                  child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white))),
+              Expanded(
+                  child: Center(
+                      child: snapshot.hasError
+                          ? TextButton(
+                              onPressed: () =>
+                                  setState(() => _profile = _load()),
+                              child:
+                                  const Text('Could not load profile. Retry'))
+                          : const CircularProgressIndicator())),
+            ])));
+      });
 }
 
 class _DailioMemberProfileSurface extends StatelessWidget {
@@ -219,11 +284,32 @@ class _DailioMemberProfileSurface extends StatelessWidget {
           label: 'Share profile',
           onTap: _shareProfile,
         ),
-        _profileAction(
-          icon: Iconsax.copy,
-          label: 'Copy link',
-          onTap: _copyProfileLink,
-        ),
+        if (parentContext
+                .read<PreferencesStorage>()
+                .hasPermission('ORG_UPDATE') &&
+            (parentContext
+                    .read<PreferencesStorage>()
+                    .hasPermission('MEMBER_UPDATE_BRANCH') ||
+                parentContext
+                    .read<PreferencesStorage>()
+                    .hasPermission('MEMBER_UPDATE') ||
+                parentContext
+                    .read<PreferencesStorage>()
+                    .hasPermission('MEMBER_UPDATE_ALL')))
+          _profileAction(
+            icon: Iconsax.edit,
+            label: 'Edit profile',
+            enabled: member.memberId.isNotEmpty,
+            onTap: () {
+              final branchId =
+                  parentContext.read<PreferencesStorage>().activeBranchId;
+              if (branchId == null || member.memberId.isEmpty) return;
+              Navigator.of(context).pop();
+              Navigator.of(parentContext).push(MaterialPageRoute<void>(
+                  builder: (_) => ProfilePage(
+                      memberId: member.memberId, branchId: branchId)));
+            },
+          ),
         _profileAction(
           icon: Iconsax.scan_barcode,
           label: 'QR code',
@@ -360,13 +446,6 @@ class _DailioMemberProfileSurface extends StatelessWidget {
         : member.memberId;
     await Share.share(
         'Dailio member profile: ${member.name}\nMember ID: $identity');
-  }
-
-  Future<void> _copyProfileLink() async {
-    await Clipboard.setData(
-      ClipboardData(text: 'dailio://member/${member.memberId}'),
-    );
-    if (parentContext.mounted) _message('Profile link copied.');
   }
 
   void _showQr(BuildContext context) {

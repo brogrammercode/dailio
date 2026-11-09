@@ -83,7 +83,11 @@ export async function searchMealMembers(organizationId: string, branchId: string
           }
         : {}),
     },
-    select: { id: true, member_number: true, user: { select: { name: true, avatar_url: true } } },
+    select: {
+      id: true,
+      member_number: true,
+      user: { select: { id: true, name: true, avatar_url: true } },
+    },
     orderBy: { created_at: 'asc' },
     take: 30,
   });
@@ -255,8 +259,7 @@ export async function setEntitlement(
           target_type: 'Subscription',
           target_id: subscription.id,
           before_state: {
-            meal_entitlements:
-              (snapshot as Prisma.JsonObject).meal_entitlements ?? null,
+            meal_entitlements: (snapshot as Prisma.JsonObject).meal_entitlements ?? null,
           },
           after_state: { meal_entitlements: mealEntitlements },
           reason: 'Meal entitlement configuration synchronized',
@@ -652,7 +655,7 @@ export async function listMealServings(
       where,
       include: {
         meal_slot: { select: { code: true, name: true } },
-        member: { select: { user: { select: { name: true } }, member_number: true } },
+        member: { select: { user: { select: { id: true, name: true } }, member_number: true } },
       },
       orderBy: [{ served_at: 'desc' }, { id: 'desc' }],
       skip: (query.page - 1) * query.limit,

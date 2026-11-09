@@ -2,6 +2,13 @@ import '../../../core/network/api_client.dart';
 import '../../../core/storage/json_cache_store.dart';
 
 class MembersRepository {
+  Future<Map<String, dynamic>> loadProfile(
+      String branchId, String memberId) async {
+    final response =
+        await apiClient.dio.get('/branches/$branchId/members/$memberId');
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
   final ApiClient apiClient;
   final JsonCacheStore? cache;
 
@@ -101,6 +108,14 @@ class MembersRepository {
       data: data,
     );
     await cache?.clearScope('branch:$branchId');
+  }
+
+  Future<Map<String, dynamic>> updateProfile(
+      String branchId, String memberId, Map<String, dynamic> data) async {
+    final response = await apiClient.dio
+        .patch('/branches/$branchId/members/$memberId/profile', data: data);
+    await cache?.invalidateProfiles();
+    return Map<String, dynamic>.from(response.data['data'] as Map);
   }
 
   Future<Map<String, dynamic>> listOrganizationMembers(String orgId,

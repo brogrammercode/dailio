@@ -1,5 +1,6 @@
 import { ulid } from 'ulid';
 
+import { imageUploadTransformation } from '../../lib/image-upload-policy';
 import { prisma } from '../../lib/prisma';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../lib/errors';
 import { cloudinary, getUploadSignature } from '../../lib/cloudinary';
@@ -136,6 +137,7 @@ async function materializeFeedContent(
         ? block.media_base64
         : `data:image/jpeg;base64,${block.media_base64}`;
       const uploaded = await cloudinary.uploader.upload(source, {
+        transformation: imageUploadTransformation,
         folder,
         public_id: publicId,
         type: 'authenticated',

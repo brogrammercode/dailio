@@ -14,6 +14,7 @@ import '../../../core/widgets/dailio_picker_field.dart';
 import '../../context_selection/controllers/branch_repository.dart';
 import '../controllers/fees_repository.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/media/image_upload_policy.dart';
 
 class SubscriptionPurchasePage extends StatefulWidget {
   final Map<String, dynamic> invite;
@@ -405,8 +406,8 @@ class _SubscriptionPurchasePageState extends State<SubscriptionPurchasePage> {
       '$currency ${(minor / 100).toStringAsFixed(2)}';
 
   Future<void> _pickEvidence() async {
-    final picked = await ImagePicker()
-        .pickImage(source: ImageSource.gallery, imageQuality: 85);
+    final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery, imageQuality: imageUploadQuality);
     if (picked != null && mounted) setState(() => _evidenceFile = picked);
   }
 

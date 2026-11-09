@@ -13,6 +13,7 @@ import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import 'attendance_detail_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/media/image_upload_policy.dart';
 
 List<String> gateAttendanceRequirementLabels(
   Map<String, dynamic> policy, {
@@ -110,6 +111,7 @@ class _GateAttendancePageState extends State<GateAttendancePage> {
     if (!_requiresSelfie) return {};
     final file = await ImagePicker().pickImage(
       source: ImageSource.camera,
+      imageQuality: imageUploadQuality,
       preferredCameraDevice: CameraDevice.front,
     );
     if (file == null) throw Exception('A live selfie is required to continue.');

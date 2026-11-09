@@ -9,6 +9,28 @@ import {
   UpdateMemberSchema,
 } from './members.schema';
 import * as membersService from './members.service';
+import { MemberProfileSchema, updateOrganizationMemberProfile } from './member-profile.service';
+
+export async function updateProfile(req: Request, res: Response, next: NextFunction) {
+  try {
+    await updateOrganizationMemberProfile(
+      req.user!.id,
+      req.organization!.id,
+      req.branch!.id,
+      req.params.member_id,
+      MemberProfileSchema.parse(req.body),
+    );
+    res.json({
+      data: await membersService.getMemberDetail(
+        req.organization!.id,
+        req.branch!.id,
+        req.params.member_id,
+      ),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function listMembers(req: Request, res: Response, next: NextFunction) {
   try {

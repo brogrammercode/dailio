@@ -31,6 +31,7 @@ import '../../features/meals/pages/meals_page.dart';
 import '../../features/holidays/pages/leaves_holiday_page.dart';
 
 import '../../features/profile/pages/profile_page.dart';
+import '../widgets/profile_read_model_boundary.dart';
 import '../../features/notifications/pages/notifications_page.dart';
 import '../../features/announcements/pages/announcements_page.dart';
 import '../../features/feeds/pages/feed_pages.dart';
@@ -116,13 +117,15 @@ GoRouter buildRouter(
       // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Member routes ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
       GoRoute(
         path: AppRoutes.members,
-        builder: (_, __) => const MembersPage(),
+        builder: (_, __) =>
+            const ProfileReadModelBoundary(child: MembersPage()),
       ),
       GoRoute(
         path: AppRoutes.memberDetail,
-        builder: (_, state) => MemberDetailPage(
+        builder: (_, state) => ProfileReadModelBoundary(
+            child: MemberDetailPage(
           membershipId: state.pathParameters['memberId']!,
-        ),
+        )),
       ),
       GoRoute(
         path: AppRoutes.joinRequests,
@@ -165,7 +168,7 @@ GoRouter buildRouter(
       ),
       GoRoute(
         path: AppRoutes.meals,
-        builder: (_, __) => const MealsPage(),
+        builder: (_, __) => const ProfileReadModelBoundary(child: MealsPage()),
       ),
       GoRoute(
         path: AppRoutes.shiftManagement,
@@ -198,11 +201,13 @@ GoRouter buildRouter(
       ),
       GoRoute(
         path: AppRoutes.notifications,
-        builder: (_, __) => const NotificationsPage(),
+        builder: (_, __) =>
+            const ProfileReadModelBoundary(child: NotificationsPage()),
       ),
       GoRoute(
         path: AppRoutes.announcements,
-        builder: (_, __) => const AnnouncementsPage(),
+        builder: (_, __) =>
+            const ProfileReadModelBoundary(child: AnnouncementsPage()),
       ),
       GoRoute(
         path: AppRoutes.announcementCreate,
@@ -216,9 +221,10 @@ GoRouter buildRouter(
       ),
       GoRoute(
         path: AppRoutes.announcementDetail,
-        builder: (_, state) => AnnouncementDetailPage(
+        builder: (_, state) => ProfileReadModelBoundary(
+            child: AnnouncementDetailPage(
           announcementId: state.pathParameters['announcementId']!,
-        ),
+        )),
       ),
       GoRoute(
         path: AppRoutes.feedCreate,
@@ -239,10 +245,11 @@ GoRouter buildRouter(
       ),
       GoRoute(
         path: AppRoutes.feedPostDetail,
-        builder: (_, state) => FeedPostDetailPage(
+        builder: (_, state) => ProfileReadModelBoundary(
+            child: FeedPostDetailPage(
           feedId: state.pathParameters['feedId']!,
           postId: state.pathParameters['postId']!,
-        ),
+        )),
       ),
     ],
   );

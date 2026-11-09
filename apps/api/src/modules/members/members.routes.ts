@@ -12,9 +12,18 @@ import {
   deactivate,
   update,
   getOrganizationMembers,
+  updateProfile,
 } from './members.controller';
 
 const router: Router = Router();
+router.patch(
+  '/branches/:branch_id/members/:member_id/profile',
+  authenticate,
+  resolveTenantContext,
+  requirePermission('ORG_UPDATE'),
+  requireAnyPermission('MEMBER_UPDATE_BRANCH', 'MEMBER_UPDATE', 'MEMBER_UPDATE_ALL'),
+  updateProfile,
+);
 
 router.get(
   '/organizations/:organization_id/members',

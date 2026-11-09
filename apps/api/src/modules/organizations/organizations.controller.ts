@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 
+import { imageUploadTransformation } from '../../lib/image-upload-policy';
 import { cloudinary } from '../../lib/cloudinary';
 
 import {
@@ -24,6 +25,7 @@ export async function createOrganization(req: Request, res: Response, next: Next
 
     if (logo_base64) {
       const uploadResult = await cloudinary.uploader.upload(logo_base64, {
+        transformation: imageUploadTransformation,
         folder: 'organizations/logos',
       });
       logo_url = uploadResult.secure_url;
@@ -67,6 +69,7 @@ export async function updateOrganization(req: Request, res: Response, next: Next
 
     if (logo_base64) {
       const uploadResult = await cloudinary.uploader.upload(logo_base64, {
+        transformation: imageUploadTransformation,
         folder: 'organizations/logos',
       });
       logo_url = uploadResult.secure_url;

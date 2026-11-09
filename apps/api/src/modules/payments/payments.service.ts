@@ -1399,7 +1399,7 @@ export async function listFees(
     select: {
       id: true,
       member_number: true,
-      user: { select: { name: true, avatar_url: true } },
+      user: { select: { id: true, name: true, avatar_url: true } },
       role: { select: { name: true } },
       subscriptions: {
         where: { status: { not: 'CANCELLED' } },

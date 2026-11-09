@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { StateCard } from "../feedback/StateCard";
+import { IMAGE_UPLOAD_QUALITY } from "../../lib/image-upload";
 
 export function SelfieCapture({
   onCapture,
@@ -62,7 +63,7 @@ export function SelfieCapture({
           );
       },
       "image/jpeg",
-      0.86,
+      IMAGE_UPLOAD_QUALITY,
     );
   }
   if (error)

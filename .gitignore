@@ -70,6 +70,8 @@ Thumbs.db
 !apps/api/prisma/migrations/20261004173000_meal_servings_and_settlement_waivers/migration.sql
 !apps/api/prisma/migrations/20261005180000_sync_meal_entitlements_to_active_subscriptions/migration.sql
 
+!apps/api/prisma/migrations/20261109120000_organization_member_profiles/migration.sql
+
 # Docker volumes
 .postgres-data/
 .redis-data/

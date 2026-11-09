@@ -11,6 +11,7 @@ import '../../../core/widgets/dailio_picker_field.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../models/create_organization_models.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/media/image_upload_policy.dart';
 
 class CreateOrganizationPage extends StatefulWidget {
   const CreateOrganizationPage({super.key});
@@ -35,7 +36,7 @@ class _CreateOrganizationPageState extends State<CreateOrganizationPage> {
         source: ImageSource.gallery,
         maxWidth: 512.r,
         maxHeight: 512.r,
-        imageQuality: 80);
+        imageQuality: imageUploadQuality);
     if (file == null) return;
     final bytes = await file.readAsBytes();
     setState(

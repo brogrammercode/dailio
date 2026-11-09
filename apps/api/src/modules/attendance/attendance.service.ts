@@ -728,7 +728,7 @@ export async function purgeExpiredAttendanceEvidence(batchSize = 100) {
  */
 export async function reviewOpenAttendanceSessions(batchSize = 500) {
   const sessions = await prisma.attendanceSession.findMany({
-    where: { state: 'OPEN' },
+    where: { state: 'OPEN', clock_out_at: null, member: { status: 'ACTIVE' } },
     take: batchSize,
     select: {
       id: true,
@@ -747,7 +747,7 @@ export async function reviewOpenAttendanceSessions(batchSize = 500) {
     if (!session.member) continue;
     const policy = (session.policy_snapshot as Record<string, unknown> | null) ?? {};
     const maxHours = Number(policy.max_open_session_hours ?? 24);
-    if (maxHours <= 0) continue;
+    if (!Number.isFinite(maxHours) || maxHours <= 0) continue;
     const elapsedHours = (now - session.clock_in_at.getTime()) / (60 * 60 * 1000);
     if (elapsedHours <= maxHours) continue;
 

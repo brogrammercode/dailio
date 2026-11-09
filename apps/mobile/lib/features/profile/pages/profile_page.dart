@@ -10,12 +10,17 @@ import 'package:image_picker/image_picker.dart';
 import '../../auth/controllers/auth_cubit.dart';
 import '../../auth/controllers/auth_state.dart';
 import '../../auth/models/user_model.dart';
+import '../../branch/controllers/members_repository.dart';
+import '../../../core/error/app_exception.dart';
 import '../../../core/widgets/dailio_overflow_menu.dart';
 import '../../../core/widgets/dailio_simple_app_bar.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/media/image_upload_policy.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  const ProfilePage({super.key, this.memberId, this.branchId});
+  final String? memberId;
+  final String? branchId;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -27,6 +32,29 @@ class _ProfilePageState extends State<ProfilePage> {
 
   File? _pickedImage;
   bool _isSubmitting = false;
+  UserModel? _memberUser;
+  bool _loadingMember = false;
+  bool _memberLoadFailed = false;
+
+  Future<void> _loadMember() async {
+    setState(() {
+      _loadingMember = true;
+      _memberLoadFailed = false;
+    });
+    try {
+      final result = await context
+          .read<MembersRepository>()
+          .loadProfile(widget.branchId!, widget.memberId!);
+      if (!mounted) return;
+      _memberUser = UserModel.fromJson(
+          Map<String, dynamic>.from((result['data'] as Map)['user'] as Map));
+      _initFromUser(_memberUser!);
+    } catch (_) {
+      if (mounted) setState(() => _memberLoadFailed = true);
+    } finally {
+      if (mounted) setState(() => _loadingMember = false);
+    }
+  }
 
   // Track original values so we can show/hide save buttons
   String _originalName = '';
@@ -48,6 +76,10 @@ class _ProfilePageState extends State<ProfilePage> {
     _phoneCtrl.addListener(_onFieldChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.memberId != null) {
+        _loadMember();
+        return;
+      }
       final state = context.read<AuthCubit>().state;
       if (state is AuthAuthenticated) {
         _initFromUser(state.user);
@@ -78,7 +110,7 @@ class _ProfilePageState extends State<ProfilePage> {
       source: ImageSource.gallery,
       maxWidth: 800.r,
       maxHeight: 800.r,
-      imageQuality: 80,
+      imageQuality: imageUploadQuality,
     );
     if (picked != null) {
       setState(() => _pickedImage = File(picked.path));
@@ -106,21 +138,38 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => _isSubmitting = true);
 
     String? avatarBase64;
-    if (_pickedImage != null) {
-      final bytes = await _pickedImage!.readAsBytes();
-      final ext = _pickedImage!.path.split('.').last.toLowerCase();
-      final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
-      avatarBase64 = 'data:$mime;base64,${base64Encode(bytes)}';
-    }
-
     try {
+      if (_pickedImage != null) {
+        final bytes = await _pickedImage!.readAsBytes();
+        final ext = _pickedImage!.path.split('.').last.toLowerCase();
+        final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
+        avatarBase64 = 'data:$mime;base64,${base64Encode(bytes)}';
+      }
+
       if (!mounted) return;
-      final cubit = context.read<AuthCubit>();
-      await cubit.updateProfile(
-        name: name != _originalName ? name : null,
-        phone: phone != _originalPhone ? phone : null,
-        avatarBase64: avatarBase64,
-      );
+      if (widget.memberId != null) {
+        final result = await context
+            .read<MembersRepository>()
+            .updateProfile(widget.branchId!, widget.memberId!, {
+          if (name != _originalName) 'name': name,
+          if (phone != _originalPhone) 'phone': phone,
+          if (avatarBase64 != null) 'avatar_base64': avatarBase64,
+        });
+        _memberUser = UserModel.fromJson(
+            Map<String, dynamic>.from(result['user'] as Map));
+      } else {
+        final cubit = context.read<AuthCubit>();
+        await cubit.updateProfile(
+          name: name != _originalName ? name : null,
+          phone: phone != _originalPhone ? phone : null,
+          avatarBase64: avatarBase64,
+        );
+        if (cubit.state is AuthError) {
+          throw AppException(
+              code: 'PROFILE_UPDATE_FAILED',
+              message: (cubit.state as AuthError).message);
+        }
+      }
       if (mounted) {
         // Re-sync originals so dirty detection resets
         _originalName = name;
@@ -139,7 +188,9 @@ class _ProfilePageState extends State<ProfilePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update profile: $e'),
+            content: Text(e is AppException
+                ? e.message
+                : 'Could not update this profile. Please try again.'),
             backgroundColor: Colors.red.shade600,
             behavior: SnackBarBehavior.floating,
           ),
@@ -155,13 +206,19 @@ class _ProfilePageState extends State<ProfilePage> {
     return BlocListener<AuthCubit, AuthState>(
       listenWhen: (prev, curr) => curr is AuthAuthenticated,
       listener: (context, state) {
-        if (state is AuthAuthenticated && _originalName.isEmpty) {
+        if (widget.memberId == null &&
+            state is AuthAuthenticated &&
+            _originalName.isEmpty) {
           _initFromUser(state.user);
         }
       },
       child: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, state) {
-          final user = state is AuthAuthenticated ? state.user : null;
+          final user = widget.memberId != null
+              ? _memberUser
+              : state is AuthAuthenticated
+                  ? state.user
+                  : null;
 
           return Scaffold(
             backgroundColor: Colors.white,
@@ -182,290 +239,335 @@ class _ProfilePageState extends State<ProfilePage> {
               },
             ),
             body: SafeArea(
-              child: Stack(
-                children: [
-                  ListView(
-                    padding: EdgeInsets.fromLTRB(
-                      24.r,
-                      16.r,
-                      24.r,
-                      _isDirty ? 140.r : 40.r,
-                    ),
-                    children: [
-                      //  Avatar
-                      Center(
-                        child: Column(
+              child: _loadingMember
+                  ? const Center(child: CircularProgressIndicator())
+                  : _memberLoadFailed
+                      ? Center(
+                          child: TextButton(
+                              onPressed: _loadMember,
+                              child:
+                                  const Text('Could not load profile. Retry')))
+                      : Stack(
                           children: [
-                            GestureDetector(
-                              onTap: _pickImage,
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.all(3.r),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: _pickedImage != null
-                                            ? Colors.orange.shade300
-                                            : Colors.grey.shade200,
-                                        width: 2.r,
-                                      ),
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: 44.r,
-                                      backgroundColor: Colors.orange.shade50,
-                                      backgroundImage: _pickedImage != null
-                                          ? FileImage(_pickedImage!)
-                                          : (user?.avatarUrl != null
-                                              ? NetworkImage(user!.avatarUrl!)
-                                                  as ImageProvider
-                                              : null),
-                                      child: (_pickedImage == null &&
-                                              user?.avatarUrl == null)
-                                          ? Text(
-                                              user != null &&
-                                                      user.name.isNotEmpty
-                                                  ? user.name[0].toUpperCase()
-                                                  : '?',
-                                              style: TextStyle(
-                                                fontSize: 28.r,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.orange.shade700,
-                                              ),
-                                            )
-                                          : null,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 0,
-                                    child: Container(
-                                      padding: EdgeInsets.all(2.r),
-                                      decoration: const BoxDecoration(
-                                          color: Colors.white,
-                                          shape: BoxShape.circle),
-                                      child: CircleAvatar(
-                                        radius: 14.r,
-                                        backgroundColor: Colors.orange.shade700,
-                                        child: Icon(Iconsax.camera,
-                                            size: 14.r, color: Colors.white),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            ListView(
+                              padding: EdgeInsets.fromLTRB(
+                                24.r,
+                                16.r,
+                                24.r,
+                                _isDirty ? 140.r : 40.r,
                               ),
-                            ),
-                            SizedBox(height: 10.r),
-                            TextButton(
-                              onPressed: _pickImage,
-                              child: Text(
-                                _pickedImage != null
-                                    ? 'Photo selected  tap to change'
-                                    : 'Change profile photo',
-                                style: TextStyle(
-                                    fontSize: 12.r,
-                                    color: Colors.orange.shade800,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                            Text('JPG or PNG  Max 5 MB',
-                                style: TextStyle(
-                                    fontSize: 10.r, color: Colors.grey)),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 24.r),
-
-                      //  Google Account Badge
-                      Container(
-                        padding: EdgeInsets.all(14.r),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(color: Colors.orange.shade100),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(8.r),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.shade50,
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: Icon(Iconsax.shield_tick,
-                                  color: Colors.orange, size: 18.r),
-                            ),
-                            SizedBox(width: 12.r),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
+                              children: [
+                                //  Avatar
+                                Center(
+                                  child: Column(
                                     children: [
-                                      Text('Google Verified Account',
+                                      GestureDetector(
+                                        onTap: _pickImage,
+                                        child: Stack(
+                                          children: [
+                                            Container(
+                                              padding: EdgeInsets.all(3.r),
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: _pickedImage != null
+                                                      ? Colors.orange.shade300
+                                                      : Colors.grey.shade200,
+                                                  width: 2.r,
+                                                ),
+                                              ),
+                                              child: CircleAvatar(
+                                                radius: 44.r,
+                                                backgroundColor:
+                                                    Colors.orange.shade50,
+                                                backgroundImage: _pickedImage !=
+                                                        null
+                                                    ? FileImage(_pickedImage!)
+                                                    : (user?.avatarUrl != null
+                                                        ? NetworkImage(user!
+                                                                .avatarUrl!)
+                                                            as ImageProvider
+                                                        : null),
+                                                child: (_pickedImage == null &&
+                                                        user?.avatarUrl == null)
+                                                    ? Text(
+                                                        user != null &&
+                                                                user.name
+                                                                    .isNotEmpty
+                                                            ? user.name[0]
+                                                                .toUpperCase()
+                                                            : '?',
+                                                        style: TextStyle(
+                                                          fontSize: 28.r,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Colors
+                                                              .orange.shade700,
+                                                        ),
+                                                      )
+                                                    : null,
+                                              ),
+                                            ),
+                                            Positioned(
+                                              bottom: 0,
+                                              right: 0,
+                                              child: Container(
+                                                padding: EdgeInsets.all(2.r),
+                                                decoration: const BoxDecoration(
+                                                    color: Colors.white,
+                                                    shape: BoxShape.circle),
+                                                child: CircleAvatar(
+                                                  radius: 14.r,
+                                                  backgroundColor:
+                                                      Colors.orange.shade700,
+                                                  child: Icon(Iconsax.camera,
+                                                      size: 14.r,
+                                                      color: Colors.white),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(height: 10.r),
+                                      TextButton(
+                                        onPressed: _pickImage,
+                                        child: Text(
+                                          _pickedImage != null
+                                              ? 'Photo selected  tap to change'
+                                              : 'Change profile photo',
                                           style: TextStyle(
                                               fontSize: 12.r,
-                                              fontWeight: FontWeight.bold)),
-                                      SizedBox(width: 4.r),
-                                      Icon(Iconsax.verify,
-                                          size: 12.r, color: Colors.green),
+                                              color: Colors.orange.shade800,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                      Text('JPG or PNG  Max 5 MB',
+                                          style: TextStyle(
+                                              fontSize: 10.r,
+                                              color: Colors.grey)),
                                     ],
                                   ),
+                                ),
+                                SizedBox(height: 24.r),
+
+                                //  Google Account Badge
+                                Container(
+                                  padding: EdgeInsets.all(14.r),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
+                                        color: Colors.orange.shade100),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(8.r),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.shade50,
+                                          borderRadius:
+                                              BorderRadius.circular(8.r),
+                                        ),
+                                        child: Icon(Iconsax.shield_tick,
+                                            color: Colors.orange, size: 18.r),
+                                      ),
+                                      SizedBox(width: 12.r),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Text(
+                                                    widget.memberId != null
+                                                        ? 'Organization profile'
+                                                        : 'Google Verified Account',
+                                                    style: TextStyle(
+                                                        fontSize: 12.r,
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                SizedBox(width: 4.r),
+                                                Icon(Iconsax.verify,
+                                                    size: 12.r,
+                                                    color: Colors.green),
+                                              ],
+                                            ),
+                                            Text(
+                                              user?.email ?? 'No email linked',
+                                              style: TextStyle(
+                                                  fontSize: 11.r,
+                                                  color: Colors.grey),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(width: 8.r),
+                                      Container(
+                                        padding: EdgeInsets.all(6.r),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade100,
+                                          borderRadius:
+                                              BorderRadius.circular(6.r),
+                                        ),
+                                        child: Icon(Iconsax.lock,
+                                            size: 14.r, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: 28.r),
+
+                                //  Identity Fields
+                                _buildSectionHeader('Identity', 'REQUIRED'),
+                                SizedBox(height: 14.r),
+                                _buildFieldLabel('Full Name'),
+                                _buildTextField(
+                                  controller: _nameCtrl,
+                                  hint: 'Your full name',
+                                  icon: Iconsax.user,
+                                ),
+                                SizedBox(height: 14.r),
+                                _buildFieldLabel('Phone Number'),
+                                _buildTextField(
+                                  controller: _phoneCtrl,
+                                  hint: 'e.g. +91 98765 43210',
+                                  icon: Iconsax.call,
+                                  keyboardType: TextInputType.phone,
+                                  suffixWidget: user?.phone != null
+                                      ? _buildBadge('Saved',
+                                          Colors.green.shade50, Colors.green)
+                                      : null,
+                                ),
+                                SizedBox(height: 28.r),
+
+                                // Notification preferences belong only to the signed-in user.
+                                if (widget.memberId == null) ...[
+                                  _buildSectionHeader(
+                                      'Notifications & Privacy', null),
+                                  SizedBox(height: 6.r),
                                   Text(
-                                    user?.email ?? 'No email linked',
+                                    'Choose which operational updates are sent to your registered devices.',
                                     style: TextStyle(
                                         fontSize: 11.r, color: Colors.grey),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  SizedBox(height: 14.r),
+                                  _buildNotificationTile(
+                                    Iconsax.receipt,
+                                    'Punch confirmation alerts',
+                                    'Instant receipt on geotagged shifts',
+                                  ),
+                                  SizedBox(height: 8.r),
+                                  _buildNotificationTile(
+                                    Iconsax.user_add,
+                                    'Join request alerts',
+                                    'Real-time alerts for new member requests',
+                                  ),
+                                  SizedBox(height: 8.r),
+                                  _buildNotificationTile(
+                                    Iconsax.clock,
+                                    'Shift & schedule updates',
+                                    'Roster swaps and time-slot revisions',
                                   ),
                                 ],
-                              ),
+                              ],
                             ),
-                            SizedBox(width: 8.r),
-                            Container(
-                              padding: EdgeInsets.all(6.r),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(6.r),
+
+                            //  Save / Discard bar (only when dirty)
+                            if (_isDirty)
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: EdgeInsets.fromLTRB(
+                                      24.r, 14.r, 24.r, 28.r),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.06),
+                                        blurRadius: 16.r,
+                                        offset: Offset(0, (-4).r),
+                                      )
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ElevatedButton.icon(
+                                        onPressed: _isSubmitting
+                                            ? null
+                                            : () => user != null
+                                                ? _save(user)
+                                                : null,
+                                        icon: _isSubmitting
+                                            ? SizedBox(
+                                                width: 16.r,
+                                                height: 16.r,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                        strokeWidth: 2.r,
+                                                        color: Colors.white),
+                                              )
+                                            : Icon(Iconsax.save_2, size: 16.r),
+                                        label: Text(
+                                          _isSubmitting
+                                              ? 'Saving...'
+                                              : 'Save Profile Changes',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13.r),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              Colors.orange.shade700,
+                                          foregroundColor: Colors.white,
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: 14.r),
+                                          minimumSize:
+                                              const Size(double.infinity, 0),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12.r)),
+                                        ),
+                                      ),
+                                      SizedBox(height: 8.r),
+                                      OutlinedButton(
+                                        onPressed: _isSubmitting
+                                            ? null
+                                            : () => user != null
+                                                ? _discardChanges(user)
+                                                : null,
+                                        style: OutlinedButton.styleFrom(
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: 14.r),
+                                          minimumSize:
+                                              const Size(double.infinity, 0),
+                                          side: BorderSide(
+                                              color: Colors.grey.shade300),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12.r)),
+                                        ),
+                                        child: Text(
+                                          'Discard Changes',
+                                          style: TextStyle(
+                                              color: Colors.grey,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13.r),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                              child: Icon(Iconsax.lock,
-                                  size: 14.r, color: Colors.grey),
-                            ),
                           ],
                         ),
-                      ),
-                      SizedBox(height: 28.r),
-
-                      //  Identity Fields
-                      _buildSectionHeader('Identity', 'REQUIRED'),
-                      SizedBox(height: 14.r),
-                      _buildFieldLabel('Full Name'),
-                      _buildTextField(
-                        controller: _nameCtrl,
-                        hint: 'Your full name',
-                        icon: Iconsax.user,
-                      ),
-                      SizedBox(height: 14.r),
-                      _buildFieldLabel('Phone Number'),
-                      _buildTextField(
-                        controller: _phoneCtrl,
-                        hint: 'e.g. +91 98765 43210',
-                        icon: Iconsax.call,
-                        keyboardType: TextInputType.phone,
-                        suffixWidget: user?.phone != null
-                            ? _buildBadge(
-                                'Saved', Colors.green.shade50, Colors.green)
-                            : null,
-                      ),
-                      SizedBox(height: 28.r),
-
-                      //  Notification Preferences
-                      _buildSectionHeader('Notifications & Privacy', null),
-                      SizedBox(height: 6.r),
-                      Text(
-                        'Choose which operational updates are sent to your registered devices.',
-                        style: TextStyle(fontSize: 11.r, color: Colors.grey),
-                      ),
-                      SizedBox(height: 14.r),
-                      _buildNotificationTile(
-                        Iconsax.receipt,
-                        'Punch confirmation alerts',
-                        'Instant receipt on geotagged shifts',
-                      ),
-                      SizedBox(height: 8.r),
-                      _buildNotificationTile(
-                        Iconsax.user_add,
-                        'Join request alerts',
-                        'Real-time alerts for new member requests',
-                      ),
-                      SizedBox(height: 8.r),
-                      _buildNotificationTile(
-                        Iconsax.clock,
-                        'Shift & schedule updates',
-                        'Roster swaps and time-slot revisions',
-                      ),
-                    ],
-                  ),
-
-                  //  Save / Discard bar (only when dirty)
-                  if (_isDirty)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        padding: EdgeInsets.fromLTRB(24.r, 14.r, 24.r, 28.r),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.06),
-                              blurRadius: 16.r,
-                              offset: Offset(0, (-4).r),
-                            )
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ElevatedButton.icon(
-                              onPressed: _isSubmitting
-                                  ? null
-                                  : () => user != null ? _save(user) : null,
-                              icon: _isSubmitting
-                                  ? SizedBox(
-                                      width: 16.r,
-                                      height: 16.r,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2.r,
-                                          color: Colors.white),
-                                    )
-                                  : Icon(Iconsax.save_2, size: 16.r),
-                              label: Text(
-                                _isSubmitting
-                                    ? 'Saving...'
-                                    : 'Save Profile Changes',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13.r),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange.shade700,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(vertical: 14.r),
-                                minimumSize: const Size(double.infinity, 0),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.r)),
-                              ),
-                            ),
-                            SizedBox(height: 8.r),
-                            OutlinedButton(
-                              onPressed: _isSubmitting
-                                  ? null
-                                  : () => user != null
-                                      ? _discardChanges(user)
-                                      : null,
-                              style: OutlinedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 14.r),
-                                minimumSize: const Size(double.infinity, 0),
-                                side: BorderSide(color: Colors.grey.shade300),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.r)),
-                              ),
-                              child: Text(
-                                'Discard Changes',
-                                style: TextStyle(
-                                    color: Colors.grey,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13.r),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
             ),
           );
         },

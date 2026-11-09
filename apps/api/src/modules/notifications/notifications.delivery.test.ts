@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const prismaMock = vi.hoisted(() => ({
   user: { findMany: vi.fn(), findUnique: vi.fn() },
   notification: { upsert: vi.fn() },
+  attendanceSession: { findFirst: vi.fn() },
   notificationDelivery: { findMany: vi.fn(), upsert: vi.fn(), update: vi.fn() },
 }));
 
@@ -21,6 +22,62 @@ vi.mock('./email.service', () => ({
 import { notify, retryPendingPushDeliveriesForUser } from './notifications.service';
 
 describe('central notification delivery', () => {
+  const reminder = {
+    type: 'ATTENDANCE_MISSING_CLOCK_OUT',
+    organizationId: 'org-a',
+    branchId: 'branch-a',
+    entityId: 'session-a',
+    recipientUserIds: ['user-a'],
+    title: 'Clock-out reminder',
+    body: 'Open session',
+    dedupeKey: 'reminder-a',
+  };
+
+  it('suppresses resolved, inactive, or cross-tenant reminder targets before inbox creation', async () => {
+    prismaMock.user.findMany.mockResolvedValue([{ id: 'user-a' }]);
+    prismaMock.attendanceSession.findFirst.mockResolvedValue(null);
+    expect(await notify(reminder)).toEqual({ created: 0, skipped: 1 });
+    expect(prismaMock.notification.upsert).not.toHaveBeenCalled();
+    expect(prismaMock.attendanceSession.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organization_id: 'org-a',
+          branch_id: 'branch-a',
+          state: 'OPEN',
+          clock_out_at: null,
+          member: {
+            user_id: 'user-a',
+            status: 'ACTIVE',
+            organization_id: 'org-a',
+            branch_id: 'branch-a',
+          },
+        }),
+      }),
+    );
+  });
+
+  it('rejects non-finite policy durations instead of issuing false reminders', async () => {
+    prismaMock.attendanceSession.findFirst.mockResolvedValue({
+      clock_in_at: new Date(0),
+      policy_snapshot: { max_open_session_hours: 'invalid' },
+    });
+    expect(await notify(reminder)).toEqual({ created: 0, skipped: 1 });
+    expect(sendPushMock).not.toHaveBeenCalled();
+  });
+
+  it('revalidates the session before external delivery after the inbox record is created', async () => {
+    prismaMock.attendanceSession.findFirst
+      .mockResolvedValueOnce({ clock_in_at: new Date(0), policy_snapshot: null })
+      .mockResolvedValue(null);
+    await notify(reminder);
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+    expect(prismaMock.notificationDelivery.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ last_error_code: 'ATTENDANCE_REMINDER_RESOLVED' }),
+      }),
+    );
+  });
   beforeEach(() => {
     vi.resetAllMocks();
     prismaMock.user.findMany.mockResolvedValue([
@@ -43,6 +100,51 @@ describe('central notification delivery', () => {
     sendEmailMock.mockResolvedValue({ messageId: 'email-message-a' });
     emailConfiguredMock.mockReturnValue(true);
     prismaMock.user.findUnique.mockResolvedValue(null);
+  });
+
+  it('still delivers a genuinely overdue active session', async () => {
+    prismaMock.attendanceSession.findFirst.mockResolvedValue({
+      clock_in_at: new Date(0),
+      policy_snapshot: { max_open_session_hours: 24 },
+    });
+    await notify(reminder);
+    expect(sendPushMock).toHaveBeenCalledOnce();
+  });
+
+  it('does not replay a stale reminder when a device token is registered later', async () => {
+    prismaMock.attendanceSession.findFirst.mockResolvedValue(null);
+    prismaMock.notificationDelivery.findMany.mockResolvedValue([
+      {
+        id: 'old-delivery',
+        status: 'SKIPPED',
+        channel: 'PUSH',
+        notification: {
+          id: 'old-reminder',
+          event_type: reminder.type,
+          organization_id: 'org-a',
+          branch_id: 'branch-a',
+          entity_id: 'session-a',
+          title: reminder.title,
+          body: reminder.body,
+          data: {},
+          dedupe_key: 'old-key',
+        },
+        user: {
+          id: 'user-a',
+          status: 'ACTIVE',
+          fcm_token: 'token-a',
+          device_tokens: [],
+          notification_preferences: [],
+        },
+      },
+    ]);
+    await retryPendingPushDeliveriesForUser('user-a');
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(prismaMock.notificationDelivery.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ last_error_code: 'ATTENDANCE_REMINDER_RESOLVED' }),
+      }),
+    );
   });
 
   it('creates one in-app record and one delivery per enabled channel', async () => {

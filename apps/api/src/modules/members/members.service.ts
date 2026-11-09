@@ -6,6 +6,7 @@ import { prisma } from '../../lib/prisma';
 import { ConflictError, NotFoundError } from '../../lib/errors';
 import { findBranchRecipientUserIds, notify } from '../notifications/notifications.service';
 
+import { withOrganizationProfiles } from './member-profile.service';
 import type {
   ListMembersQuery,
   AssistedAdmissionInput,
@@ -34,12 +35,27 @@ export async function listMembers(
   }
 
   if (search) {
-    where.user = {
-      OR: [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ],
-    };
+    const localProfiles = await prisma.organizationMemberProfile.findMany({
+      where: {
+        organization_id,
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search, mode: 'insensitive' } },
+        ],
+      },
+      select: { user_id: true },
+    });
+    where.OR = [
+      {
+        user: {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+          ],
+        },
+      },
+      { user_id: { in: localProfiles.map((profile) => profile.user_id) } },
+    ];
   }
 
   const skip = (page - 1) * limit;
@@ -113,7 +129,7 @@ export async function listMembers(
     prisma.member.count({ where }),
   ]);
 
-  return { data, total, page, limit };
+  return { data: await withOrganizationProfiles(organization_id, data), total, page, limit };
 }
 
 export async function getMemberDetail(
@@ -201,7 +217,7 @@ export async function getMemberDetail(
     throw new NotFoundError('Member');
   }
 
-  return member;
+  return (await withOrganizationProfiles(organization_id, [member]))[0];
 }
 
 export async function suspendMember(
@@ -695,7 +711,7 @@ export async function listOrganizationMembers(organizationId: string, branchId?:
   }
 
   return {
-    data: members,
+    data: await withOrganizationProfiles(organizationId, members),
     meta: {
       total: members.length,
       page: 1,

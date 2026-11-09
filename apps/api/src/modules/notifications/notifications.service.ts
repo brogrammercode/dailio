@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { NotFoundError } from '../../lib/errors';
 import { cloudinary } from '../../lib/cloudinary';
+import { presentNotificationActors } from '../members/profile-presentation.service';
 
 import { type EmailAttachment, sendEmail, escapeHtml, isEmailConfigured } from './email.service';
 import { sendPush } from './push.service';
@@ -270,6 +271,11 @@ async function deliverNotification(
 
     if (delivery.status === 'SENT' || delivery.status === 'SKIPPED') continue;
 
+    if (!(await attendanceReminderIsCurrent(event, user.id))) {
+      await markDelivery(delivery.id, 'SKIPPED', { errorCode: 'ATTENDANCE_REMINDER_RESOLVED' });
+      continue;
+    }
+
     const preference = user.notification_preferences.find(
       (item) => item.event_type === event.type && item.channel === channel,
     );
@@ -496,6 +502,37 @@ export async function retryPendingPushDeliveriesForUser(userId: string, limit = 
   return { scanned: deliveries.length, retried };
 }
 
+async function attendanceReminderIsCurrent(event: NotificationEvent, userId: string) {
+  if (event.type !== 'ATTENDANCE_MISSING_CLOCK_OUT') return true;
+  const sessionId = event.entityId ?? event.data?.session_id;
+  if (!sessionId || !event.organizationId || !event.branchId) return false;
+  const session = await prisma.attendanceSession.findFirst({
+    where: {
+      id: sessionId,
+      organization_id: event.organizationId,
+      branch_id: event.branchId,
+      state: 'OPEN',
+      clock_out_at: null,
+      member: {
+        user_id: userId,
+        status: 'ACTIVE',
+        organization_id: event.organizationId,
+        branch_id: event.branchId,
+      },
+      branch: { status: 'ACTIVE', organization: { status: 'ACTIVE' } },
+    },
+    select: { clock_in_at: true, policy_snapshot: true },
+  });
+  if (!session) return false;
+  const policy = session.policy_snapshot as Record<string, unknown> | null;
+  const maxHours = Number(policy?.max_open_session_hours ?? 24);
+  return (
+    Number.isFinite(maxHours) &&
+    maxHours > 0 &&
+    Date.now() - session.clock_in_at.getTime() > maxHours * 60 * 60 * 1000
+  );
+}
+
 export async function notify(event: NotificationEvent) {
   const uniqueRecipientIds = [...new Set(event.recipientUserIds)];
   if (uniqueRecipientIds.length === 0) return { created: 0, skipped: 0 };
@@ -553,6 +590,7 @@ export async function notify(event: NotificationEvent) {
   // slow SMTP/FCM provider cannot delay or prevent the inbox notification for
   // later recipients.
   const notificationRows = await mapWithConcurrency(users, 8, async (user) => {
+    if (!(await attendanceReminderIsCurrent(notificationEvent, user.id))) return null;
     const dedupeKey = deliveryDedupeKey(notificationEvent, user.id);
     const notification = await prisma.notification.upsert({
       where: { dedupe_key: dedupeKey },
@@ -576,12 +614,13 @@ export async function notify(event: NotificationEvent) {
     return { notification, user };
   });
 
-  created = notificationRows.length;
-  await mapWithConcurrency(notificationRows, 4, ({ notification, user }) =>
+  const eligibleRows = notificationRows.filter((row) => row !== null);
+  created = eligibleRows.length;
+  await mapWithConcurrency(eligibleRows, 4, ({ notification, user }) =>
     deliverNotification(notificationEvent, notification.id, user),
   );
 
-  skipped = uniqueRecipientIds.length - users.length;
+  skipped = uniqueRecipientIds.length - eligibleRows.length;
   return { created, skipped };
 }
 
@@ -614,7 +653,7 @@ export async function listNotifications(
   const hasMore = notifications.length > options.limit;
   const data = hasMore ? notifications.slice(0, options.limit) : notifications;
   return {
-    data,
+    data: await presentNotificationActors(data),
     next_cursor: hasMore && data.length > 0 ? data[data.length - 1].id : null,
   };
 }

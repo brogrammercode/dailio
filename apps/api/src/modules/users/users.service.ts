@@ -1,3 +1,4 @@
+import { imageUploadTransformation } from '../../lib/image-upload-policy';
 import { prisma } from '../../lib/prisma';
 import { NotFoundError } from '../../lib/errors';
 import { cloudinary } from '../../lib/cloudinary';
@@ -27,7 +28,9 @@ export async function updateProfile(user_id: string, data: UpdateProfileInput) {
       folder: 'avatars',
       public_id: user_id,
       overwrite: true,
-      transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face' }],
+      transformation: [
+        { ...imageUploadTransformation, width: 400, height: 400, crop: 'fill', gravity: 'face' },
+      ],
     });
     updateData.avatar_url = uploadResult.secure_url;
   }

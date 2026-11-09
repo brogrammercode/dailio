@@ -10,6 +10,7 @@ import { requestIdMiddleware } from './middleware/requestId';
 import { defaultRateLimiter } from './middleware/rateLimiter';
 import { apiRouter } from './routes';
 import { httpLogMiddleware, httpRequestBodyLogMiddleware } from './lib/httpLog';
+import { organizationProfilePresentation } from './middleware/organizationProfilePresentation';
 
 export function createApp(): Express {
   const app = express();
@@ -42,7 +43,7 @@ export function createApp(): Express {
   app.use('/api', defaultRateLimiter);
 
   // API routes
-  app.use('/api/v1', apiRouter);
+  app.use('/api/v1', organizationProfilePresentation, apiRouter);
 
   // API docs
   app.use('/api/docs', docsRouter);

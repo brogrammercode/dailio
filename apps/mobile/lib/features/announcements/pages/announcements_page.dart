@@ -22,6 +22,7 @@ import '../../../core/widgets/dailio_member_profile_sheet.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../feeds/pages/feed_pages.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/media/image_upload_policy.dart';
 
 class AnnouncementsPage extends StatefulWidget {
   const AnnouncementsPage({super.key});
@@ -1072,7 +1073,7 @@ class _AnnouncementComposerPageState extends State<AnnouncementComposerPage> {
   Future<void> _addImage({bool slide = false}) async {
     final file = await ImagePicker().pickImage(
         source: ImageSource.gallery,
-        imageQuality: 78,
+        imageQuality: imageUploadQuality,
         maxWidth: 1600.r,
         maxHeight: 1600.r);
     if (file == null || !mounted) return;

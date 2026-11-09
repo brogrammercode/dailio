@@ -54,7 +54,17 @@ class JsonCacheRecord {
 class JsonCacheStore extends ChangeNotifier {
   // Bump this when a read model gains fields or its privacy/ownership shape
   // changes. Old files are ignored and rebuilt from the server.
-  static const int currentVersion = 2;
+  static const int currentVersion = 4;
+  int _epoch = 0;
+  int _profileRevision = 0;
+  int get profileRevision => _profileRevision;
+
+  Future<void> invalidateProfiles() async {
+    await clearAll();
+    _profileRevision++;
+    notifyListeners();
+  }
+
   static const String _directoryName = 'dailio_json_cache';
 
   final Set<String> _refreshing = <String>{};
@@ -156,8 +166,11 @@ class JsonCacheStore extends ChangeNotifier {
       return value;
     }
 
+    final epoch = _epoch;
     final payload = await fetch();
-    await write(key, cacheTransform?.call(payload) ?? payload, scope: scope);
+    if (epoch == _epoch) {
+      await write(key, cacheTransform?.call(payload) ?? payload, scope: scope);
+    }
     return decode(payload);
   }
 
@@ -171,13 +184,15 @@ class JsonCacheStore extends ChangeNotifier {
   }) {
     if (!_refreshing.add(key)) return;
     final refreshVersion = _invalidationVersions[key] ?? 0;
+    final epoch = _epoch;
     final refreshScopeVersion = _scopeInvalidationVersions[scope] ?? 0;
     unawaited(() async {
       try {
         final payload = await fetch();
         // A mutation may have invalidated this key while the refresh was in
         // flight. Never let that old response recreate stale JSON on disk.
-        if ((_invalidationVersions[key] ?? 0) == refreshVersion &&
+        if (epoch == _epoch &&
+            (_invalidationVersions[key] ?? 0) == refreshVersion &&
             (_scopeInvalidationVersions[scope] ?? 0) == refreshScopeVersion) {
           await write(key, cacheTransform?.call(payload) ?? payload,
               scope: scope);
@@ -226,6 +241,7 @@ class JsonCacheStore extends ChangeNotifier {
   }
 
   Future<void> clearAll() async {
+    _epoch++;
     try {
       final directory = await _directory();
       if (await directory.exists()) await directory.delete(recursive: true);

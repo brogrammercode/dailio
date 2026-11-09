@@ -255,6 +255,7 @@ model User {
   updated_at              DateTime   @updatedAt
 
   members                  Member[]
+  organization_profiles    OrganizationMemberProfile[]
   audit_logs               AuditLog[]               @relation("AuditActor")
   notifications            Notification[]
   notification_deliveries  NotificationDelivery[]
@@ -269,6 +270,19 @@ model User {
   joinRequests             JoinRequest[]
 
   @@map("users")
+}
+
+model OrganizationMemberProfile {
+  organization_id String
+  user_id String
+  name String?
+  phone String?
+  avatar_url String?
+  updated_at DateTime @updatedAt
+  organization Organization @relation(fields: [organization_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+  @@id([organization_id, user_id])
+  @@map("organization_member_profiles")
 }
 
 model Member {
@@ -349,6 +363,7 @@ model Organization {
   branches               Branch[]
   holidays               Holiday[]
   organization_members   Member[]
+  member_profiles        OrganizationMemberProfile[]
   roles                  Role[]
   plans                  Plan[]
   feature_flags          FeatureFlag[]

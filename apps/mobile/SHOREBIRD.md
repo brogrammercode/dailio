@@ -43,9 +43,21 @@ Patches must not contain native Android/iOS changes. Native changes require a
 new store release. iOS releases and patches require macOS/Xcode and the normal
 Apple signing setup.
 
-The current Android Gradle file still uses the debug signing key for release
-builds. Configure the real upload/release signing credentials before publishing
-to Google Play; Shorebird does not make debug-signed artifacts production-ready.
+Android release builds load the release keystore configuration from
+`android/key.properties`. Keep that file, keystores and passwords out of Git.
+
+### Source versions and patch targets
+
+The source version is now `0.1.22+24`. A patch targets an already installed
+release and does not change that release's Android version name/code. For the
+current Android base release, use:
+
+```powershell
+shorebird patch --platforms android --release-version 0.1.21+23 --build-name 0.1.21 --build-number 23 --track stable
+```
+
+The source version `0.1.22+24` is reserved for the next full release. Preserve
+the target release's bundled assets and native configuration when patching.
 
 ## GitHub Actions
 

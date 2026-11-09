@@ -26,6 +26,7 @@ import '../controllers/fees_repository.dart';
 import '../models/fee_models.dart';
 import '../../payments/pages/payment_detail_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/media/image_upload_policy.dart';
 
 class MemberSubscriptionDetailPage extends StatefulWidget {
   final String memberId;
@@ -1497,8 +1498,8 @@ class _MemberSubscriptionDetailPageState
     FeesRepository repository,
     String branchId,
   ) async {
-    final picked = await ImagePicker()
-        .pickImage(source: ImageSource.gallery, imageQuality: 85);
+    final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery, imageQuality: imageUploadQuality);
     if (picked == null) return null;
     final file = File(picked.path);
     final sizeBytes = await file.length();

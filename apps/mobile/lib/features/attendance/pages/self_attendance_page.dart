@@ -22,6 +22,7 @@ import '../attendance_error.dart';
 import '../attendance_ui.dart';
 import 'attendance_detail_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/media/image_upload_policy.dart';
 
 class SelfAttendancePage extends StatefulWidget {
   const SelfAttendancePage({super.key});
@@ -159,6 +160,7 @@ class _SelfAttendancePageState extends State<SelfAttendancePage>
     if (!required) return {};
     final file = await ImagePicker().pickImage(
       source: ImageSource.camera,
+      imageQuality: imageUploadQuality,
       preferredCameraDevice: CameraDevice.front,
     );
     if (file == null) {

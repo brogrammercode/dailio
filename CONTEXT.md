@@ -521,6 +521,10 @@ The Organization module is the primary owner/admin configuration surface. It use
 
 ### 7.2 Screen O2 — Edit Profile Page
 
+Organization profile changes are reflected throughout scoped app read models, including attendance, meals, payments, feeds, announcements and notification actor presentation. A shared API presentation layer applies only fields already selected by the authorized endpoint; it preserves immutable snapshots and user-authored JSON. Saving a member profile invalidates cached read models and refreshes mounted main tabs. Older in-flight cache refreshes must not restore a pre-edit identity. Global authentication identity and other organizations remain separate.
+
+Owners and operators with `ORG_UPDATE` plus branch-wide member-update permission may use **Edit profile** in the member popup in place of Copy link. Organization-wide authorization is required because these profile fields are shared across the organization's branches. The same editor loads the selected member and edits name, phone and photo in an organization-scoped profile override. Global Google identity and other organizations' profiles are unaffected. Member list/detail/search and popup reads use these overrides. Notification preferences remain self-only. Legacy `MEMBER_UPDATE_ALL`/`MEMBER_UPDATE` permissions remain supported alongside `MEMBER_UPDATE_BRANCH`.
+
 **Purpose:** Update the current user's organization/member profile fields.
 
 **Fields:**
@@ -913,6 +917,8 @@ Multiple attendance policies will be managed centrally in Settings and assigned 
 Attendance session stores the policy version used.
 
 ### 10.8 Attendance business rules
+
+- Missing-clock-out reminders apply only to active branch memberships with an open session and no clock-out timestamp beyond a finite, positive snapshotted maximum. Revalidate the recipient, organization, branch and session before inbox creation and every external delivery/retry; resolved or inactive targets are skipped. Preserve historical attendance and notification records.
 
 - One open session per branch membership unless a later multi-session mode is explicitly added.
 - Server timestamp is authoritative; client captured time is diagnostic/offline metadata.
@@ -1776,6 +1782,8 @@ Salary structure and payslips are highly sensitive:
 
 ### 20.4 Media
 
+- Image upload encoder quality is centrally set to 60/100 across mobile and web, including profile photos, logos, attendance selfies, payment images, announcement images and feed media. API-managed image uploads use the same incoming quality setting. Existing resize/crop limits and private-media protection remain enforced. PDF evidence is preserved as a document rather than recompressed as an image.
+
 - Compress selfies/evidence reasonably while retaining verification quality.
 - Secure short-lived upload flow/object service.
 - Avoid storing image blobs directly in relational database.
@@ -2407,6 +2415,10 @@ A feature is complete only when all applicable items are true:
 | 2026-10-05 | Meal attendance uses the shared compact attendance-row contract: circular avatar count badge, member/title badge, one-sentence last-punch subtitle, and a right-side date/today summary. Meal configuration uses the shared picker bottom sheet, consistent field spacing, circular settings icons, and the same compact visual language on web. | Keeps meal operations recognizable as attendance/settings instead of introducing a separate visual system. |
 | 2026-10-05 | Meal entitlements are operational access rules: changing a plan's meal inclusion synchronizes the meal-entitlement portion of active, upcoming, paused, and draft subscription snapshots while preserving immutable financial terms, dates, and payment history. | Ensures a saved meal entitlement is usable by current members without rewriting the subscription's financial agreement. |
 | 2026-10-16 | Explicit mobile Google login resets the previous account selection, and logout clears both the Dailio and Google selected-account sessions; normal backend session restoration remains automatic. | Fixes the reported inability to sign in with another account while keeping cancellation and logout cleanup safe. |
+| 2026-11-09 | Member popup editing reuses the existing editor with organization-only name, phone and photo overrides; missing-clock-out reminders exclude inactive memberships and revalidate state before delivery. | Confirmed organization scope; daily reminders were traced to a historical Barari session attached to an inactive membership. |
+| 2026-11-09 | Apply organization profile presentation across all scoped app pages and notification actors, and invalidate mounted tabs/cached identities after profile saves. | Fixes edited member photos and names appearing only in the member popup while other pages kept the original user profile. |
+| 2026-11-09 | Flattened fee-list member identities are resolved through organization-scoped membership IDs, in addition to nested user identities. Cache version 4 invalidates earlier list presentations. | Verified the connected debug phone's previously stale fee row reloads with the saved name and photo after applying the fix. |
+| 2026-11-09 | Set image upload quality to 60/100 across mobile, web and API-managed image uploads. Preserve document/PDF evidence. | User requested a consistent global image upload quality of 60%. |
 
 ---
 

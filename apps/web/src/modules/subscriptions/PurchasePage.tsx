@@ -3,6 +3,7 @@ import { Amount } from "../../components/data-display/Amount";
 import { StateCard } from "../../components/feedback/StateCard";
 import { safeMessage } from "../../lib/errors";
 import { newIdempotencyKey } from "../../lib/idempotency";
+import { prepareImageUpload } from "../../lib/image-upload";
 import { formatMinorInput, parseMinorInput } from "../../lib/money";
 import {
   createPaymentRequest,
@@ -92,16 +93,17 @@ export function PurchasePage({
         note?: string;
       }>;
       if (file) {
+        const uploadFile = await prepareImageUpload(file);
         const signature = await createEvidenceUploadSignature(
           invite.branch.id,
-          file.name,
-          file.type,
+          uploadFile.name,
+          uploadFile.type,
         );
-        await uploadToCloudinary(signature, file);
+        await uploadToCloudinary(signature, uploadFile);
         evidence.push({
           storage_key: String(signature.storage_key ?? ""),
-          content_type: file.type,
-          size_bytes: file.size,
+          content_type: uploadFile.type,
+          size_bytes: uploadFile.size,
           reference: reference || undefined,
           note: note || undefined,
         });

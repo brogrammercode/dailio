@@ -14,6 +14,7 @@ import '../../../core/widgets/dailio_simple_app_bar.dart';
 import '../../../core/widgets/dailio_picker_field.dart';
 import '../controllers/organization_repository.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/media/image_upload_policy.dart';
 
 class EditOrganizationPage extends StatefulWidget {
   const EditOrganizationPage({super.key});
@@ -135,7 +136,7 @@ class _EditOrganizationPageState extends State<EditOrganizationPage> {
       source: ImageSource.gallery,
       maxWidth: 800.r,
       maxHeight: 800.r,
-      imageQuality: 80,
+      imageQuality: imageUploadQuality,
     );
     if (picked != null) {
       setState(() => _pickedLogo = File(picked.path));

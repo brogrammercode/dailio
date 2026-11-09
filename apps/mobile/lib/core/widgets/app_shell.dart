@@ -2,6 +2,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../storage/preferences_storage.dart';
+import '../storage/json_cache_store.dart';
 import '../theme/app_colors.dart';
 import 'app_shell_toast.dart';
 import 'dailio_nav_badges.dart';
@@ -69,9 +70,11 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final profileRevision =
+        context.select<JsonCacheStore, int>((cache) => cache.profileRevision);
     final preferences = context.watch<PreferencesStorage>();
     final contextKey =
-        '${preferences.activeOrganizationId}:${preferences.activeBranchId}';
+        '${preferences.activeOrganizationId}:${preferences.activeBranchId}:$profileRevision';
     final pages = [
       AnnouncementsPage(key: ValueKey('announcements-$contextKey')),
       AttendancePage(key: ValueKey('attendance-$contextKey')),
